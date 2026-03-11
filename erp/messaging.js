@@ -1,34 +1,23 @@
-function subscribeToMessages() {
-
-if(!window.supa) return;
+function subscribeToMessages(){
 
 supa
-.channel('messages-channel')
+.channel("messages")
 .on(
-'postgres_changes',
+"postgres_changes",
 {
-event: 'INSERT',
-schema: 'public',
-table: 'messages'
+event:"INSERT",
+schema:"public",
+table:"messages"
 },
-(payload) => {
+payload=>{
 
-if(!window.db) window.db = {};
-if(!Array.isArray(db.messages)) db.messages = [];
+db.messages.push(payload.new)
 
-db.messages.push(payload.new);
-
-renderMessages();
-
-const tab = document.getElementById("messagesTab");
-
-if(tab && tab.classList.contains("hidden")){
-console.log("New message received while tab closed");
-}
+renderMessages()
 
 }
 )
-.subscribe();
+.subscribe()
 
 }
 
@@ -56,59 +45,61 @@ renderMessages()
 }
 
 
-async function sendMessage(){
-
-const input = document.getElementById("messageInput")
-
-if(!input || !window.currentUser) return
-
-const text = input.value.trim()
-
-if(!text) return
-
-const {error} = await supa
-.from("messages")
-.insert({
-sender_id: currentUser.id,
-body: text
-})
-
-if(error){
-console.error(error)
-alert("Message failed")
-return
-}
-
-input.value=""
-
-await loadMessages()
-
-}
-
-
 function renderMessages(){
 
 const box = document.getElementById("messages")
 
 if(!box) return
-if(!window.db) return
-if(!Array.isArray(db.messages)) return
 
-box.innerHTML = ""
+box.innerHTML=""
 
-db.messages.forEach(m=>{
+db.messages.forEach(msg=>{
 
-const div = document.createElement("div")
-div.className = "message"
+const div=document.createElement("div")
 
-div.innerHTML = `
-<b>${m.sender_id}</b>
-<p>${m.body}</p>
+div.className="message"
+
+div.innerHTML=`
+<b>${msg.sender}</b>
+<p>${msg.body}</p>
 `
 
 box.appendChild(div)
 
 })
+
+}
+
+async function loadMessages(){
+
+const { data, error } = await supa
+.from("messages")
+.select("*")
+.order("created_at",{ascending:true})
+
+if(error){
+console.error(error)
+return
+}
+
+db.messages = data
+
+renderMessages()
+
+}
+
+async function sendMessage(text){
+
+if(!text) return
+
+await supa
+.from("messages")
+.insert([{
+sender: currentUser.id,
+body: text
+}])
+
+loadMessages()
 
 }
 
@@ -140,16 +131,16 @@ if(box) box.innerHTML=""
 }
 
 
-function showTypingIndicator(name){
+function showTypingIndicator(){
 
-const el = document.getElementById("typingIndicator")
+const el = document.getElementById("typing")
 
 if(!el) return
 
-el.innerText = name + " typing..."
+el.style.display="block"
 
 setTimeout(()=>{
-el.innerText=""
+el.style.display="none"
 },2000)
 
 }
