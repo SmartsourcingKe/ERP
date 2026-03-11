@@ -90,19 +90,20 @@ function renderMessages(){
 
 const box = document.getElementById("messages")
 
-if(!box || !window.db || !Array.isArray(db.messages)) return
+if(!box) return
+if(!window.db) return
+if(!Array.isArray(db.messages)) return
 
-box.innerHTML=""
+box.innerHTML = ""
 
 db.messages.forEach(m=>{
 
 const div = document.createElement("div")
+div.className = "message"
 
-div.className="message"
-
-div.innerHTML=`
-<b>${m.sender_id}</b><br>
-${m.body}
+div.innerHTML = `
+<b>${m.sender_id}</b>
+<p>${m.body}</p>
 `
 
 box.appendChild(div)

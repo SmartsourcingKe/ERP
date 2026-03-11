@@ -208,3 +208,18 @@ staff.full_name + "_Payslip_" + month + ".pdf"
 );
 
 }
+
+function downloadPayslip(employee){
+
+const { jsPDF } = window.jspdf
+
+const doc = new jsPDF()
+
+doc.text("Employee Payslip",20,20)
+
+doc.text("Name: " + employee.name,20,40)
+doc.text("Salary: " + employee.salary,20,50)
+
+doc.save("payslip-"+employee.name+".pdf")
+
+}

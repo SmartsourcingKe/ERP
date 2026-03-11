@@ -93,3 +93,27 @@ return;
 await sync();
 
 }
+
+async function deleteRetailer(id){
+
+if(!window.supa) return
+
+const confirmDelete = confirm("Delete retailer?")
+
+if(!confirmDelete) return
+
+const {error} = await supa
+.from("retailers")
+.delete()
+.eq("id", id)
+
+if(error){
+console.error(error)
+alert("Failed to delete retailer")
+return
+}
+
+alert("Retailer deleted")
+
+loadRetailers()
+}

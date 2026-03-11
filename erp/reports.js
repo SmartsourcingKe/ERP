@@ -243,3 +243,22 @@ y+=10;
 doc.save("report.pdf");
 
 }
+
+function exportPDF(title,data){
+
+const { jsPDF } = window.jspdf
+
+const doc = new jsPDF()
+
+doc.text(title,20,20)
+
+let y = 40
+
+data.forEach(row=>{
+doc.text(JSON.stringify(row),20,y)
+y += 10
+})
+
+doc.save(title+".pdf")
+
+}

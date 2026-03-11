@@ -99,3 +99,27 @@ if(logoutBtn){
   });
 }
 
+window.db = {
+users: [],
+employees: [],
+products: [],
+retailers: [],
+orders: [],
+messages: []
+}
+
+window.currentUser = null
+
+console.log("Core system ready")
+
+window.addEventListener("load",()=>{
+
+if(typeof subscribeToMessages === "function"){
+subscribeToMessages()
+}
+
+if(typeof loadMessages === "function"){
+loadMessages()
+}
+
+})
