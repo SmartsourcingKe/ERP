@@ -1,5 +1,3 @@
-monthlyTrendChart = null;
-
 function exportPerformancePDF(){
 
 if(!window.db || !Array.isArray(db.users)) return;
