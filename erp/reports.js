@@ -1,5 +1,4 @@
-let monthlyTrendChart = null;
-
+monthlyTrendChart = null;
 
 function exportPerformancePDF(){
 
