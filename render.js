@@ -105,29 +105,34 @@ function renderProfitChart(labels, data) {
     const canvas = document.getElementById("profitChart");
     if (!canvas) return;
 
-    // Safety: If window.profitChart exists but isn't a real Chart object yet, or is missing datasets
-    if (window.profitChart && window.profitChart.data && window.profitChart.data.datasets) {
-        window.profitChart.data.labels = labels;
-        window.profitChart.data.datasets[0].data = data;
-        window.profitChart.update();
-    } else {
-        // Destroy existing instance if it's corrupted to start fresh
-        if (window.profitChart && typeof window.profitChart.destroy === 'function') {
-            window.profitChart.destroy();
-        }
-        
-        window.profitChart = new Chart(canvas, {
+    // 1. If a chart instance exists, destroy it completely before making a new one
+    if (window.myProfitChart instanceof Chart) {
+        window.myProfitChart.destroy();
+    }
+
+    // 2. Safety check for data: Chart.js needs arrays
+    const safeLabels = Array.isArray(labels) ? labels : [];
+    const safeData = Array.isArray(data) ? data : [];
+
+    try {
+        // 3. Create the new chart and store it in a specific global variable
+        window.myProfitChart = new Chart(canvas, {
             type: "bar",
             data: {
-                labels: labels,
+                labels: safeLabels,
                 datasets: [{
                     label: "Revenue (KES)",
-                    data: data,
+                    data: safeData,
                     backgroundColor: "#3498db"
                 }]
             },
-            options: { responsive: true, maintainAspectRatio: false }
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false 
+            }
         });
+    } catch (err) {
+        console.error("Chart Creation Error:", err);
     }
 }
 
