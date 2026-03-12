@@ -6,10 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmartsourcingKe ERP</title>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
     <style>
         /* CSS kept exactly as provided for design consistency */
         :root { --primary:#1f2d3d; --green:#27ae60; --blue:#3498db; --red:#e74c3c; --bg:#f4f6f9; }
@@ -244,30 +240,22 @@
 </div>
 
 <script>
-    // Initializing state
-    let salesChart = null;
-    let currentUser = null;
-    let cart = [];
-    let corporateCart = [];
-    let db = {
-        users:[], products:[], retailers:[], orders:[], order_items:[],
-        schools:[], corporate_orders:[], corporate_order_items:[],
-        payroll:[], branding:null, messages:[]
-    };
-    let profitChart = null;
-    let monthlyTrendChart = null;
-
-    document.addEventListener("DOMContentLoaded", async () => {
+      document.addEventListener("DOMContentLoaded", async () => {
         // This will be defined in auth.js
         if (typeof restoreSession === "function") await restoreSession();
     });
 </script>
 
-<script src="supabase.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script src="supabase.js"></script> 
+
 <script src="core.js"></script>
-<script src="auth.js"></script>
 <script src="sync.js"></script>
 <script src="ui.js"></script>
+
 <script src="branding.js"></script>
 <script src="products.js"></script>
 <script src="retailers.js"></script>
@@ -277,7 +265,12 @@
 <script src="payroll.js"></script>
 <script src="messaging.js"></script>
 <script src="reports.js"></script>
+
+<script src="app.js"></script>
+<script src="auth.js"></script>
+
 <script src="render.js"></script>
+
 
 </body>
 </html>

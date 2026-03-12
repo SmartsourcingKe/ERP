@@ -1,6 +1,7 @@
 // Keep chart instances in the global scope to allow updates
-let profitChart = null;
-let salesChart = null;
+window.monthlyTrendChart = window.monthlyTrendChart || null;
+window.profitChart = window.profitChart || null;
+window.salesChart = window.salesChart || null;
 
 /**
  * MASTER RENDER DISPATCHER

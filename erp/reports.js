@@ -1,5 +1,7 @@
 // Global chart instance
-let monthlyTrendChart = null;
+window.monthlyTrendChart = window.monthlyTrendChart || null;
+window.profitChart = window.profitChart || null;
+window.salesChart = window.salesChart || null;
 
 /**
  * RENDER MONTHLY FINANCE TABLE & CHART
@@ -148,6 +150,18 @@ function exportPerformancePDF() {
 
         if (y > 270) { doc.addPage(); y = 20; }
     });
+
+// Inside exportPerformancePDF loop:
+const sales = (db.orders || [])
+    .filter(o => o.created_by === user.id && o.status === "disbursed")
+    .reduce((sum, o) => sum + Number(o.total || 0), 0);
+
+// Use a conditional to highlight top performers in the PDF
+if (sales > 100000) {
+    doc.setTextColor(39, 174, 96); // Green for high performers
+} else {
+    doc.setTextColor(0, 0, 0); // Black for others
+}
 
     doc.save("Staff_Performance.pdf");
 }
