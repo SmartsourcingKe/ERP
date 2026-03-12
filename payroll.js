@@ -1,210 +1,152 @@
-async function generatePayroll(){
+/**
+ * GENERATE PAYROLL
+ * Calculates basic salary + commission based on disbursed orders for the current month.
+ */
+async function generatePayroll() {
+    if (!window.db?.users || !window.supa) return;
 
-if(!window.db || !Array.isArray(db.users)) return;
-if(!window.supa) return;
+    const month = new Date().toISOString().slice(0, 7); // YYYY-MM
+    if (!confirm(`Generate payroll for ${month}? Existing data for this month will be overwritten.`)) return;
 
-const month = new Date().toISOString().slice(0,7);
+    try {
+        // 1. Clear existing payroll for this month to avoid duplicates
+        await supa.from("payroll").delete().eq("payroll_month", month);
 
-// delete existing payroll for this month
-await supa
-.from("payroll")
-.delete()
-.eq("payroll_month", month);
+        const staffMembers = db.users.filter(u => u.role === "staff");
 
-for(const staff of db.users){
+        for (const staff of staffMembers) {
+            // Find all disbursed orders created by this staff member
+            const staffOrders = (db.orders || []).filter(o => 
+                o.created_by === staff.id && o.status === "disbursed"
+            );
 
-if(staff.role !== "staff") continue;
+            let totalCompanyFeeEarned = 0;
 
-const staffOrders =
-(db.orders || []).filter(o =>
-o.created_by === staff.id &&
-o.status === "disbursed"
-);
+            // Calculate fee earned from each item in those orders
+            staffOrders.forEach(order => {
+                const items = (db.order_items || []).filter(i => i.order_id === order.id);
+                items.forEach(item => {
+                    const product = (db.products || []).find(p => p.id === item.product_id);
+                    if (product) {
+                        totalCompanyFeeEarned += (Number(product.company_fee) || 0) * (item.quantity || 0);
+                    }
+                });
+            });
 
-let totalFee = 0;
+            const commission = (totalCompanyFeeEarned * (Number(staff.commission_rate) || 0)) / 100;
+            const basic = Number(staff.basic_salary) || 0;
+            const totalPay = basic + commission;
 
-for(const order of staffOrders){
+            // 2. Insert into database
+            await supa.from("payroll").insert([{
+                staff_id: staff.id,
+                basic_salary: basic,
+                commission: commission,
+                total: totalPay,
+                payroll_month: month
+            }]);
+        }
 
-const items =
-(db.order_items || []).filter(i=>i.order_id===order.id);
+        await sync();
+        alert(`Payroll successfully generated for ${month}`);
 
-for(const item of items){
-
-const product =
-(db.products || []).find(p=>p.id===item.product_id);
-
-if(product){
-totalFee +=
-(product.company_fee || 0) * item.quantity;
-}
-}
-}
-
-const commission =
-(totalFee * Number(staff.commission_rate || 0))/100;
-
-const totalPay =
-Number(staff.basic_salary||0) + commission;
-
-await supa.from("payroll").insert([{
-staff_id: staff.id,
-basic_salary: Number(staff.basic_salary || 0),
-commission: commission,
-total: totalPay,
-payroll_month: month
-}]);
-
-}
-
-if(typeof sync === "function"){
-await sync();
+    } catch (err) {
+        console.error("Payroll generation failed:", err);
+        alert("Error generating payroll: " + err.message);
+    }
 }
 
-if(typeof renderPayroll === "function"){
-renderPayroll();
+/**
+ * RENDER PAYROLL TABLE
+ */
+function renderPayroll() {
+    const tableBody = document.getElementById("payrollBody");
+    if (!tableBody || !db.payroll) return;
+
+    const currentMonth = new Date().toISOString().slice(0, 7);
+
+    tableBody.innerHTML = db.payroll
+        .filter(p => p.payroll_month === currentMonth)
+        .map(p => {
+            const staff = db.users.find(u => u.id === p.staff_id);
+            return `
+                <tr>
+                    <td>${staff ? staff.full_name : "Unknown Staff"}</td>
+                    <td>${Number(p.basic_salary).toLocaleString()}</td>
+                    <td>${Number(p.commission).toLocaleString()}</td>
+                    <td style="font-weight:bold">${Number(p.total).toLocaleString()}</td>
+                    <td>
+                        <button class="btn btn-blue" onclick="downloadPayslip('${p.staff_id}','${p.payroll_month}')">
+                            Payslip
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join("");
 }
 
-alert("Payroll generated for " + month);
-}
+/**
+ * DOWNLOAD INDIVIDUAL PAYSLIP (PDF)
+ */
+async function downloadPayslip(staffId, month) {
+    const record = db.payroll.find(p => p.staff_id === staffId && p.payroll_month === month);
+    const staff = db.users.find(u => u.id === staffId);
+    if (!record || !staff) return alert("Record not found");
 
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
 
+    // Design Header
+    doc.setFillColor(31, 45, 61);
+    doc.rect(0, 0, 210, 40, "F");
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(22);
+    doc.text(db.branding?.company_name || "Company ERP", 20, 25);
+    
+    doc.setFontSize(10);
+    doc.text("OFFICIAL PAYSLIP - " + month, 150, 25);
 
-function renderPayroll(){
+    // Body
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(12);
+    let y = 60;
 
-if(!window.db || !Array.isArray(db.payroll)) return;
+    doc.setFont(undefined, "bold");
+    doc.text("EMPLOYEE DETAILS", 20, y);
+    doc.setFont(undefined, "normal");
+    y += 10;
+    doc.text(`Name: ${staff.full_name}`, 20, y);
+    doc.text(`Staff ID: ${String(staff.id).slice(0,8)}`, 120, y);
+    y += 8;
+    doc.text(`Role: ${staff.role}`, 20, y);
+    y += 20;
 
-const payrollBody = document.getElementById("payrollBody");
-if(!payrollBody) return;
+    // Financial Table
+    doc.line(20, y, 190, y);
+    y += 10;
+    doc.text("Description", 20, y);
+    doc.text("Amount (KES)", 150, y);
+    y += 5;
+    doc.line(20, y, 190, y);
+    
+    y += 10;
+    doc.text("Basic Salary", 20, y);
+    doc.text(Number(record.basic_salary).toLocaleString(), 150, y);
+    
+    y += 10;
+    doc.text("Commission Earned", 20, y);
+    doc.text(Number(record.commission).toLocaleString(), 150, y);
+    
+    y += 15;
+    doc.setFont(undefined, "bold");
+    doc.text("NET PAYABLE", 20, y);
+    doc.text(Number(record.total).toLocaleString(), 150, y);
+    
+    y += 40;
+    doc.setFontSize(8);
+    doc.setFont(undefined, "italic");
+    doc.text("This is a computer generated document and does not require a signature.", 105, y, {align:"center"});
 
-const month =
-new Date().toISOString().slice(0,7);
-
-const monthlyPayroll =
-db.payroll.filter(p=>p.payroll_month===month);
-
-payrollBody.innerHTML =
-monthlyPayroll.map(p=>{
-
-const staff =
-(db.users || []).find(u=>u.id===p.staff_id);
-
-return `
-<tr>
-<td>${staff ? staff.full_name : "-"}</td>
-<td>${p.basic_salary}</td>
-<td>${p.commission}</td>
-<td>${p.total}</td>
-<td>
-<button class="btn btn-green"
-onclick="downloadPayslip('${p.staff_id}','${p.payroll_month}')">
-Payslip
-</button>
-</td>
-</tr>
-`;
-
-}).join("");
-
-}
-
-
-
-function exportPayrollPDF(){
-
-if(!window.db || !Array.isArray(db.payroll) || db.payroll.length===0)
-return alert("No payroll data");
-
-const { jsPDF } = window.jspdf;
-const doc = new jsPDF();
-
-doc.text("Payroll Report", 20, 20);
-
-let y = 30;
-
-db.payroll.forEach(p=>{
-
-const staff =
-(db.users || []).find(u=>u.id===p.staff_id);
-
-doc.text(
-`${staff ? staff.full_name : "-"} | Basic: ${p.basic_salary} | Commission: ${p.commission} | Total: ${p.total}`,
-20,
-y
-);
-
-y += 10;
-
-});
-
-doc.save("payroll.pdf");
-
-}
-
-
-
-function downloadPayslip(staffId, month){
-
-if(!window.db) return;
-
-const payroll =
-(db.payroll || []).find(p=>
-p.staff_id===staffId &&
-p.payroll_month===month
-);
-
-if(!payroll) return;
-
-const staff =
-(db.users || []).find(u=>u.id===staffId);
-
-if(!staff) return;
-
-const { jsPDF } = window.jspdf;
-const doc = new jsPDF();
-
-let y = 20;
-
-if(db.branding?.logo_url){
-doc.addImage(
-db.branding.logo_url,
-"JPEG",
-80,
-10,
-50,
-20
-);
-y += 25;
-}
-
-doc.setFontSize(16);
-doc.text("PAYSLIP", 85, y);
-y += 15;
-
-doc.setFontSize(12);
-
-doc.text("Employee Name: " + staff.full_name, 20, y);
-y += 8;
-
-doc.text("Role: " + staff.role, 20, y);
-y += 8;
-
-doc.text("Payroll Month: " + month, 20, y);
-y += 15;
-
-doc.text("Basic Salary: " + payroll.basic_salary, 20, y);
-y += 10;
-
-doc.text("Commission: " + payroll.commission, 20, y);
-y += 10;
-
-doc.text("------------------------------", 20, y);
-y += 10;
-
-doc.setFontSize(14);
-doc.text("TOTAL PAY: " + payroll.total, 20, y);
-
-doc.save(
-staff.full_name + "_Payslip_" + month + ".pdf"
-);
-
+    doc.save(`Payslip_${staff.full_name}_${month}.pdf`);
 }

@@ -1,217 +1,141 @@
-async function updateBranding(){
+/**
+ * UPDATE BRANDING
+ * Saves company name, tagline, logo, and background to Supabase.
+ */
+async function updateBranding() {
+    if (!window.currentUser || window.currentUser.role !== "admin") {
+        return alert("Access Denied: Admin privileges required.");
+    }
 
-if(!currentUser || currentUser.role !== "admin"){
-    alert("Admin only");
-    return;
-}
+    const name = document.getElementById("brandCompanyName").value;
+    const tagline = document.getElementById("brandTagline").value;
+    const logoFile = document.getElementById("brandLogoFile").files[0];
+    const bgFile = document.getElementById("brandBgFile").files[0];
 
-const name = document.getElementById("brandCompanyName").value;
-const tagline = document.getElementById("brandTagline").value;
-const logoFile = document.getElementById("brandLogoFile").files[0];
-const bgFile = document.getElementById("brandBgFile").files[0];
+    let logoUrl = db.branding?.logo_url || null;
+    let bgUrl = db.branding?.background_url || null;
 
-let logoUrl = db.branding?.logo_url || null;
-let bgUrl = db.branding?.background_url || null;
+    try {
+        // Upload Logo if provided
+        if (logoFile) {
+            const fileName = `logo_${Date.now()}.${logoFile.name.split('.').pop()}`;
+            const { error: upErr } = await supa.storage.from("branding").upload(fileName, logoFile);
+            if (upErr) throw upErr;
+            logoUrl = supa.storage.from("branding").getPublicUrl(fileName).data.publicUrl;
+        }
 
-// ---------- LOGO UPLOAD ----------
-if(logoFile){
+        // Upload Background if provided
+        if (bgFile) {
+            const fileName = `bg_${Date.now()}.${bgFile.name.split('.').pop()}`;
+            const { error: upErr } = await supa.storage.from("branding").upload(fileName, bgFile);
+            if (upErr) throw upErr;
+            bgUrl = supa.storage.from("branding").getPublicUrl(fileName).data.publicUrl;
+        }
 
-const fileExt = logoFile.name.split('.').pop();
-const fileName = "logo_" + Date.now() + "." + fileExt;
+        // Upsert Database Record (Update if exists, Insert if not)
+        const payload = { 
+            company_name: name, 
+            tagline: tagline, 
+            logo_url: logoUrl, 
+            background_url: bgUrl 
+        };
 
-const { error: uploadError } = await supa.storage
-.from("branding")
-.upload(fileName, logoFile);
+        let dbErr;
+        if (db.branding?.id) {
+            const { error } = await supa.from("branding").update(payload).eq("id", db.branding.id);
+            dbErr = error;
+        } else {
+            const { error } = await supa.from("branding").insert([payload]);
+            dbErr = error;
+        }
 
-if(uploadError){
-alert("Logo upload failed: " + uploadError.message);
-return;
-}
+        if (dbErr) throw dbErr;
 
-const { data } = supa.storage
-.from("branding")
-.getPublicUrl(fileName);
+        await sync(); // Refresh global db object
+        alert("Branding updated successfully!");
 
-logoUrl = data.publicUrl;
-}
-
-// ---------- BACKGROUND UPLOAD ----------
-if(bgFile){
-
-const fileName = "bg_" + Date.now();
-
-const { error: uploadError } = await supa.storage
-.from("branding")
-.upload(fileName, bgFile);
-
-if(uploadError){
-alert("Background upload failed: " + uploadError.message);
-return;
-}
-
-const { data } = supa.storage
-.from("branding")
-.getPublicUrl(fileName);
-
-bgUrl = data.publicUrl;
-}
-
-// ---------- DATABASE UPDATE ----------
-let dbError;
-
-if(db.branding){
-
-const { error } = await supa.from("branding")
-.update({
-company_name: name,
-tagline: tagline,
-logo_url: logoUrl,
-background_url: bgUrl
-})
-.eq("id", db.branding.id);
-
-dbError = error;
-
-}else{
-
-const { error } = await supa.from("branding")
-.insert([{
-company_name: name,
-tagline: tagline,
-logo_url: logoUrl,
-background_url: bgUrl
-}]);
-
-dbError = error;
-}
-
-if(dbError){
-alert("Database error: " + dbError.message);
-return;
-}
-
-await sync();
-alert("Branding updated successfully");
-}
-
-function renderBranding(){
-
-if(!db.branding) return;
-
-const logo = document.getElementById("companyLogo");
-const name = document.getElementById("companyName");
-const tagline = document.getElementById("companyTagline");
-
-if(logo){
-if(db.branding.logo_url){
-logo.src = db.branding.logo_url;
-logo.style.display = "block";
-}else{
-logo.style.display = "none";
-}
-}
-
-if(name){
-name.textContent = db.branding.company_name || "";
-}
-
-if(tagline){
-tagline.textContent = db.branding.tagline || "";
-}
-
-const loginLogo = document.getElementById("loginLogo");
-const loginName = document.getElementById("loginCompanyName");
-const loginTagline = document.getElementById("loginTagline");
-
-if(loginLogo){
-    if(db.branding?.logo_url){
-        loginLogo.src = db.branding.logo_url;
-        loginLogo.style.display = "block";
-    }else{
-        loginLogo.style.display = "none";
+    } catch (err) {
+        console.error("Branding update failed:", err);
+        alert("Error: " + err.message);
     }
 }
 
-if(loginName){
-    loginName.textContent = db.branding?.company_name || "SmartsourcingKe ERP";
+/**
+ * RENDER BRANDING
+ * Applies the logo, company name, and background to the UI.
+ */
+function renderBranding() {
+    const brand = db.branding;
+    if (!brand) return;
+
+    // Update Dashboard Header
+    const elements = {
+        companyLogo: document.getElementById("companyLogo"),
+        companyName: document.getElementById("companyName"),
+        companyTagline: document.getElementById("companyTagline"),
+        loginLogo: document.getElementById("loginLogo"),
+        loginCompanyName: document.getElementById("loginCompanyName"),
+        loginTagline: document.getElementById("loginTagline")
+    };
+
+    // Apply Text Branding
+    if (elements.companyName) elements.companyName.textContent = brand.company_name || "";
+    if (elements.loginCompanyName) elements.loginCompanyName.textContent = brand.company_name || "SmartsourcingKe ERP";
+    if (elements.companyTagline) elements.companyTagline.textContent = brand.tagline || "";
+    if (elements.loginTagline) elements.loginTagline.textContent = brand.tagline || "";
+
+    // Apply Logo Branding
+    if (brand.logo_url) {
+        if (elements.companyLogo) {
+            elements.companyLogo.src = brand.logo_url;
+            elements.companyLogo.classList.remove("hidden");
+        }
+        if (elements.loginLogo) {
+            elements.loginLogo.src = brand.logo_url;
+            elements.loginLogo.classList.remove("hidden");
+        }
+    }
+
+    // Apply App-wide Background Image
+    if (brand.background_url) {
+        document.body.style.backgroundImage = `linear-gradient(rgba(244, 246, 249, 0.85), rgba(244, 246, 249, 0.85)), url('${brand.background_url}')`;
+        document.body.style.backgroundSize = "cover";
+        document.body.style.backgroundPosition = "center";
+        document.body.style.backgroundAttachment = "fixed";
+    } else {
+        document.body.style.backgroundImage = "none";
+    }
 }
 
-if(loginTagline){
-    loginTagline.textContent = db.branding?.tagline || "";
+/**
+ * FETCH IMAGE AS BASE64
+ * Helper for generating PDFs (Staff IDs, Invoices).
+ */
+async function fetchImageAsBase64(url) {
+    try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    } catch (e) {
+        console.error("Base64 fetch failed", e);
+        return null;
+    }
 }
 
-// ===== APPLY APP BACKGROUND =====
-if(db.branding?.background_url){
-
-    document.body.style.backgroundImage = 
-`linear-gradient(rgba(255,255,255,0.85), rgba(255,255,255,0.85)), 
-url('${db.branding.background_url}')`;
-
-    document.body.style.backgroundSize = "cover";
-    document.body.style.backgroundPosition = "center";
-    document.body.style.backgroundRepeat = "no-repeat";
-
-}else{
-
-    document.body.style.backgroundImage = "none";
-}
-
-}
-
-async function fetchImageAsBase64(url){
-    const response = await fetch(url);
-    const blob = await response.blob();
-    return new Promise((resolve)=>{
-        const reader = new FileReader();
-        reader.onloadend = ()=> resolve(reader.result);
-        reader.readAsDataURL(blob);
-    });
-}
-
-async function loadBranding(){
-
-const { data, error } = await supa
-.from("branding")
-.select("*")
-.single()
-
-if(error){
-console.log("branding error:", error)
-return
-}
-
-if(!data) return
-
-db.branding = data
-
-// Company name
-const name = document.getElementById("companyName")
-if(name) name.textContent = data.company_name || ""
-
-// Tagline
-const tagline = document.getElementById("companyTagline")
-if(tagline) tagline.textContent = data.tagline || ""
-
-// Logo
-if(data.logo_url){
-const logo = document.getElementById("companyLogo")
-if(logo){
-logo.src = data.logo_url
-logo.style.display = "block"
-}
-}
-
-// Login page branding
-const loginName = document.getElementById("loginCompanyName")
-if(loginName) loginName.textContent = data.company_name || ""
-
-const loginTag = document.getElementById("loginTagline")
-if(loginTag) loginTag.textContent = data.tagline || ""
-
-const loginLogo = document.getElementById("loginLogo")
-if(loginLogo && data.logo_url){
-loginLogo.src = data.logo_url
-loginLogo.style.display = "block"
-}
-
+/**
+ * INITIAL LOAD
+ * Called during app startup.
+ */
+async function loadBranding() {
+    const { data, error } = await supa.from("branding").select("*").maybeSingle();
+    if (error) return console.warn("Could not load branding settings.");
+    if (data) {
+        db.branding = data;
+        renderBranding();
+    }
 }

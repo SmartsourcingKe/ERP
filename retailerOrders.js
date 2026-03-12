@@ -1,327 +1,175 @@
-function addToCart(){
+/**
+ * ADD TO CART
+ * Handles inventory checks and local cart state.
+ */
+function addToCart() {
+    const productId = document.getElementById("productSelect").value;
+    const qty = Number(document.getElementById("orderQty").value);
 
-const productId = productSelect.value;
-const qty = Number(orderQty.value);
+    if (!productId) return alert("Please select a product.");
+    if (qty <= 0) return alert("Please enter a valid quantity.");
 
-if(!productId) return alert("Select product");
-if(!qty || qty <= 0) return alert("Enter valid quantity");
+    const product = (db.products || []).find(p => p.id === productId);
+    if (!product) return;
 
-const product = (db.products || []).find(p=>p.id===productId);
-if(!product) return;
+    const existing = cart.find(c => c.product_id === productId);
+    const currentCartQty = existing ? existing.qty : 0;
 
-const existing = cart.find(c=>c.product_id===productId);
-const currentQty = existing ? existing.qty : 0;
+    // Check inventory
+    if ((product.stock || 0) < (qty + currentCartQty)) {
+        return alert(`Insufficient stock. Available: ${product.stock}`);
+    }
 
-if((product.stock || 0) < (qty + currentQty))
-return alert("Insufficient stock");
+    if (existing) {
+        existing.qty += qty;
+    } else {
+        cart.push({
+            product_id: product.id,
+            name: product.name, // Fixed from product_name
+            price: Number(product.price), // Fixed from selling_price
+            qty: qty
+        });
+    }
 
-if(existing){
-existing.qty += qty;
-}
-else{
-cart.push({
-product_id: product.id,
-name: product.product_name,
-price: product.base_price,
-fee: product.company_fee,
-selling_price: product.selling_price,
-qty: qty
-});
-}
-
-orderQty.value="";
-renderCart();
-}
-
-
-
-function renderCart(){
-
-if(!cartView) return;
-
-if(cart.length===0){
-cartView.innerHTML = "<p>Cart empty</p>";
-return;
+    document.getElementById("orderQty").value = "";
+    renderCart();
 }
 
-cartView.innerHTML = `
-<table>
-<tr>
-<th>Product</th>
-<th>Qty</th>
-<th>Price</th>
-<th>Total</th>
-<th></th>
-</tr>
-${cart.map((c,i)=>`
-<tr>
-<td>${c.name}</td>
-<td>${c.qty}</td>
-<td>${c.selling_price}</td>
-<td>${c.qty * c.selling_price}</td>
-<td>
-<button onclick="removeCartItem(${i})">X</button>
-</td>
-</tr>
-`).join("")}
-</table>
-`;
+/**
+ * RENDER CART TABLE
+ */
+function renderCart() {
+    const view = document.getElementById("cartView");
+    if (!view) return;
+
+    if (cart.length === 0) {
+        view.innerHTML = "<p class='text-gray'>Cart is empty</p>";
+        return;
+    }
+
+    let grandTotal = 0;
+    const rows = cart.map((item, index) => {
+        const rowTotal = item.qty * item.price;
+        grandTotal += rowTotal;
+        return `
+            <tr>
+                <td>${item.name}</td>
+                <td>${item.qty}</td>
+                <td>${item.price.toLocaleString()}</td>
+                <td>${rowTotal.toLocaleString()}</td>
+                <td><button class="btn-red" onclick="cart.splice(${index},1);renderCart()">X</button></td>
+            </tr>`;
+    }).join("");
+
+    view.innerHTML = `
+        <table>
+            <thead><tr><th>Product</th><th>Qty</th><th>Price</th><th>Total</th><th></th></tr></thead>
+            <tbody>${rows}</tbody>
+        </table>
+        <div style="text-align:right; margin-top:10px;">
+            <strong>Grand Total: KES ${grandTotal.toLocaleString()}</strong>
+        </div>`;
 }
 
+/**
+ * CREATE RETAILER ORDER
+ * Commits the cart to Supabase and updates inventory.
+ */
+async function createOrder() {
+    const retailerId = document.getElementById("retailerSelect")?.value;
+    if (!retailerId) return alert("Select a retailer.");
+    if (cart.length === 0) return alert("Cart is empty.");
 
+    const total = cart.reduce((sum, c) => sum + (c.qty * c.price), 0);
 
-function removeCartItem(index){
-cart.splice(index,1);
-renderCart();
+    try {
+        // 1. Insert Master Order
+        const { data: order, error: orderErr } = await supa.from("orders").insert([{
+            retailer_id: retailerId,
+            total: total,
+            created_by: currentUser.id,
+            status: "pending"
+        }]).select().single();
+
+        if (orderErr) throw orderErr;
+
+        // 2. Insert Items & Update Stock
+        for (const item of cart) {
+            await supa.from("order_items").insert([{
+                order_id: order.id,
+                product_id: item.product_id,
+                quantity: item.qty,
+                price: item.price
+            }]);
+
+            const originalProd = db.products.find(p => p.id === item.product_id);
+            if (originalProd) {
+                await supa.from("products")
+                    .update({ stock: (originalProd.stock || 0) - item.qty })
+                    .eq("id", item.product_id);
+            }
+        }
+
+        alert("Order created successfully!");
+        cart = [];
+        renderCart();
+        await sync();
+
+    } catch (err) {
+        console.error("Order Error:", err);
+        alert("Failed to create order: " + err.message);
+    }
 }
 
-
-
-async function createOrder(){
-
-if(!currentUser) return alert("Session invalid");
-if(!retailerSelect?.value) return alert("Select retailer");
-if(cart.length===0) return alert("Cart empty");
-
-const retailerId = retailerSelect.value;
-
-let total = cart.reduce((sum,c)=>sum + (c.qty * c.selling_price),0);
-
-const { data: orderData, error: orderError } =
-await supa.from("orders").insert([{
-retailer_id: retailerId,
-total: total,
-created_by: currentUser.id,
-status: "pending"
-}]).select().single();
-
-if(orderError){
-alert(orderError.message);
-return;
-}
-
-for(const item of cart){
-
-await supa.from("order_items").insert([{
-order_id: orderData.id,
-product_id: item.product_id,
-quantity: item.qty,
-price: item.selling_price
-}]);
-
-const product =
-(db.products || []).find(p=>p.id===item.product_id);
-
-if(product){
-await supa.from("products")
-.update({ stock: (product.stock || 0) - item.qty })
-.eq("id", item.product_id);
-}
-
-}
-
-cart=[];
-renderCart();
-
-await sync();
-
-}
-
-
-
-function renderOrders(){
-
-if(!ordersBody) return;
-
-const search =
-(document.getElementById("orderSearch")?.value || "")
-.toLowerCase();
-
-ordersBody.innerHTML =
-(db.orders || [])
-.filter(o =>
-o.id.toLowerCase().includes(search) ||
-(o.status||"").toLowerCase().includes(search)
-)
-.map(o=>{
-
-const retailer =
-(db.retailers || []).find(r=>r.id===o.retailer_id);
-
-const items =
-(db.order_items || []).filter(i=>i.order_id===o.id);
-
-const productList = items.map(i=>{
-const product =
-(db.products || []).find(p=>p.id===i.product_id);
-return `${product?.product_name} (x${i.quantity})`;
-}).join(", ");
-
-let actionButtons = "";
-
-if(o.status === "pending"){
-
-actionButtons = `
-<button class="btn btn-blue"
-onclick="editOrder('${o.id}')">
-Edit
-</button>
-
-<button class="btn btn-green"
-onclick="disburseOrder('${o.id}')">
-Disburse
-</button>
-
-<button class="btn btn-red"
-onclick="cancelOrder('${o.id}')">
-Cancel
-</button>
-`;
-
-}
-
-else if(o.status === "disbursed"){
-
-actionButtons = `
-<button class="btn btn-blue"
-onclick="printRetailReceipt('${o.id}')">
-Print Receipt
-</button>
-`;
-
-}
-
-else{
-actionButtons = "<span style='color:red'>Cancelled</span>";
-}
-
-return `
-<tr>
-<td>${o.id.slice(0,8)}</td>
-<td>${retailer ? retailer.name : "-"}</td>
-<td>
-${o.total}
-<br>
-<small>${productList}</small>
-</td>
-<td>${o.status}</td>
-<td>${new Date(o.created_at).toLocaleDateString()}</td>
-<td>${actionButtons}</td>
-</tr>
-`;
-
-}).join("");
-
-}
-
-
-
-async function disburseOrder(orderId){
-
-if(!confirm("Disburse this order?")) return;
-
-const { error } =
-await supa.from("orders")
-.update({ status: "disbursed" })
-.eq("id", orderId);
-
-if(error){
-alert(error.message);
-return;
-}
-
-await sync();
-
-}
-
-
-
-async function cancelOrder(orderId){
-
-if(!confirm("Cancel this order?")) return;
-
-const order =
-(db.orders || []).find(o=>o.id===orderId);
-if(!order) return;
-
-if(order.status === "disbursed"){
-
-const items =
-(db.order_items || []).filter(i=>i.order_id===orderId);
-
-for(const item of items){
-
-const product =
-(db.products || []).find(p=>p.id===item.product_id);
-
-if(product){
-
-await supa.from("products")
-.update({ stock: (product.stock||0) + item.quantity })
-.eq("id", product.id);
-
-}
-
-}
-
-}
-
-await supa.from("orders")
-.update({ status: "cancelled" })
-.eq("id", orderId);
-
-await sync();
-
-}
-
-
-
-async function printRetailReceipt(orderId){
-
-const order =
-(db.orders || []).find(o => o.id === orderId);
-
-if(!order) return alert("Order not found");
-
-if(order.status !== "disbursed")
-return alert("Only disbursed orders can print receipt");
-
-const retailer =
-(db.retailers || []).find(r=>r.id===order.retailer_id);
-
-const items =
-(db.order_items || []).filter(i=>i.order_id===order.id);
-
-let total = 0;
-
-let rows = items.map(item=>{
-
-const product =
-(db.products || []).find(p=>p.id===item.product_id);
-
-const subtotal = item.quantity * item.price;
-total += subtotal;
-
-return `
-<tr>
-<td>${product?.product_name || "-"}</td>
-<td>${item.quantity}</td>
-<td>${item.price}</td>
-<td>${subtotal}</td>
-</tr>
-`;
-
-}).join("");
-
-openReceiptWindow({
-title: "OFFICIAL RECEIPT",
-clientName: retailer?.name || "-",
-meta: `
-<p><strong>Order No:</strong> ${order.id.slice(0,8)}</p>
-<p><strong>Date:</strong> ${new Date(order.created_at).toLocaleDateString()}</p>
-`,
-rows,
-total
-});
-
+/**
+ * PRINT RETAIL RECEIPT (PDF)
+ */
+async function printRetailReceipt(orderId) {
+    const order = db.orders.find(o => o.id === orderId);
+    const retailer = db.retailers.find(r => r.id === order.retailer_id);
+    const items = db.order_items.filter(i => i.order_id === orderId);
+
+    if (!order || !retailer) return;
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    // Branding Header
+    if (db.branding?.logo_url) {
+        const logo = await fetchImageAsBase64(db.branding.logo_url);
+        doc.addImage(logo, 'PNG', 85, 10, 40, 20);
+    }
+    
+    doc.setFontSize(18).text(db.branding?.company_name || "ERP System", 105, 35, {align:"center"});
+    doc.setFontSize(10).text(db.branding?.tagline || "", 105, 40, {align:"center"});
+
+    doc.setFontSize(14).text("OFFICIAL RECEIPT", 20, 55);
+    doc.setFontSize(10).text(`Retailer: ${retailer.name}`, 20, 62);
+    doc.text(`Date: ${new Date(order.created_at).toLocaleDateString()}`, 150, 62);
+    doc.line(20, 65, 190, 65);
+
+    // Table Header
+    let y = 75;
+    doc.setFont(undefined, "bold");
+    doc.text("Item", 20, y);
+    doc.text("Qty", 100, y);
+    doc.text("Price", 130, y);
+    doc.text("Subtotal", 160, y);
+    doc.setFont(undefined, "normal");
+    
+    y += 5;
+    items.forEach(item => {
+        const prod = db.products.find(p => p.id === item.product_id);
+        y += 8;
+        doc.text(prod?.name || "Product", 20, y);
+        doc.text(String(item.quantity), 100, y);
+        doc.text(Number(item.price).toLocaleString(), 130, y);
+        doc.text((item.quantity * item.price).toLocaleString(), 160, y);
+    });
+
+    y += 15;
+    doc.setFontSize(14).setFont(undefined, "bold");
+    doc.text(`Total Paid: KES ${Number(order.total).toLocaleString()}`, 190, y, {align:"right"});
+
+    doc.save(`Receipt_${retailer.name.replace(/\s/g, '_')}.pdf`);
 }
