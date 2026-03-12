@@ -16,7 +16,7 @@ async function updateBranding() {
     let bgUrl = db.branding?.background_url || null;
 
     try {
-        // Upload Logo if provided
+        // 1. Upload Logo if provided
         if (logoFile) {
             const fileName = `logo_${Date.now()}.${logoFile.name.split('.').pop()}`;
             const { error: upErr } = await supa.storage.from("branding").upload(fileName, logoFile);
@@ -24,7 +24,7 @@ async function updateBranding() {
             logoUrl = supa.storage.from("branding").getPublicUrl(fileName).data.publicUrl;
         }
 
-        // Upload Background if provided
+        // 2. Upload Background if provided
         if (bgFile) {
             const fileName = `bg_${Date.now()}.${bgFile.name.split('.').pop()}`;
             const { error: upErr } = await supa.storage.from("branding").upload(fileName, bgFile);
@@ -32,7 +32,7 @@ async function updateBranding() {
             bgUrl = supa.storage.from("branding").getPublicUrl(fileName).data.publicUrl;
         }
 
-        // Upsert Database Record (Update if exists, Insert if not)
+        // 3. Prepare Data
         const payload = { 
             company_name: name, 
             tagline: tagline, 
@@ -40,18 +40,25 @@ async function updateBranding() {
             background_url: bgUrl 
         };
 
+        // --- START REPLACEMENT SECTION ---
+        // We check Supabase directly for any existing branding row
+        const { data: existing } = await supa.from("branding").select("id").maybeSingle();
+
         let dbErr;
-        if (db.branding?.id) {
-            const { error } = await supa.from("branding").update(payload).eq("id", db.branding.id);
+        if (existing) {
+            // If a row exists, we update it using its actual ID from the DB
+            const { error } = await supa.from("branding").update(payload).eq("id", existing.id);
             dbErr = error;
         } else {
+            // If no row exists, we insert the first one
             const { error } = await supa.from("branding").insert([payload]);
             dbErr = error;
         }
+        // --- END REPLACEMENT SECTION ---
 
         if (dbErr) throw dbErr;
 
-        await sync(); // Refresh global db object
+        await sync(); 
         alert("Branding updated successfully!");
 
     } catch (err) {
