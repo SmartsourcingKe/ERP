@@ -8,25 +8,21 @@ window.salesChart = window.salesChart || null;
  */
 function renderAll() {
     try {
-        // Core UI components
-        if (typeof renderDashboard === "function") renderDashboard();
-        if (typeof renderBranding === "function") renderBranding();
+        console.log("ERP rendering...");
+        renderBranding();
+        renderProducts();
+        renderRetailers();
         
-        // Data Tables
-        if (typeof renderProducts === "function") renderProducts();
-        if (typeof renderRetailers === "function") renderRetailers();
-        if (typeof renderOrders === "function") renderOrders();
-        if (typeof renderCorporate === "function") renderCorporate();
-        if (typeof renderEmployees === "function") renderEmployees();
-        if (typeof renderPayroll === "function") renderPayroll();
-        
-        // Insights & Communication
-        if (typeof renderMessages === "function") renderMessages();
-        if (typeof renderProfitDashboard === "function") renderProfitDashboard();
+        // Wrap the dashboard in a try/catch so charts don't kill the app
+        try {
+            renderProfitDashboard();
+        } catch (chartErr) {
+            console.warn("Dashboard charts failed to load, but app is still running.");
+        }
 
         console.log("ERP rendered successfully");
     } catch (err) {
-        console.error("Render failure:", err);
+        console.error("Critical Render failure:", err);
     }
 }
 
@@ -141,23 +137,25 @@ function renderProfitChart(labels, data) {
  */
 function renderStaffSalesChart(labels, data) {
     const canvas = document.getElementById("staffSalesChart");
-    if (!canvas) return;
+    if (!canvas) return; // Stop if the HTML element isn't there
 
-    // 1. Clear previous instance to avoid "Canvas in use" errors
+    // If an old chart exists, kill it completely
     if (window.myStaffChart instanceof Chart) {
         window.myStaffChart.destroy();
     }
 
-    const safeLabels = Array.isArray(labels) ? labels : [];
-    const safeData = Array.isArray(data) ? data : [];
+    // Safety: ensure labels and data are arrays
+    const finalLabels = Array.isArray(labels) ? labels : [];
+    const finalData = Array.isArray(data) ? data : [];
 
     try {
+        // Create a FRESH chart every time
         window.myStaffChart = new Chart(canvas, {
             type: "pie",
             data: {
-                labels: safeLabels,
+                labels: finalLabels,
                 datasets: [{
-                    data: safeData,
+                    data: finalData,
                     backgroundColor: ["#3498db", "#2ecc71", "#e74c3c", "#f1c40f", "#9b59b6"]
                 }]
             },
@@ -167,6 +165,6 @@ function renderStaffSalesChart(labels, data) {
             }
         });
     } catch (err) {
-        console.error("Staff Chart Error:", err);
+        console.error("Staff Chart Crash prevented:", err);
     }
 }
