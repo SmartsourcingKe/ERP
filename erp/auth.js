@@ -1,316 +1,174 @@
+/* ---- Authentication Logic ---- */
+
 async function login() {
-  const emailInput = document.getElementById("loginEmail");
-  const passwordInput = document.getElementById("loginPassword");
+    const emailInput = document.getElementById("loginEmail");
+    const passwordInput = document.getElementById("loginPassword");
 
-  if (!emailInput || !passwordInput) {
-    console.error("Login inputs not found");
-    return;
-  }
+    if (!emailInput || !passwordInput) return console.error("Login inputs not found");
 
-  const email = emailInput.value.trim();
-  const password = passwordInput.value;
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
 
-  if (!email || !password) {
-    alert("Enter email and password");
-    return;
-  }
+    if (!email || !password) return alert("Please enter both email and password");
 
-  try {
+    try {
+        const { data, error } = await supa.auth.signInWithPassword({ email, password });
+        if (error) throw error;
 
-    if (!window.supa) {
-      console.error("Supabase client not initialized");
-      alert("System not ready. Refresh page.");
-      return;
+        console.log("Login successful");
+        
+        // Load data immediately upon successful login
+        await sync();
+        await loadBranding();
+        showDashboard();
+
+    } catch (err) {
+        console.error("Login error:", err.message);
+        alert("Login failed: " + err.message);
     }
-
-    const { data, error } = await supa.auth.signInWithPassword({
-      email: email,
-      password: password
-    });
-
-    if (error) {
-      alert(error.message);
-      return;
-    }
-
-    console.log("Login successful", data);
-
-    showDashboard();
-
-  } catch (err) {
-    console.error("Login error:", err);
-    alert("Login failed. Try again.");
-  }
-  
-await sync()
-await loadBranding()
-
 }
 
 async function logout() {
+    try {
+        if (typeof cleanupMessaging === "function") cleanupMessaging();
+        
+        const { error } = await supa.auth.signOut();
+        if (error) throw error;
 
-  try {
-
-    if (typeof cleanupMessaging === "function") {
-      cleanupMessaging();
+        handleSignedOut();
+        console.log("Logged out successfully");
+    } catch (err) {
+        console.error("Logout failed:", err.message);
     }
-
-    if (!window.supa) {
-      console.error("Supabase client not initialized");
-      return;
-    }
-
-    const { error } = await supa.auth.signOut();
-
-    if (error) {
-      console.error("Logout error:", error);
-      alert("Logout failed");
-      return;
-    }
-
-    const loginPage = document.getElementById("loginPage");
-    const dashboard = document.getElementById("dashboard");
-
-    if (dashboard) dashboard.style.display = "none";
-    if (loginPage) loginPage.style.display = "block";
-
-    console.log("Logged out successfully");
-
-  } catch (err) {
-    console.error("Logout failed:", err);
-  }
-
 }
+
+/* ---- Session Handlers ---- */
 
 async function handleSignedIn(session) {
+    if (!session?.user) return;
 
-  if (!session || !session.user) return;
+    try {
+        // Fetch custom user profile from public.users table
+        const { data: userRow, error } = await supa
+            .from("users")
+            .select("*")
+            .eq("auth_user_id", session.user.id)
+            .maybeSingle();
 
-  try {
+        if (error || !userRow) {
+            alert("User profile not found in database.");
+            return await logout();
+        }
 
-    const { data: userRow, error } = await supa
-      .from("users")
-      .select("*")
-      .eq("auth_user_id", session.user.id)
-      .maybeSingle();
+        window.currentUser = userRow;
+        
+        // Set up UI and Data
+        applyPermissions();
+        showDashboard();
+        
+        if (typeof sync === "function") await sync();
+        if (typeof renderAll === "function") renderAll();
 
-    if (error || !userRow) {
-      alert("User profile not found.");
-      await supa.auth.signOut();
-      return;
+    } catch (err) {
+        console.error("Signed-in handler failed:", err);
     }
-
-    window.currentUser = userRow;
-
-    applyPermissions();
-
-    console.log("User loaded:", userRow);
-
-    showDashboard();
-
-    if (typeof sync === "function") {
-      await sync();
-    }
-
-    if (typeof renderAll === "function") {
-      renderAll();
-    }
-
-  } catch (err) {
-    console.error("Signed-in handler failed:", err);
-  }
 }
-
-
-/* ---- signed out handler ---- */
 
 function handleSignedOut() {
-
-  const loginPage = document.getElementById("loginPage");
-  const dashboard = document.getElementById("dashboard");
-
-  if (dashboard) dashboard.style.display = "none";
-  if (loginPage) loginPage.style.display = "block";
-
-  window.currentUser = null;
-
+    document.getElementById("dashboard")?.classList.add("hidden");
+    document.getElementById("loginPage")?.classList.remove("hidden");
+    window.currentUser = null;
 }
 
+async function restoreSession() {
+    const { data } = await supa.auth.getSession();
+    if (!data?.session) return;
 
-/* ---- expose login globally ---- */
-
-window.login = login;
-
-console.log("MAIN SCRIPT LOADED");
-
-function getCurrentUser() {
-  return window.currentUser || null;
+    await handleSignedIn(data.session);
+    await loadBranding();
 }
 
-function getUser(id){
-
-  if(!window.db || !Array.isArray(db.users)) return null;
-
-  return db.users.find(u => String(u.id) === String(id)) || null;
-}
-
-function getUserName(authId) {
-
-  if(!window.db || !Array.isArray(db.users)) return "User";
-
-  const user = db.users.find(u => String(u.auth_user_id) === String(authId));
-
-  return user?.full_name || user?.email || "User";
-}
+/* ---- Permissions & UI Tools ---- */
 
 function applyPermissions() {
+    const user = window.currentUser;
+    if (!user) return;
 
-  const user = window.currentUser;
+    const role = (user.role || "").toLowerCase();
+    
+    // Elements to toggle
+    const adminBtn = document.getElementById("adminBtn");
+    const payrollBtn = document.getElementById("payrollBtn");
+    const performanceBtn = document.getElementById("performanceBtn");
+    const profitBtn = document.getElementById("profitBtn");
 
-  if (!user) return;
+    // Default: Hide all restricted tabs
+    [adminBtn, payrollBtn, performanceBtn, profitBtn].forEach(btn => btn?.classList.add("hidden"));
 
-  const role = (user.role || "").toLowerCase();
-
-  const adminBtn = document.getElementById("adminBtn");
-  const payrollBtn = document.getElementById("payrollBtn");
-  const performanceBtn = document.getElementById("performanceBtn");
-  const profitBtn = document.getElementById("profitBtn");
-
-  adminBtn?.classList.add("hidden");
-  payrollBtn?.classList.add("hidden");
-  performanceBtn?.classList.add("hidden");
-  profitBtn?.classList.add("hidden");
-
-  if (role === "admin") {
-    adminBtn?.classList.remove("hidden");
-    payrollBtn?.classList.remove("hidden");
-    performanceBtn?.classList.remove("hidden");
-    profitBtn?.classList.remove("hidden");
-  }
-
-  if (role === "staff") {
-    performanceBtn?.classList.remove("hidden");
-  }
+    if (role === "admin") {
+        [adminBtn, payrollBtn, performanceBtn, profitBtn].forEach(btn => btn?.classList.remove("hidden"));
+    } else if (role === "staff") {
+        performanceBtn?.classList.remove("hidden");
+    }
 }
 
-async function generateUserID(userId){
-
-if(!window.db || !Array.isArray(db.users)) return;
-
-const user = db.users.find(u => u.id === userId);
-if(!user) return alert("User not found");
-
-const { jsPDF } = window.jspdf;
-
-const doc = new jsPDF({
-orientation:"landscape",
-unit:"mm",
-format:[86,54]
-});
-
-// Background
-doc.setFillColor(230,236,245);
-doc.rect(0,0,86,54,"F");
-
-// Border
-doc.setDrawColor(100);
-doc.rect(1,1,84,52);
-
-// ===== HEADER =====
-if(db.branding?.logo_url){
-const logoImg = await fetchImageAsBase64(db.branding.logo_url);
-doc.addImage(logoImg, undefined, 5, 4, 18, 10);
+function showDashboard() {
+    document.getElementById("loginPage")?.classList.add("hidden");
+    document.getElementById("dashboard")?.classList.remove("hidden");
+    
+    const welcome = document.getElementById("welcome");
+    if (welcome && window.currentUser) {
+        welcome.innerText = `Welcome, ${window.currentUser.full_name || 'User'}`;
+    }
 }
 
-doc.setFontSize(8);
-doc.setFont(undefined,"bold");
-doc.text(
-db.branding?.company_name || "Company",
-43,
-10,
-{align:"center"}
-);
+/* ---- Staff ID Generation (Consolidated) ---- */
 
-doc.setFontSize(6);
-doc.setFont(undefined,"normal");
-doc.text(
-db.branding?.tagline || "",
-43,
-14,
-{align:"center"}
-);
+async function generateUserID(userId) {
+    if (!window.db?.users) return;
+    const user = db.users.find(u => String(u.id) === String(userId));
+    if (!user) return alert("User not found");
 
-// ===== PHOTO =====
-if(user.pic){
-const photoImg = await fetchImageAsBase64(user.pic);
-doc.addImage(photoImg, undefined, 5, 22, 20, 25);
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: [86, 54] });
+
+    // Background & Design
+    doc.setFillColor(230, 236, 245);
+    doc.rect(0, 0, 86, 54, "F");
+    doc.setDrawColor(100);
+    doc.rect(1, 1, 84, 52);
+
+    // Header Branding
+    if (db.branding?.logo_url) {
+        try {
+            const logoImg = await fetchImageAsBase64(db.branding.logo_url);
+            doc.addImage(logoImg, 'PNG', 5, 4, 18, 10);
+        } catch (e) { console.warn("Logo failed to load for ID"); }
+    }
+
+    doc.setFontSize(8).setFont(undefined, "bold");
+    doc.text(db.branding?.company_name || "Company", 43, 10, { align: "center" });
+
+    // User Photo & Details
+    if (user.pic) {
+        try {
+            const photoImg = await fetchImageAsBase64(user.pic);
+            doc.addImage(photoImg, 'JPEG', 5, 22, 20, 25);
+        } catch (e) { console.warn("Staff photo failed to load for ID"); }
+    }
+
+    doc.setFontSize(7).text("Name:", 35, 22);
+    doc.setFont(undefined, "normal").text(user.full_name || user.email || "User", 35, 26);
+    
+    doc.setFont(undefined, "bold").text("Role:", 35, 34);
+    doc.setFont(undefined, "normal").text(user.role || "Staff", 35, 38);
+    
+    doc.setFont(undefined, "bold").text("Staff ID:", 35, 44);
+    doc.setFont(undefined, "normal").text(String(user.id).slice(0, 8), 35, 48);
+
+    doc.save(`ID_${user.full_name}.pdf`);
 }
 
-// ===== DETAILS =====
-
-const name =
-user?.full_name || user?.email || "User";
-
-doc.setFontSize(7);
-
-doc.setFont(undefined,"bold");
-doc.text("Name:",35,22);
-
-doc.setFont(undefined,"normal");
-doc.text(
-doc.splitTextToSize(name,45),
-35,
-26
-);
-
-doc.setFont(undefined,"bold");
-doc.text("Role:",35,34);
-
-doc.setFont(undefined,"normal");
-doc.text(user.role || "-",35,38);
-
-doc.setFont(undefined,"bold");
-doc.text("Staff ID:",35,44);
-
-doc.setFont(undefined,"normal");
-doc.text(String(user.id).slice(0,8),35,48);
-
-// ===== FOOTER =====
-
-doc.setFontSize(6);
-doc.text("Authorized Signature",60,50);
-
-// Save
-doc.save(
-`Staff_ID_${name.replace(/\s/g,"_")}.pdf`
-);
-
-}
-
-function renderUserDropdown(){
-
-  const select = document.getElementById("userSelect");
-
-  if(!select) return;
-
-  const users = db.users || [];
-
-  select.innerHTML = users
-    .map(u => `<option value="${u.id}">${u.full_name || u.email}</option>`)
-    .join("");
-
-}
-
-async function restoreSession(){
-
-const { data } = await supa.auth.getSession()
-
-if(!data.session) return
-
-await sync()
-await loadBranding()
-
-document.getElementById("loginPage").classList.add("hidden")
-document.getElementById("dashboard").classList.remove("hidden")
-
-}
+// Global Exports
+window.login = login;
+window.logout = logout;

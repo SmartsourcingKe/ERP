@@ -1,183 +1,154 @@
-function renderAll(){
+// Keep chart instances in the global scope to allow updates
+let profitChart = null;
+let salesChart = null;
 
-  try{
+/**
+ * MASTER RENDER DISPATCHER
+ */
+function renderAll() {
+    try {
+        // Core UI components
+        if (typeof renderDashboard === "function") renderDashboard();
+        if (typeof renderBranding === "function") renderBranding();
+        
+        // Data Tables
+        if (typeof renderProducts === "function") renderProducts();
+        if (typeof renderRetailers === "function") renderRetailers();
+        if (typeof renderOrders === "function") renderOrders();
+        if (typeof renderCorporate === "function") renderCorporate();
+        if (typeof renderEmployees === "function") renderEmployees();
+        if (typeof renderPayroll === "function") renderPayroll();
+        
+        // Insights & Communication
+        if (typeof renderMessages === "function") renderMessages();
+        if (typeof renderProfitDashboard === "function") renderProfitDashboard();
 
-    if(typeof renderDashboard === "function")
-      renderDashboard()
-
-    if(typeof renderRetailers === "function")
-      renderRetailers()
-
-    if(typeof renderProducts === "function")
-      renderProducts()
-
-    if(typeof renderOrders === "function")
-      renderOrders()
-
-    if(typeof renderCorporate === "function")
-      renderCorporate()
-
-    if(typeof renderEmployees === "function")
-      renderEmployees()
-
-    if(typeof renderPayroll === "function")
-      renderPayroll()
-
-    if(typeof renderMessages === "function")
-      renderMessages()
-
-    if(typeof renderReports === "function")
-      renderReports()
-
-    if(typeof renderProfitDashboard === "function")
-      renderProfitDashboard()
-
-    if(typeof renderBranding === "function")
-      renderBranding()
-
-    console.log("ERP rendered successfully")
-
-  }
-  catch(err){
-    console.error("Render failure:", err)
-  }
-
+        console.log("ERP rendered successfully");
+    } catch (err) {
+        console.error("Render failure:", err);
+    }
 }
 
-function renderDashboard(){
+/**
+ * DASHBOARD STAT CARDS
+ */
+function renderDashboard() {
+    const container = document.getElementById("dashboardStats");
+    if (!container || !db) return;
 
-  const container = document.getElementById("dashboardStats")
-  if(!container) return
+    const orders = db.orders?.length || 0;
+    const products = db.products?.length || 0;
+    const retailers = db.retailers?.length || 0;
+    const corporate = db.corporate_orders?.length || 0;
 
-  const orders = db.orders?.length || 0
-  const products = db.products?.length || 0
-  const retailers = db.retailers?.length || 0
-
-  container.innerHTML = `
-  <div class="card">
-  <h3>Dashboard</h3>
-
-  <p>Total Orders: ${orders}</p>
-  <p>Total Products: ${products}</p>
-  <p>Total Retailers: ${retailers}</p>
-
-  </div>
-  `
-
+    container.innerHTML = `
+        <div class="stat-card"><h3>${orders}</h3><p>Retail Orders</p></div>
+        <div class="stat-card"><h3>${products}</h3><p>Products</p></div>
+        <div class="stat-card"><h3>${retailers}</h3><p>Retailers</p></div>
+        <div class="stat-card"><h3>${corporate}</h3><p>Corporate Jobs</p></div>
+    `;
 }
 
-function renderProfitDashboard(){
+/**
+ * PROFIT & ANALYTICS DASHBOARD
+ * Calculates Manufacturer vs Company splits and visualizes staff performance.
+ */
+function renderProfitDashboard() {
+    const profitSummary = document.getElementById("profitSummary");
+    if (!profitSummary) return;
 
-let manufacturerTotal = 0;
-let feeTotal = 0;
+    let manufacturerTotal = 0;
+    let companyFeeTotal = 0;
+    let corporateTotal = 0;
 
+    // 1. Calculate Retail Profit Splits
+    (db.orders || []).filter(o => o.status === "disbursed").forEach(order => {
+        const items = (db.order_items || []).filter(i => i.order_id === order.id);
+        items.forEach(item => {
+            const prod = (db.products || []).find(p => p.id === item.product_id);
+            if (prod) {
+                // Assuming base_price is what goes to manufacturer
+                manufacturerTotal += (Number(prod.price) - Number(prod.company_fee)) * item.quantity;
+                companyFeeTotal += Number(prod.company_fee) * item.quantity;
+            }
+        });
+    });
 
-for(const order of db.orders || []){
+    // 2. Calculate Corporate Revenue
+    (db.corporate_orders || []).filter(c => c.status === "disbursed").forEach(corp => {
+        corporateTotal += Number(corp.total || 0);
+    });
 
-if(order.status !== "disbursed") continue;
+    const totalProfit = companyFeeTotal + corporateTotal;
 
-const items =
-db.order_items.filter(i=>i.order_id===order.id);
+    profitSummary.innerHTML = `
+        <div class="card">
+            <p>Retail Profit: <strong>KES ${companyFeeTotal.toLocaleString()}</strong></p>
+            <p>Corporate Revenue: <strong>KES ${corporateTotal.toLocaleString()}</strong></p>
+            <hr>
+            <h3 style="color:var(--green)">Net Company Profit: KES ${totalProfit.toLocaleString()}</h3>
+        </div>
+    `;
 
-for(const item of items){
+    // 3. Update Pie Chart (Profit Split)
+    renderProfitChart(manufacturerTotal, companyFeeTotal, corporateTotal);
 
-const product =
-db.products.find(p=>p.id===item.product_id);
-
-if(product){
-manufacturerTotal +=
-(product.base_price || 0) * item.quantity;
-
-feeTotal +=
-(product.company_fee || 0) * item.quantity;
-}
-}
-}
-
-
-let corporateTotal = 0;
-
-for(const corp of db.corporate_orders){
-if(corp.status === "disbursed"){
-corporateTotal += Number(corp.total || 0);
-}
-}
-
-const companyProfit =
-feeTotal + corporateTotal;
-
-profitSummary.innerHTML = `
-<p><strong>Company Profit From Retail Orders:</strong> ${feeTotal}</p>
-<p><strong>Corporate Revenue:</strong> ${corporateTotal}</p>
-<hr>
-<p><strong>Total Company Profit:</strong> ${companyProfit}</p>
-`;
-
-
-if(!profitChart){
-const ctx = document.getElementById("profitChart");
-profitChart = new Chart(ctx,{
-type:"pie",
-data:{
-labels:[
-"Manufacturer",
-"Company Profit",
-"Corporate"
-],
-datasets:[{
-data:[
-manufacturerTotal,
-feeTotal,
-corporateTotal
-]
-}]
-}
-});
-}
-else{
-profitChart.data.datasets[0].data = [
-manufacturerTotal,
-feeTotal,
-corporateTotal
-];
-profitChart.update();
+    // 4. Update Bar Chart (Staff Performance)
+    renderStaffSalesChart();
 }
 
-if(!salesChart){
-const ctx = document.getElementById("salesChart");
-salesChart = new Chart(ctx,{
-type:"bar",
-data:{
-labels:[],
-datasets:[{
-label:"Sales",
-data:[]
-}]
-}
-});
-}
+/**
+ * CHART HELPER: Profit Pie
+ */
+function renderProfitChart(mfg, fee, corp) {
+    const ctx = document.getElementById("profitChart");
+    if (!ctx) return;
 
-let staffSales = {};
+    const data = [mfg, fee, corp];
 
-db.orders.forEach(o=>{
-if(o.status !== "disbursed") return;
-
-if(!staffSales[o.created_by])
-staffSales[o.created_by] = 0;
-
-staffSales[o.created_by] += Number(o.total);
-});
-
-salesChart.data.labels =
-Object.keys(staffSales).map(id=>{
-const user = db.users.find(u=>u.id===id);
-return user ? user.full_name : "Unknown";
-});
-
-salesChart.data.datasets[0].data =
-Object.values(staffSales);
-
-salesChart.update();
+    if (!profitChart) {
+        profitChart = new Chart(ctx, {
+            type: "pie",
+            data: {
+                labels: ["Manufacturer", "Company Fee", "Corporate"],
+                datasets: [{ data, backgroundColor: ["#34495e", "#27ae60", "#3498db"] }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    } else {
+        profitChart.data.datasets[0].data = data;
+        profitChart.update();
+    }
 }
 
+/**
+ * CHART HELPER: Staff Sales Bar
+ */
+function renderStaffSalesChart() {
+    const ctx = document.getElementById("salesChart");
+    if (!ctx) return;
 
+    let staffSales = {};
+    (db.orders || []).filter(o => o.status === "disbursed").forEach(o => {
+        const staffName = db.users?.find(u => u.id === o.created_by)?.full_name || "Unknown";
+        staffSales[staffName] = (staffSales[staffName] || 0) + Number(o.total);
+    });
+
+    const labels = Object.keys(staffSales);
+    const data = Object.values(staffSales);
+
+    if (!salesChart) {
+        salesChart = new Chart(ctx, {
+            type: "bar",
+            data: {
+                labels,
+                datasets: [{ label: "Sales by Staff (KES)", data, backgroundColor: "#3498db" }]
+            },
+            options: { responsive: true }
+        });
+    } else {
+        salesChart.data.labels = labels;
+        salesChart.data.datasets[0].data = data;
+        salesChart.update();
+    }
+}

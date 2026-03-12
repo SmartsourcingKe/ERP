@@ -1,249 +1,173 @@
-async function addEmployee(){
+/**
+ * ADD EMPLOYEE
+ * 1. Creates Supabase Auth Account
+ * 2. Uploads Profile Photo
+ * 3. Creates Public.Users Profile
+ */
+async function addEmployee() {
+    if (!window.currentUser || window.currentUser.role !== "admin") {
+        return alert("Access Denied: Admin privileges required.");
+    }
 
-if(!currentUser || currentUser.role !== "admin")
-return alert("Admin only");
+    // Get input elements
+    const fullName = document.getElementById("empFullName");
+    const email = document.getElementById("empEmail");
+    const password = document.getElementById("empPassword");
+    const basic = document.getElementById("empBasic");
+    const rate = document.getElementById("empCommissionRate");
+    const role = document.getElementById("empRole");
+    const photo = document.getElementById("empPhoto");
 
-if(!empEmail.value || !empPassword.value)
-return alert("Email & Password required");
+    if (!email.value || !password.value) return alert("Email and Password are required for login.");
 
-const { data: signData, error: signError } = await supa.auth.signUp({
-email: empEmail.value,
-password: empPassword.value
-});
+    try {
+        // Step 1: Create Supabase Auth User
+        const { data: signData, error: signError } = await supa.auth.signUp({
+            email: email.value,
+            password: password.value
+        });
 
-if(signError){
-alert(signError.message);
-return;
+        if (signError) throw signError;
+
+        // Step 2: Handle Photo Upload
+        let photoUrl = null;
+        const file = photo.files[0];
+        if (file) {
+            const fileName = `emp_${Date.now()}.${file.name.split(".").pop()}`;
+            const { error: upErr } = await supa.storage.from("staff_photos").upload(fileName, file);
+            if (!upErr) {
+                photoUrl = supa.storage.from("staff_photos").getPublicUrl(fileName).data.publicUrl;
+            }
+        }
+
+        // Step 3: Create User Record in Database
+        const { error: profileError } = await supa.from("users").insert([{
+            auth_user_id: signData.user?.id,
+            full_name: fullName.value,
+            email: email.value,
+            basic_salary: Number(basic.value || 0),
+            commission_rate: Number(rate.value || 0),
+            role: role.value,
+            pic: photoUrl
+        }]);
+
+        if (profileError) throw profileError;
+
+        alert("Employee created successfully.");
+        
+        // Reset Form
+        [fullName, email, password, basic, rate, photo].forEach(el => el.value = "");
+        
+        await sync();
+        if (typeof generatePayroll === "function") await generatePayroll();
+
+    } catch (err) {
+        console.error("Employee Creation Error:", err);
+        alert("Failed to create employee: " + err.message);
+    }
 }
 
-let photoUrl = null;
-const file = empPhoto.files[0];
+/**
+ * RENDER EMPLOYEE LIST
+ */
+function renderEmployees() {
+    const body = document.getElementById("employeeBody");
+    if (!body || !db.users) return;
 
-if(file){
+    const search = (document.getElementById("employeeSearch")?.value || "").toLowerCase();
 
-const fileExt = file.name.split(".").pop();
-const fileName = "emp_" + Date.now() + "." + fileExt;
-
-const { error: uploadError } = await supa.storage
-.from("staff_photos")
-.upload(fileName, file);
-
-if(uploadError){
-alert("Photo upload failed: " + uploadError.message);
-
-}else{
-
-const { data: urlData } = supa.storage
-.from("staff_photos")
-.getPublicUrl(fileName);
-
-photoUrl = urlData.publicUrl;
-
+    body.innerHTML = db.users
+        .filter(u => 
+            (u.full_name || "").toLowerCase().includes(search) || 
+            (u.email || "").toLowerCase().includes(search)
+        )
+        .map(u => `
+            <tr>
+                <td>${u.full_name || u.email}</td>
+                <td>${u.email}</td>
+                <td><span class="badge">${u.role}</span></td>
+                <td>
+                    <button class="btn btn-blue" onclick="generateUserID('${u.id}')">ID Card</button>
+                    <button class="btn btn-red" onclick="deleteEmployee('${u.id}')">Delete</button>
+                </td>
+            </tr>
+        `).join("");
 }
 
+/**
+ * DELETE EMPLOYEE
+ */
+async function deleteEmployee(id) {
+    if (!currentUser || currentUser.role !== "admin") return alert("Admin only");
+    if (!confirm("Are you sure you want to delete this employee? This will not remove their login credentials.")) return;
+
+    const { error } = await supa.from("users").delete().eq("id", id);
+    if (error) {
+        alert("Delete failed: " + error.message);
+    } else {
+        await sync();
+    }
 }
 
-const { error: profileError } = await supa.from("users").insert([{
-auth_user_id: signData.user?.id,
-full_name: empFullName.value,
-email: empEmail.value,
-basic_salary: Number(empBasic.value || 0),
-commission_rate: Number(empCommissionRate.value || 0),
-role: empRole.value,
-pic: photoUrl
-}]);
+/**
+ * GENERATE USER ID (Professional CR80 Format)
+ * 86mm x 54mm Landscape
+ */
+async function generateUserID(userId) {
+    const user = db.users.find(u => String(u.id) === String(userId));
+    if (!user) return alert("User not found");
 
-if(profileError){
-alert("Profile Error: " + profileError.message);
-return;
-}
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: [86, 54] });
 
-alert("Employee created successfully.");
+    // Background Card Design
+    doc.setFillColor(235, 235, 235);
+    doc.rect(0, 0, 86, 54, "F");
+    doc.setDrawColor(31, 45, 61); // Primary color border
+    doc.setLineWidth(0.5);
+    doc.rect(1, 1, 84, 52);
 
-empFullName.value="";
-empEmail.value="";
-empPassword.value="";
-empBasic.value="";
-empCommissionRate.value="";
-empPhoto.value="";
+    // Header Branding
+    if (db.branding?.logo_url) {
+        try {
+            const logoImg = await fetchImageAsBase64(db.branding.logo_url);
+            doc.addImage(logoImg, 'PNG', 5, 4, 18, 10);
+        } catch (e) { console.warn("Logo load failed"); }
+    }
 
-await sync();
+    doc.setFontSize(9).setFont(undefined, "bold");
+    doc.text(db.branding?.company_name || "Company ERP", 43, 8, { align: "center" });
+    doc.setFontSize(6).setFont(undefined, "normal");
+    doc.text(db.branding?.tagline || "Professional Management System", 43, 11, { align: "center" });
 
-if(typeof generatePayroll === "function"){
-await generatePayroll();
-}
+    // Photo Section
+    if (user.pic) {
+        try {
+            const photoImg = await fetchImageAsBase64(user.pic);
+            doc.addImage(photoImg, 'JPEG', 5, 18, 25, 30);
+        } catch (e) {
+            doc.rect(5, 18, 25, 30); // Placeholder box
+            doc.setFontSize(5).text("No Photo", 10, 33);
+        }
+    } else {
+        doc.rect(5, 18, 25, 30);
+    }
 
-}
+    // Details Section
+    doc.setFontSize(8).setFont(undefined, "bold");
+    doc.text("Name:", 35, 22);
+    doc.setFont(undefined, "normal").text(user.full_name || "N/A", 35, 26);
 
+    doc.setFont(undefined, "bold").text("Role:", 35, 32);
+    doc.setFont(undefined, "normal").text(user.role?.toUpperCase() || "STAFF", 35, 36);
 
-function renderEmployees(){
+    doc.setFont(undefined, "bold").text("Staff ID:", 35, 42);
+    doc.setFont(undefined, "normal").text(String(user.id).slice(0, 8), 35, 46);
 
-if(!window.db || !Array.isArray(db.users)) return;
+    // Signature Area
+    doc.setFontSize(5);
+    doc.text("Authorized Signature", 65, 50);
+    doc.line(60, 48, 80, 48);
 
-const search =
-(document.getElementById("employeeSearch")?.value || "")
-.toLowerCase();
-
-employeeBody.innerHTML =
-db.users
-.filter(u =>
-(u.full_name || "").toLowerCase().includes(search) ||
-(u.email || "").toLowerCase().includes(search)
-)
-.map(u=>`
-<tr>
-<td>${u.full_name}</td>
-<td>${u.email}</td>
-<td>${u.role}</td>
-<td>
-<button onclick="generateUserID('${u.id}')">Print ID</button>
-<button onclick="deleteEmployee('${u.id}')">Delete</button>
-</td>
-</tr>
-`).join("");
-
-}
-
-
-async function deleteEmployee(id){
-
-if(!currentUser || currentUser.role !== "admin")
-return alert("Admin only");
-
-if(!confirm("Delete employee?")) return;
-
-await supa.from("users")
-.delete()
-.eq("id", id);
-
-await sync();
-
-}
-
-
-function printID(userId){
-
-if(!window.db || !Array.isArray(db.users)) return;
-
-const user = db.users.find(u=>String(u.id)===String(userId));
-if(!user) return;
-
-const { jsPDF } = window.jspdf;
-const doc = new jsPDF();
-
-let y = 15;
-
-doc.setFontSize(16);
-doc.text(
-db.branding?.company_name || "SmartsourcingKe",
-105,
-y,
-{ align:"center" }
-);
-y += 8;
-
-doc.setFontSize(10);
-doc.text(
-db.branding?.tagline || "Nunua Kibosi, Dignify Your Hustle",
-105,
-y,
-{ align:"center" }
-);
-y += 10;
-
-if(db.branding?.logo_url){
-doc.addImage(db.branding.logo_url,"JPEG",80,y,50,25);
-y += 30;
-}
-
-if(user.pic){
-doc.addImage(user.pic,"JPEG",80,y,50,40);
-y += 45;
-}
-
-doc.setFontSize(12);
-doc.text("Staff No: " + String(user.id).slice(0,8),20,y);
-y += 8;
-
-doc.text("Name: " + user.full_name,20,y);
-y += 8;
-
-doc.text("Role: " + user.role,20,y);
-
-doc.save(user.full_name + "_ID.pdf");
-
-}
-
-
-async function generateUserID(userId){
-
-if(!window.db || !Array.isArray(db.users)) return;
-
-const user = db.users.find(u => String(u.id) === String(userId));
-if(!user) return alert("User not found");
-
-const { jsPDF } = window.jspdf;
-
-const doc = new jsPDF({
-orientation:"landscape",
-unit:"mm",
-format:[86,54]
-});
-
-doc.setFillColor(245,245,245);
-doc.rect(0,0,86,54,"F");
-
-if(db.branding?.logo_url){
-const logoImg = await fetchImageAsBase64(db.branding.logo_url);
-doc.addImage(logoImg, undefined, 5, 4, 18, 10);
-}
-
-doc.setFontSize(8);
-doc.setFont(undefined,"bold");
-doc.text(
-db.branding?.company_name || "Company Name",
-43,
-10,
-{align:"center"}
-);
-
-doc.setFontSize(6);
-doc.setFont(undefined,"normal");
-doc.text(
-db.branding?.tagline || "",
-43,
-14,
-{align:"center"}
-);
-
-if(user.pic){
-const photoImg = await fetchImageAsBase64(user.pic);
-doc.addImage(photoImg, undefined, 5, 18, 25, 30);
-}
-
-doc.setFontSize(7);
-
-doc.setFont(undefined,"bold");
-doc.text("Name:",35,22);
-
-doc.setFont(undefined,"normal");
-doc.text(user.full_name || user.email,35,26);
-
-doc.setFont(undefined,"bold");
-doc.text("Role:",35,32);
-
-doc.setFont(undefined,"normal");
-doc.text(user.role,35,36);
-
-doc.setFont(undefined,"bold");
-doc.text("Staff ID:",35,42);
-
-doc.setFont(undefined,"normal");
-doc.text(String(user.id).slice(0,8),35,46);
-
-doc.setFontSize(6);
-doc.text("Authorized Signature",60,50);
-
-doc.save(`Staff_ID_${user.full_name || user.email}.pdf`);
-
+    doc.save(`ID_${user.full_name.replace(/\s/g, '_')}.pdf`);
 }
