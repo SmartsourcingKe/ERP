@@ -78,6 +78,17 @@ const tables = [
         }
     }
 
+// Fetch Products
+    const { data: prodData } = await supa.from("products").select("*").order('name');
+    db.products = prodData || [];
+
+    // Fetch other tables...
+    // const { data: retailData } = await supa.from("retailers").select("*");
+    // db.retailers = retailData || [];
+
+    renderAll();
+}
+
     // Update UI
     renderAll();
     

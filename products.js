@@ -36,6 +36,17 @@ async function addProduct() {
         console.error("Product Insert Error:", err);
         alert("Error: " + err.message);
     }
+	
+	if (error) throw error;
+
+        // THE FIX: Immediately refresh the data and UI
+        await sync(); // Fetch latest from Supabase
+        renderAll();  // Redraw everything
+        
+        // Clear the form
+        document.getElementById("productForm").reset();
+        alert("Product added successfully!");
+	
 }
 /**
  * RENDER PRODUCTS TABLE

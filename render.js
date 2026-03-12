@@ -7,23 +7,22 @@ window.salesChart = window.salesChart || null;
  * MASTER RENDER DISPATCHER
  */
 function renderAll() {
-    try {
-        console.log("ERP rendering...");
-        renderBranding();
-        renderProducts();
-        renderRetailers();
-        
-        // Wrap the dashboard in a try/catch so charts don't kill the app
-        try {
-            renderProfitDashboard();
-        } catch (chartErr) {
-            console.warn("Dashboard charts failed to load, but app is still running.");
-        }
+    console.log("Master Render started...");
+    
+    // 1. Branding (Logo/Background)
+    if (typeof renderBranding === "function") renderBranding();
 
-        console.log("ERP rendered successfully");
-    } catch (err) {
-        console.error("Critical Render failure:", err);
-    }
+    // 2. Inventory Table
+    if (typeof renderProducts === "function") renderProducts();
+
+    // 3. Dropdowns (The Order Form)
+    if (typeof renderProductDropdowns === "function") renderProductDropdowns();
+
+    // 4. Other Modules
+    if (typeof renderRetailers === "function") renderRetailers();
+    if (typeof renderOrders === "function") renderOrders();
+    
+    console.log("Master Render complete.");
 }
 
 /**
@@ -167,4 +166,44 @@ function renderStaffSalesChart(labels, data) {
     } catch (err) {
         console.error("Staff Chart Crash prevented:", err);
     }
+}
+
+function populateProductDropdown() {
+    const select = document.getElementById("orderProductSelect");
+    if (!select) return;
+
+    // Use the global db object, default to empty array if sync hasn't finished
+    const products = db.products || [];
+
+    select.innerHTML = '<option value="">-- Select Product --</option>' + 
+        products.map(p => `
+            <option value="${p.id}" data-price="${p.price}">
+                ${p.name} (Stock: ${p.stock}) - KES ${p.price}
+            </option>
+        `).join("");
+}
+
+
+function renderProductDropdowns() {
+    // 1. Find both Retail and Corporate order dropdowns
+    const dropdowns = [
+        document.getElementById("orderProductSelect"),     // Retail
+        document.getElementById("corpOrderProductSelect")  // Corporate
+    ];
+
+    const products = db.products || [];
+
+    dropdowns.forEach(select => {
+        if (!select) return;
+
+        // 2. Build the list of options
+        let html = '<option value="">-- Select Product --</option>';
+        products.forEach(p => {
+            html += `<option value="${p.id}" data-price="${p.price}">
+                ${p.name} (Stock: ${p.stock}) - KES ${p.price}
+            </option>`;
+        });
+
+        select.innerHTML = html;
+    });
 }
