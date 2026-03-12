@@ -139,31 +139,34 @@ function renderProfitChart(labels, data) {
 /**
  * CHART HELPER: Staff Sales Bar
  */
-function renderStaffSalesChart() {
-    const ctx = document.getElementById("salesChart");
-    if (!ctx) return;
+function renderStaffSalesChart(labels, data) {
+    const canvas = document.getElementById("staffSalesChart");
+    if (!canvas) return;
 
-    let staffSales = {};
-    (db.orders || []).filter(o => o.status === "disbursed").forEach(o => {
-        const staffName = db.users?.find(u => u.id === o.created_by)?.full_name || "Unknown";
-        staffSales[staffName] = (staffSales[staffName] || 0) + Number(o.total);
-    });
+    // 1. Clear previous instance to avoid "Canvas in use" errors
+    if (window.myStaffChart instanceof Chart) {
+        window.myStaffChart.destroy();
+    }
 
-    const labels = Object.keys(staffSales);
-    const data = Object.values(staffSales);
+    const safeLabels = Array.isArray(labels) ? labels : [];
+    const safeData = Array.isArray(data) ? data : [];
 
-    if (!salesChart) {
-        salesChart = new Chart(ctx, {
-            type: "bar",
+    try {
+        window.myStaffChart = new Chart(canvas, {
+            type: "pie",
             data: {
-                labels,
-                datasets: [{ label: "Sales by Staff (KES)", data, backgroundColor: "#3498db" }]
+                labels: safeLabels,
+                datasets: [{
+                    data: safeData,
+                    backgroundColor: ["#3498db", "#2ecc71", "#e74c3c", "#f1c40f", "#9b59b6"]
+                }]
             },
-            options: { responsive: true }
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false 
+            }
         });
-    } else {
-        salesChart.data.labels = labels;
-        salesChart.data.datasets[0].data = data;
-        salesChart.update();
+    } catch (err) {
+        console.error("Staff Chart Error:", err);
     }
 }

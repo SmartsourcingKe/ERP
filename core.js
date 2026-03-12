@@ -64,6 +64,18 @@ if (window.supa) {
                 handleSignedOut();
             }
         }
+		
+		let isSyncing = false;
+
+async function safeSync() {
+    if (isSyncing) return; // If already syncing, don't start another one
+    isSyncing = true;
+    
+    await sync(); // Your existing sync function
+    
+    isSyncing = false;
+}
+		
     });
 }
 

@@ -139,10 +139,18 @@ async function fetchImageAsBase64(url) {
  * Called during app startup.
  */
 async function loadBranding() {
-    const { data, error } = await supa.from("branding").select("*").maybeSingle();
-    if (error) return console.warn("Could not load branding settings.");
-    if (data) {
-        db.branding = data;
+    // We use .limit(1) instead of maybeSingle to avoid errors if multiple rows exist
+    const { data, error } = await supa.from("branding").select("*").limit(1);
+    
+    if (error) {
+        return console.warn("Could not load branding settings:", error.message);
+    }
+    
+    if (data && data.length > 0) {
+        db.branding = data[0]; // Take the first row found
         renderBranding();
+        console.log("Branding loaded successfully:", db.branding.company_name);
+    } else {
+        console.warn("Branding table is empty. Please save settings in the Admin tab.");
     }
 }
