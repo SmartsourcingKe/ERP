@@ -95,8 +95,12 @@ function setupMessageInput() {
 }
 
 function cleanupMessaging() {
-    const box = document.getElementById("messages");
+    const box = document.getElementById("messagesContainer");
     if (box) box.innerHTML = "";
-    // Unsubscribe from channel to save resources
-    if (window.supa) supa.removeChannel('messages-channel');
+    
+    // Safer way to remove channel
+    if (window.supa && typeof supa.removeChannel === 'function') {
+        const channel = supa.channel('messages-channel');
+        supa.removeChannel(channel);
+    }
 }

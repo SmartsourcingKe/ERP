@@ -101,24 +101,33 @@ function renderProfitDashboard() {
 /**
  * CHART HELPER: Profit Pie
  */
-function renderProfitChart(mfg, fee, corp) {
-    const ctx = document.getElementById("profitChart");
-    if (!ctx) return;
+function renderProfitChart(labels, data) {
+    const canvas = document.getElementById("profitChart");
+    if (!canvas) return;
 
-    const data = [mfg, fee, corp];
-
-    if (!profitChart) {
-        profitChart = new Chart(ctx, {
-            type: "pie",
+    // Safety: If window.profitChart exists but isn't a real Chart object yet, or is missing datasets
+    if (window.profitChart && window.profitChart.data && window.profitChart.data.datasets) {
+        window.profitChart.data.labels = labels;
+        window.profitChart.data.datasets[0].data = data;
+        window.profitChart.update();
+    } else {
+        // Destroy existing instance if it's corrupted to start fresh
+        if (window.profitChart && typeof window.profitChart.destroy === 'function') {
+            window.profitChart.destroy();
+        }
+        
+        window.profitChart = new Chart(canvas, {
+            type: "bar",
             data: {
-                labels: ["Manufacturer", "Company Fee", "Corporate"],
-                datasets: [{ data, backgroundColor: ["#34495e", "#27ae60", "#3498db"] }]
+                labels: labels,
+                datasets: [{
+                    label: "Revenue (KES)",
+                    data: data,
+                    backgroundColor: "#3498db"
+                }]
             },
             options: { responsive: true, maintainAspectRatio: false }
         });
-    } else {
-        profitChart.data.datasets[0].data = data;
-        profitChart.update();
     }
 }
 
