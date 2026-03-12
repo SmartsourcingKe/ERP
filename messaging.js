@@ -36,11 +36,11 @@ async function sendMessage() {
     if (!textValue) return;
 
     try {
-        // FIXED: Using 'text' instead of 'body' to match SQL
         const { error } = await supa.from("messages").insert({
             sender_id: currentUser.auth_user_id,
             sender_name: currentUser.full_name,
-            text: textValue 
+            text: textValue,    // Try 'text'
+            content: textValue  // Adding 'content' as well to satisfy the constraint
         });
 
         if (error) throw error;
@@ -59,7 +59,8 @@ async function sendMessage() {
 function renderMessages() {
     // FIXED: Changed ID from "messages" to "messagesContainer"
     const box = document.getElementById("messagesContainer");
-    if (!box || !window.db?.messages) return;
+    if (!box || !window.db) return; // Guard 1: Is DB ready?
+    if (!db.messages) db.messages = []; // Guard 2: Is the message list there?
 
     box.innerHTML = db.messages.map(m => {
         const sender = db.users?.find(u => u.auth_user_id === m.sender_id);
