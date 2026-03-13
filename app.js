@@ -78,16 +78,6 @@ const tables = [
         }
     }
 
-// Fetch Products
-    const { data: prodData } = await supa.from("products").select("*").order('name');
-    db.products = prodData || [];
-
-    // Fetch other tables...
-    // const { data: retailData } = await supa.from("retailers").select("*");
-    // db.retailers = retailData || [];
-
-    renderAll();
-}
 
     // Update UI
     renderAll();
@@ -96,6 +86,15 @@ const tables = [
     if (typeof renderRetailerDropdown === "function") renderRetailerDropdown();
     if (typeof renderSchools === "function") renderSchools();
     if (typeof renderProductDropdowns === "function") renderProductDropdowns();
+	
+	if (!error) {
+    db[table] = data; // 1. Save data first
+}
+	
+	renderAll();
+renderProductDropdowns();
+renderRetailerDropdown();
+	
 }
 
 /**

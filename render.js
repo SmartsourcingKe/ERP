@@ -185,25 +185,44 @@ function populateProductDropdown() {
 
 
 function renderProductDropdowns() {
-    // 1. Find both Retail and Corporate order dropdowns
-    const dropdowns = [
-        document.getElementById("orderProductSelect"),     // Retail
-        document.getElementById("corpOrderProductSelect")  // Corporate
-    ];
+const retailSelect = document.getElementById("orderProductSelect");
+const products = db.products || [];
+if (retailSelect) {
+let options = '-- Select Product --';
+products.forEach(p => {
+options += '' + p.name + ' (Stock: ' + p.stock + ')';
+});
+retailSelect.innerHTML = options;
+}
+}
 
-    const products = db.products || [];
+function renderProducts() {
+	
+const tableBody = document.getElementById("productBody");
 
-    dropdowns.forEach(select => {
-        if (!select) return;
+if (!tableBody) return;
+const products = db.products || [];
 
-        // 2. Build the list of options
-        let html = '<option value="">-- Select Product --</option>';
-        products.forEach(p => {
-            html += `<option value="${p.id}" data-price="${p.price}">
-                ${p.name} (Stock: ${p.stock}) - KES ${p.price}
-            </option>`;
-        });
+tableBody.innerHTML = products.map(p =>
 
-        select.innerHTML = html;
-    });
+<tr>
+ <td>${p.name}</td> 
+<td>${p.stock}</td>
+ <td>KES ${p.price}</td> 
+ <td><button onclick="deleteProduct('${p.id}')" class="btn btn-red">Delete</button></td> 
+ </tr>
+ 
+).join("");
+
+}
+
+function renderRetailerDropdown() {
+const select = document.getElementById("retailerSelect");
+const retailers = db.retailers || [];
+if (!select) return;
+let options = '-- Select Retailer --';
+retailers.forEach(r => {
+options += '' + r.name + '';
+});
+select.innerHTML = options;
 }
