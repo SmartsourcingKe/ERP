@@ -1,72 +1,77 @@
 /**
  * ADD PRODUCT
- * Saves a new item to the products table.
+ * Saves a new item to the products table and refreshes UI.
  */
 async function addProduct() {
-    if (!window.supa || !window.currentUser) return;
+    // 1. Safety Checks
+    if (!window.supa || !window.currentUser) {
+        return alert("Session expired. Please log in again.");
+    }
 
-    // These IDs now match your index.html exactly
     const nameInput = document.getElementById("productName");
     const stockInput = document.getElementById("productStock");
-    const priceInput = document.getElementById("productBasePrice"); // Fixed ID
+    const priceInput = document.getElementById("productBasePrice");
     const feeInput = document.getElementById("productFee");
+    const productForm = document.getElementById("productForm");
 
     if (!nameInput.value.trim()) return alert("Product name is required.");
 
+    // 2. Prepare Payload (Matches renamed 'name' column)
     const payload = {
         name: nameInput.value.trim(),
-        stock: Number(stockInput.value) || 0, // Added stock
+        stock: Number(stockInput.value) || 0,
         price: Number(priceInput.value) || 0,
         company_fee: Number(feeInput.value) || 0
     };
 
     try {
+        // 3. Insert to Supabase
         const { error } = await supa.from("products").insert([payload]);
         if (error) throw error;
 
-        // Reset inputs
-        nameInput.value = "";
-        stockInput.value = "";
-        priceInput.value = "";
-        feeInput.value = "";
-
-        await sync();
+        // 4. Success Flow
         alert("Product added successfully");
+
+        // Reset form safely
+        if (productForm) {
+            productForm.reset();
+        } else {
+            nameInput.value = "";
+            stockInput.value = "";
+            priceInput.value = "";
+            feeInput.value = "";
+        }
+
+        // 5. REFRESH: Pull fresh data and redraw UI
+        await sync(); 
+
     } catch (err) {
         console.error("Product Insert Error:", err);
-        alert("Error: " + err.message);
+        alert("Error: " + (err.message || "Failed to save product"));
     }
-	
-	if (error) throw error;
-
-        // THE FIX: Immediately refresh the data and UI
-        await sync(); // Fetch latest from Supabase
-        renderAll();  // Redraw everything
-        
-        // Clear the form
-        document.getElementById("productForm").reset();
-        alert("Product added successfully!");
-	
 }
+
 /**
  * RENDER PRODUCTS TABLE
- * Handles both the initial load and the live search filtering.
+ * Uses the global window.db.products
  */
 function renderProducts() {
-    const table = document.getElementById("productsTable");
-    if (!table || !db.products) return;
+    // Ensure we are looking for the correct tbody ID from your HTML
+    const tableBody = document.getElementById("productBody") || document.getElementById("productsTable");
+    if (!tableBody || !window.db.products) return;
 
     const searchTerm = (document.getElementById("productSearch")?.value || "").toLowerCase();
 
-    const filtered = db.products.filter(p => 
-        p.name.toLowerCase().includes(searchTerm)
+    const filtered = window.db.products.filter(p => 
+        (p.name || "").toLowerCase().includes(searchTerm)
     );
 
-    table.innerHTML = filtered.map(p => `
+    tableBody.innerHTML = filtered.map(p => `
         <tr>
             <td><strong>${p.name}</strong></td>
-            <td>${Number(p.price).toLocaleString()}</td>
-            <td>${Number(p.company_fee).toLocaleString()}</td>
+            <td>${p.stock || 0}</td>
+            <td>KES ${Number(p.price).toLocaleString()}</td>
+            <td>KES ${Number(p.company_fee).toLocaleString()}</td>
             <td>
                 <button class="btn btn-blue" onclick="editProduct('${p.id}')">Edit</button>
                 <button class="btn btn-red" onclick="deleteProduct('${p.id}')">Delete</button>
@@ -77,57 +82,22 @@ function renderProducts() {
 
 /**
  * DELETE PRODUCT
- * Checks for order history before allowing deletion to maintain data integrity.
  */
 async function deleteProduct(id) {
-    if (window.currentUser?.role !== 'admin') return alert("Admin only");
+    if (window.currentUser?.role !== 'admin') return alert("Admin access required.");
     
-    // Safety Check: Check if product is in order_items
-    const inOrders = (db.order_items || []).some(item => item.product_id === id);
+    const inOrders = (window.db.order_items || []).some(item => item.product_id === id);
     if (inOrders) {
-        return alert("Cannot delete: This product is linked to existing orders. Try renaming it instead.");
+        return alert("Cannot delete: This product has sales history. Try renaming it instead.");
     }
 
-    if (!confirm("Are you sure you want to permanently delete this product?")) return;
-
-    const { error } = await supa.from("products").delete().eq("id", id);
-    if (error) {
-        alert("Delete failed: " + error.message);
-    } else {
-        await sync();
-    }
-}
-
-/**
- * EDIT PRODUCT
- * Uses a cleaner flow than prompt for price/fee updates.
- */
-async function editProduct(id) {
-    const product = db.products.find(p => p.id === id);
-    if (!product) return;
-
-    const newName = prompt("Update Product Name:", product.name);
-    if (newName === null) return; // Cancelled
-
-    const newPrice = prompt("Update Price:", product.price);
-    const newFee = prompt("Update Company Fee:", product.company_fee);
+    if (!confirm("Delete this product permanently?")) return;
 
     try {
-        const { error } = await supa.from("products")
-            .update({
-                name: newName,
-                price: Number(newPrice) || 0,
-                company_fee: Number(newFee) || 0
-            })
-            .eq("id", id);
-
+        const { error } = await supa.from("products").delete().eq("id", id);
         if (error) throw error;
         await sync();
     } catch (err) {
-        alert("Update failed: " + err.message);
+        alert("Delete failed: " + err.message);
     }
 }
-
-// Global search listener attachment
-const prodSearch = document.getElementById("productSearch");
-if(prodSearch) prodSearch.addEventListener("input", renderProducts);

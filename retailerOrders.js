@@ -3,19 +3,25 @@
  * Handles inventory checks and local cart state.
  */
 function addToCart() {
-    const productId = document.getElementById("productSelect").value;
-    const qty = Number(document.getElementById("orderQty").value);
+    // 1. Correct IDs from index.html
+    const productId = document.getElementById("orderProductSelect")?.value;
+    const qtyInput = document.getElementById("orderQty");
+    const qty = Number(qtyInput.value);
 
     if (!productId) return alert("Please select a product.");
     if (qty <= 0) return alert("Please enter a valid quantity.");
 
-    const product = (db.products || []).find(p => p.id === productId);
+    // 2. Use global window.db
+    const product = (window.db.products || []).find(p => p.id === productId);
     if (!product) return;
 
-    const existing = cart.find(c => c.product_id === productId);
+    // Initialize window.cart if it doesn't exist
+    if (!window.cart) window.cart = [];
+
+    const existing = window.cart.find(c => c.product_id === productId);
     const currentCartQty = existing ? existing.qty : 0;
 
-    // Check inventory
+    // 3. Check inventory
     if ((product.stock || 0) < (qty + currentCartQty)) {
         return alert(`Insufficient stock. Available: ${product.stock}`);
     }
@@ -23,15 +29,15 @@ function addToCart() {
     if (existing) {
         existing.qty += qty;
     } else {
-        cart.push({
+        window.cart.push({
             product_id: product.id,
-            name: product.name, // Fixed from product_name
-            price: Number(product.price), // Fixed from selling_price
+            name: product.name, 
+            price: Number(product.price), 
             qty: qty
         });
     }
 
-    document.getElementById("orderQty").value = "";
+    qtyInput.value = "";
     renderCart();
 }
 
@@ -42,59 +48,59 @@ function renderCart() {
     const view = document.getElementById("cartView");
     if (!view) return;
 
-    if (cart.length === 0) {
-        view.innerHTML = "<p class='text-gray'>Cart is empty</p>";
+    if (!window.cart || window.cart.length === 0) {
+        view.innerHTML = "<p style='color:gray; padding:10px;'>Cart is empty</p>";
         return;
     }
 
     let grandTotal = 0;
-    const rows = cart.map((item, index) => {
+    const rows = window.cart.map((item, index) => {
         const rowTotal = item.qty * item.price;
         grandTotal += rowTotal;
         return `
             <tr>
-                <td>${item.name}</td>
+                <td><strong>${item.name}</strong></td>
                 <td>${item.qty}</td>
                 <td>${item.price.toLocaleString()}</td>
                 <td>${rowTotal.toLocaleString()}</td>
-                <td><button class="btn-red" onclick="cart.splice(${index},1);renderCart()">X</button></td>
+                <td><button class="btn btn-red" style="padding:2px 8px;" onclick="window.cart.splice(${index},1);renderCart()">X</button></td>
             </tr>`;
     }).join("");
 
     view.innerHTML = `
-        <table>
+        <table class="card">
             <thead><tr><th>Product</th><th>Qty</th><th>Price</th><th>Total</th><th></th></tr></thead>
             <tbody>${rows}</tbody>
         </table>
-        <div style="text-align:right; margin-top:10px;">
+        <div style="text-align:right; margin-top:10px; font-size:1.2em;">
             <strong>Grand Total: KES ${grandTotal.toLocaleString()}</strong>
         </div>`;
 }
 
 /**
  * CREATE RETAILER ORDER
- * Commits the cart to Supabase and updates inventory.
  */
 async function createOrder() {
     const retailerId = document.getElementById("retailerSelect")?.value;
     if (!retailerId) return alert("Select a retailer.");
-    if (cart.length === 0) return alert("Cart is empty.");
+    if (!window.cart || window.cart.length === 0) return alert("Cart is empty.");
 
-    const total = cart.reduce((sum, c) => sum + (c.qty * c.price), 0);
+    const total = window.cart.reduce((sum, c) => sum + (c.qty * c.price), 0);
 
     try {
         // 1. Insert Master Order
         const { data: order, error: orderErr } = await supa.from("orders").insert([{
             retailer_id: retailerId,
             total: total,
-            created_by: currentUser.id,
+            created_by: window.currentUser.id,
             status: "pending"
         }]).select().single();
 
         if (orderErr) throw orderErr;
 
         // 2. Insert Items & Update Stock
-        for (const item of cart) {
+        for (const item of window.cart) {
+            // Save item
             await supa.from("order_items").insert([{
                 order_id: order.id,
                 product_id: item.product_id,
@@ -102,18 +108,18 @@ async function createOrder() {
                 price: item.price
             }]);
 
-            const originalProd = db.products.find(p => p.id === item.product_id);
+            // Deduct stock from Supabase
+            const originalProd = window.db.products.find(p => p.id === item.product_id);
             if (originalProd) {
-                await supa.from("products")
-                    .update({ stock: (originalProd.stock || 0) - item.qty })
-                    .eq("id", item.product_id);
+                const newStock = (originalProd.stock || 0) - item.qty;
+                await supa.from("products").update({ stock: newStock }).eq("id", item.product_id);
             }
         }
 
         alert("Order created successfully!");
-        cart = [];
+        window.cart = [];
         renderCart();
-        await sync();
+        await sync(); // Refresh UI and global data
 
     } catch (err) {
         console.error("Order Error:", err);
@@ -125,41 +131,44 @@ async function createOrder() {
  * PRINT RETAIL RECEIPT (PDF)
  */
 async function printRetailReceipt(orderId) {
-    const order = db.orders.find(o => o.id === orderId);
-    const retailer = db.retailers.find(r => r.id === order.retailer_id);
-    const items = db.order_items.filter(i => i.order_id === orderId);
+    const order = window.db.orders?.find(o => o.id === orderId);
+    const retailer = window.db.retailers?.find(r => r.id === order?.retailer_id);
+    const items = window.db.order_items?.filter(i => i.order_id === orderId) || [];
 
-    if (!order || !retailer) return;
+    if (!order || !retailer) return alert("Order data not found.");
 
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
-    // Branding Header
-    if (db.branding?.logo_url) {
-        const logo = await fetchImageAsBase64(db.branding.logo_url);
-        doc.addImage(logo, 'PNG', 85, 10, 40, 20);
+    // 1. Branding Header
+    if (window.db.branding?.logo_url) {
+        try {
+            const logo = await fetchImageAsBase64(window.db.branding.logo_url);
+            if (logo) doc.addImage(logo, 'PNG', 85, 10, 40, 20);
+        } catch (e) { console.warn("Logo failed to load for PDF"); }
     }
     
-    doc.setFontSize(18).text(db.branding?.company_name || "ERP System", 105, 35, {align:"center"});
-    doc.setFontSize(10).text(db.branding?.tagline || "", 105, 40, {align:"center"});
+    doc.setFontSize(18).text(window.db.branding?.company_name || "ERP System", 105, 35, {align:"center"});
+    doc.setFontSize(10).text(window.db.branding?.tagline || "", 105, 40, {align:"center"});
 
     doc.setFontSize(14).text("OFFICIAL RECEIPT", 20, 55);
     doc.setFontSize(10).text(`Retailer: ${retailer.name}`, 20, 62);
     doc.text(`Date: ${new Date(order.created_at).toLocaleDateString()}`, 150, 62);
     doc.line(20, 65, 190, 65);
 
-    // Table Header
+    // 2. Table Header
     let y = 75;
-    doc.setFont(undefined, "bold");
+    doc.setFont("helvetica", "bold");
     doc.text("Item", 20, y);
     doc.text("Qty", 100, y);
     doc.text("Price", 130, y);
     doc.text("Subtotal", 160, y);
-    doc.setFont(undefined, "normal");
     
+    doc.setFont("helvetica", "normal");
     y += 5;
+    
     items.forEach(item => {
-        const prod = db.products.find(p => p.id === item.product_id);
+        const prod = window.db.products.find(p => p.id === item.product_id);
         y += 8;
         doc.text(prod?.name || "Product", 20, y);
         doc.text(String(item.quantity), 100, y);
@@ -168,7 +177,7 @@ async function printRetailReceipt(orderId) {
     });
 
     y += 15;
-    doc.setFontSize(14).setFont(undefined, "bold");
+    doc.setFontSize(14).setFont("helvetica", "bold");
     doc.text(`Total Paid: KES ${Number(order.total).toLocaleString()}`, 190, y, {align:"right"});
 
     doc.save(`Receipt_${retailer.name.replace(/\s/g, '_')}.pdf`);

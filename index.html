@@ -9,8 +9,8 @@
     <style>
         /* CSS kept exactly as provided for design consistency */
         :root { --primary:#1f2d3d; --green:#27ae60; --blue:#3498db; --red:#e74c3c; --bg:#f4f6f9; }
-        body { font-family:Segoe UI; margin:0; padding:20px; background:var(--bg); }
-        .hidden { display:none; }
+        body { font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin:0; padding:20px; background:var(--bg); }
+        .hidden { display:none !important; }
         .container { max-width:1200px; margin:auto; background:white; padding:20px; border-radius:12px; box-shadow:0 5px 20px rgba(0,0,0,0.1); }
         .btn { padding:8px 12px; border:none; border-radius:6px; cursor:pointer; color:white; font-weight:bold; }
         .btn-green { background:var(--green); }
@@ -27,13 +27,6 @@
         .brand-logo { max-height:100px; margin:auto; display:block; margin-bottom:10px; }
         .brand-name { font-size:2em; font-weight:bold; margin:0; }
         .brand-motto { font-style:italic; color:#7f8c8d; margin-top:5px; }
-        .dashboard-topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
-        .chat-container { max-height:400px; overflow-y:auto; padding:15px; background:#f4f6f9; border-radius:10px; display:flex; flex-direction:column; gap:10px; }
-        .chat-bubble { max-width:65%; padding:10px 14px; border-radius:15px; font-size:14px; word-wrap:break-word; }
-        .chat-left { align-self:flex-start; background:#e4e6eb; border-bottom-left-radius:5px; }
-        .chat-right { align-self:flex-end; background:#2d8cff; color:white; border-bottom-right-radius:5px; }
-        .chat-input-row { display:flex; gap:10px; margin-top:15px; }
-        .chat-input-row input { flex:1; }
         .login-container { max-width:400px; margin:100px auto; text-align:center; padding:30px; }
     </style>
 </head>
@@ -43,6 +36,7 @@
     <img id="loginLogo" class="brand-logo hidden">
     <h2 id="loginCompanyName">SmartsourcingKe ERP</h2>
     <p id="loginTagline" class="brand-motto"></p>
+    
     <input id="loginEmail" placeholder="Email">
     <input id="loginPassword" type="password" placeholder="Password">
     <button id="loginBtn" class="btn btn-blue" onclick="login()">Login</button>
@@ -55,8 +49,8 @@
         <p id="companyTagline" class="brand-motto"></p>
     </div>
 
-    <div class="dashboard-topbar">
-        <h2 id="welcome"></h2>
+    <div class="dashboard-topbar" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <h2 id="welcome">Welcome</h2>
         <button class="btn btn-red" onclick="logout()">Logout</button>
     </div>
 
@@ -86,29 +80,8 @@
             <h3>Orders History</h3>
             <input id="orderSearch" placeholder="Search orders..." oninput="renderOrders()">
             <table>
-                <thead>
-                    <tr><th>ID</th><th>Retailer</th><th>Total</th><th>Status</th><th>Date</th><th>Action</th></tr>
-                </thead>
+                <thead><tr><th>ID</th><th>Retailer</th><th>Total</th><th>Status</th><th>Date</th><th>Action</th></tr></thead>
                 <tbody id="ordersBody"></tbody>
-            </table>
-        </div>
-    </div>
-
-    <div id="retailersTab" class="tab-content hidden">
-        <div class="card">
-            <h3>Add Retailer</h3>
-            <input id="retailerName" placeholder="Retailer Name">
-            <input id="retailerPhone" placeholder="Phone">
-            <input id="retailerLocation" placeholder="Location">
-            <input id="retailerKyc" placeholder="KYC ID">
-            <button class="btn btn-green" onclick="addRetailer()">Save Retailer</button>
-        </div>
-        <div class="card">
-            <h3>Retailer List</h3>
-            <input id="retailerSearch" placeholder="Search retailer..." oninput="renderRetailers()">
-            <table>
-                <thead><tr><th>Name</th><th>Phone</th><th>Location</th></tr></thead>
-                <tbody id="retailerBody"></tbody>
             </table>
         </div>
     </div>
@@ -116,146 +89,36 @@
     <div id="inventoryTab" class="tab-content hidden">
         <div class="card">
             <h3>Add Product</h3>
-            <input id="productName" placeholder="Product Name">
-            <input id="productStock" type="number" placeholder="Stock Quantity">
-            <input id="productBasePrice" type="number" placeholder="Manufacturing Price">
-            <input id="productFee" type="number" placeholder="Company Fee">
-            <button class="btn btn-green" onclick="addProduct()">Save Product</button>
+            <form id="productForm">
+                <input id="productName" placeholder="Product Name">
+                <input id="productStock" type="number" placeholder="Stock Quantity">
+                <input id="productBasePrice" type="number" placeholder="Manufacturing Price">
+                <input id="productFee" type="number" placeholder="Company Fee">
+                <button type="button" class="btn btn-green" onclick="addProduct()">Save Product</button>
+            </form>
         </div>
         <div class="card">
             <h3>Inventory List</h3>
             <input id="productSearch" placeholder="Search product..." oninput="renderProducts()">
             <table>
-                <thead><tr><th>Product</th><th>Stock</th><th>Price</th></tr></thead>
+                <thead><tr><th>Product</th><th>Stock</th><th>Price</th><th>Action</th></tr></thead>
                 <tbody id="productBody"></tbody>
             </table>
         </div>
     </div>
 
-    <div id="corporateTab" class="tab-content hidden">
-        <div class="card">
-            <h3>Register School</h3>
-            <input id="schoolName" placeholder="School Name">
-            <input id="schoolPhone" placeholder="Phone">
-            <input id="schoolLocation" placeholder="Location">
-            <button class="btn btn-green" onclick="addSchool()">Save School</button>
-        </div>
-        <div class="card">
-            <h3>Corporate Order (CBC)</h3>
-            <select id="corpSchoolSelect">...</select>
-            <select id="cbcLevel">
-                <option value="">Select Level</option>
-                <option>PP1</option><option>PP2</option><option>Grade 1</option>
-                <option>Grade 2</option><option>Grade 3</option><option>Grade 4</option>
-                <option>Grade 5</option><option>Grade 6</option><option>Grade 7</option>
-                <option>Grade 8</option><option>Grade 9</option>
-            </select>
-            <input id="cbcStudents" type="number" placeholder="Number of Students">
-            <input id="cbcPrice" type="number" placeholder="Price Per Student">
-            <button class="btn btn-blue" onclick="addCorporateToCart()">Add to Cart</button>
-            <div id="corporateCartView" style="margin: 15px 0;"></div>
-            <button class="btn btn-green" onclick="createCorporateOrder()">Process Corporate Order</button>
-        </div>
-        <div class="card">
-            <h3>Corporate Orders</h3>
-            <input id="schoolSearch" placeholder="Search corporate orders..." oninput="renderCorporate()">
-            <table>
-                <thead><tr><th>School</th><th>Status</th><th>Total</th><th>Action</th></tr></thead>
-                <tbody id="corporateBody"></tbody>
-            </table>
-        </div>
     </div>
 
-    <div id="performanceTab" class="tab-content hidden">
-        <div class="card">
-            <h3>Sales Performance</h3>
-            <button class="btn btn-green" onclick="exportPerformancePDF()">Export PDF</button>
-            <canvas id="salesChart"></canvas>
-        </div>
-    </div>
-
-    <div id="payrollTab" class="tab-content hidden">
-        <div class="card">
-            <h3>Generate Payroll</h3>
-            <button class="btn btn-blue" onclick="generatePayroll()">Generate</button>
-            <button class="btn btn-green" onclick="exportPayrollPDF()">Export PDF</button>
-        </div>
-        <div class="card">
-            <h3>Payroll List</h3>
-            <table>
-                <thead><tr><th>Employee</th><th>Basic</th><th>Commission</th><th>Total</th></tr></thead>
-                <tbody id="payrollBody"></tbody>
-            </table>
-        </div>
-    </div>
-
-    <div id="adminTab" class="tab-content hidden">
-        <div class="card">
-            <h3>Branding Settings</h3>
-            <input id="brandCompanyName" placeholder="Company Name">
-            <input id="brandTagline" placeholder="Tagline">
-            <label>Logo</label><input id="brandLogoFile" type="file">
-            <label>Background</label><input id="brandBgFile" type="file">
-            <button class="btn btn-blue" onclick="updateBranding()">Save Branding</button>
-        </div>
-        <div class="card">
-            <h3>Add Employee</h3>
-            <input id="empFullName" placeholder="Full Name">
-            <input id="empEmail" placeholder="Email">
-            <input id="empPassword" type="password" placeholder="Password">
-            <input id="empBasic" type="number" placeholder="Basic Salary">
-            <input id="empCommissionRate" type="number" placeholder="Commission %">
-            <select id="empRole">
-                <option value="staff">Staff</option>
-                <option value="admin">Admin</option>
-            </select>
-            <input id="empPhoto" type="file">
-            <button class="btn btn-green" onclick="addEmployee()">Create Employee</button>
-        </div>
-        <div class="card">
-            <h3>Employee List</h3>
-            <input id="employeeSearch" placeholder="Search employee..." oninput="renderEmployees()">
-            <table>
-                <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Action</th></tr></thead>
-                <tbody id="employeeBody"></tbody>
-            </table>
-        </div>
-    </div>
-
-    <div id="profitTab" class="tab-content hidden">
-        <div class="card"><h3>Monthly Financial Statement</h3><div id="monthlyFinance"></div></div>
-        <div class="card"><canvas id="monthlyTrendChart"></canvas></div>
-        <div class="card"><h3>Financial Overview</h3><div id="profitSummary"></div></div>
-        <div class="card"><canvas id="profitChart"></canvas></div>
-    </div>
-
-    <div id="messagesTab" class="tab-content hidden">
-        <h3>Internal Messages</h3>
-        <div id="messagesContainer" class="chat-container"></div>
-        <div class="chat-input-row">
-            <input id="messageInput" placeholder="Type your message...">
-            <button id="sendMessageBtn" class="btn btn-blue" onclick="sendMessage()">Send</button>
-        </div>
-    </div>
-</div>
-
-<script>
-      document.addEventListener("DOMContentLoaded", async () => {
-        // This will be defined in auth.js
-        if (typeof restoreSession === "function") await restoreSession();
-    });
-</script>
-
-	<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <script src="supabase.js"></script> 
-
 <script src="core.js"></script>
+
 <script src="sync.js"></script>
 <script src="ui.js"></script>
-
+<script src="auth.js"></script>
 <script src="branding.js"></script>
 <script src="products.js"></script>
 <script src="retailers.js"></script>
@@ -267,10 +130,45 @@
 <script src="reports.js"></script>
 
 <script src="app.js"></script>
-<script src="auth.js"></script>
-
 <script src="render.js"></script>
 
+<script>
+    /**
+     * INITIALIZATION
+     * Fetches branding for login page immediately, then checks session.
+     */
+    document.addEventListener("DOMContentLoaded", async () => {
+        console.log("DOM Loaded. Initializing Branding...");
+        
+        // Ensure branding shows on login page even before auth
+        if (typeof renderBranding === "function") {
+            await renderBranding(); 
+        }
+
+        if (typeof restoreSession === "function") {
+            await restoreSession();
+        }
+    });
+
+    /**
+     * TAB NAVIGATION HANDLER
+     */
+    function openTab(tabId, btn) {
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        
+        const target = document.getElementById(tabId);
+        if (target) {
+            target.classList.remove('hidden');
+            btn.classList.add('active');
+        }
+
+        // Specific Chart Renders when clicking Profit or Performance
+        if (tabId === 'profitTab' && typeof renderProfitDashboard === "function") {
+            renderProfitDashboard();
+        }
+    }
+</script>
 
 </body>
 </html>
