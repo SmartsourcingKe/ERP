@@ -39,27 +39,25 @@ async function addRetailer() {
  * Includes search filtering and action buttons.
  */
 function renderRetailers() {
-    const body = document.getElementById("retailerBody");
-    if (!body || !db.retailers) return;
+    const tbody = document.getElementById("retailerBody");
+    if (!tbody) return;
 
-    const search = (document.getElementById("retailerSearch")?.value || "").toLowerCase();
+    // Fix: Always check if the data exists first
+    const data = window.db.retailers || [];
+    const search = document.getElementById("retailerSearch")?.value.toLowerCase() || "";
 
-    body.innerHTML = db.retailers
-        .filter(r => 
-            (r.name || "").toLowerCase().includes(search) ||
-            (r.phone || "").toLowerCase().includes(search) ||
-            (r.location || "").toLowerCase().includes(search)
-        )
-        .map(r => `
-            <tr>
-                <td><strong>${r.name}</strong></td>
-                <td>${r.phone || "-"}</td>
-                <td>${r.location || "-"}</td>
-                <td>
-                    <button class="btn btn-red" onclick="deleteRetailer('${r.id}')">Delete</button>
-                </td>
-            </tr>
-        `).join("");
+    const filtered = data.filter(r => 
+        r.name?.toLowerCase().includes(search) || 
+        r.phone?.includes(search)
+    );
+
+    tbody.innerHTML = filtered.map(r => `
+        <tr>
+            <td>${r.name}</td>
+            <td>${r.phone}</td>
+            <td>${r.location}</td>
+        </tr>
+    `).join("");
 }
 
 /**

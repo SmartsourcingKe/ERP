@@ -1,155 +1,156 @@
-// Keep chart instances in the global scope to allow updates
-window.myProfitChart = null;
-window.myStaffChart = null;
-
 /**
- * MASTER RENDER DISPATCHER
+ * MASTER RENDERER
+ * This function triggers all sub-renderers. 
+ * It is called after every database sync.
  */
 function renderAll() {
-    console.log("Master Render started...");
-    
-    // 1. Dashboard Stats
-    renderDashboard();
+    console.log("render.js:9 Master Render started...");
 
-    // 2. Inventory Table
-    renderProducts();
+    try {
+        // 1. UI Permissions (Show/Hide tabs based on Role)
+        renderPermissions();
 
-    // 3. Dropdowns
-    renderProductDropdowns();
-    renderRetailerDropdown();
+        // 2. Tab-Specific Data Tables
+        renderOrders();
+        renderRetailers();
+        renderProducts();
+        renderCorporate();
+        renderEmployees();
+        renderPayroll();
+        renderMessages();
 
-    // 4. Modules
-    if (typeof renderOrders === "function") renderOrders();
-    if (typeof renderBranding === "function") renderBranding();
-    
-    // 5. Analytics
-    renderProfitDashboard();
-    
-    console.log("Master Render complete.");
+        // 3. Dropdowns (for forms)
+        renderProductDropdowns();
+        renderRetailerDropdown();
+        renderSchoolDropdown();
+
+        console.log("render.js:28 Master Render complete.");
+    } catch (err) {
+        console.error("Master Render Failed:", err);
+    }
 }
 
 /**
- * DASHBOARD STAT CARDS
+ * RENDER PERMISSIONS
+ * Shows or hides admin-only buttons based on the user's role.
  */
-function renderDashboard() {
-    const container = document.getElementById("dashboardStats");
-    if (!container || !window.db) return;
+function renderPermissions() {
+    const user = window.currentUser;
+    if (!user) return;
 
-    const orders = window.db.orders?.length || 0;
-    const products = window.db.products?.length || 0;
-    const retailers = window.db.retailers?.length || 0;
-    const corporate = window.db.corporate_orders?.length || 0;
+    // Elements that only admins should see
+    const adminElements = [
+        'performanceBtn', 
+        'payrollBtn', 
+        'adminBtn', 
+        'profitBtn'
+    ];
 
-    container.innerHTML = `
-        <div class="stat-card"><h3>${orders}</h3><p>Retail Orders</p></div>
-        <div class="stat-card"><h3>${products}</h3><p>Products</p></div>
-        <div class="stat-card"><h3>${retailers}</h3><p>Retailers</p></div>
-        <div class="stat-card"><h3>${corporate}</h3><p>Corporate Jobs</p></div>
-    `;
+    adminElements.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            if (user.role === 'admin') {
+                el.classList.remove('hidden');
+            } else {
+                el.classList.add('hidden');
+            }
+        }
+    });
+
+    const welcome = document.getElementById("welcome");
+    if (welcome) welcome.textContent = `Welcome, ${user.full_name || 'User'}`;
 }
 
 /**
- * INVENTORY TABLE
- * Fixed the backtick syntax error here
+ * RENDER RETAILERS
  */
-function renderProducts() {
-    const tableBody = document.getElementById("productBody");
-    if (!tableBody) return;
-    
-    const products = window.db.products || [];
+function renderRetailers() {
+    const tbody = document.getElementById("retailerBody");
+    if (!tbody) return;
 
-    tableBody.innerHTML = products.map(p => `
+    const data = window.db.retailers || [];
+    const search = document.getElementById("retailerSearch")?.value.toLowerCase() || "";
+
+    const filtered = data.filter(r => 
+        (r.name?.toLowerCase().includes(search)) || 
+        (r.phone?.includes(search)) ||
+        (r.location?.toLowerCase().includes(search))
+    );
+
+    tbody.innerHTML = filtered.map(r => `
         <tr>
-            <td>${p.name}</td> 
-            <td>${p.stock}</td>
-            <td>KES ${p.price}</td> 
-            <td><button onclick="deleteProduct('${p.id}')" class="btn btn-danger">Delete</button></td> 
+            <td><strong>${r.name}</strong></td>
+            <td>${r.phone}</td>
+            <td>${r.location}</td>
         </tr>
     `).join("");
 }
 
 /**
- * PROFIT & ANALYTICS
+ * RENDER CORPORATE (CBC)
  */
-function renderProfitDashboard() {
-    const profitSummary = document.getElementById("profitSummary");
-    if (!profitSummary || !window.db) return;
+function renderCorporate() {
+    const tbody = document.getElementById("corporateBody");
+    if (!tbody) return;
 
-    let manufacturerTotal = 0;
-    let companyFeeTotal = 0;
-    let corporateTotal = 0;
+    const data = window.db.corporate_orders || [];
+    const search = document.getElementById("schoolSearch")?.value.toLowerCase() || "";
 
-    // Logic for Retail Splits
-    (window.db.orders || []).filter(o => o.status === "disbursed").forEach(order => {
-        const items = (window.db.order_items || []).filter(i => i.order_id === order.id);
-        items.forEach(item => {
-            const prod = (window.db.products || []).find(p => p.id === item.product_id);
-            if (prod) {
-                manufacturerTotal += (Number(prod.price) - Number(prod.company_fee)) * item.quantity;
-                companyFeeTotal += Number(prod.company_fee) * item.quantity;
-            }
-        });
+    const filtered = data.filter(o => {
+        const school = (window.db.schools || []).find(s => s.id === o.school_id);
+        return school?.name.toLowerCase().includes(search);
     });
 
-    (window.db.corporate_orders || []).filter(c => c.status === "disbursed").forEach(corp => {
-        corporateTotal += Number(corp.total || 0);
-    });
-
-    profitSummary.innerHTML = `
-        <div class="card">
-            <p>Retail Profit: <strong>KES ${companyFeeTotal.toLocaleString()}</strong></p>
-            <p>Corporate Revenue: <strong>KES ${corporateTotal.toLocaleString()}</strong></p>
-            <hr>
-            <h3 style="color:green">Net Company Profit: KES ${(companyFeeTotal + corporateTotal).toLocaleString()}</h3>
-        </div>
-    `;
-
-    // Update Charts
-    renderProfitChart(["Manufacturer", "Company Fee", "Corporate"], [manufacturerTotal, companyFeeTotal, corporateTotal]);
+    tbody.innerHTML = filtered.map(o => {
+        const school = (window.db.schools || []).find(s => s.id === o.school_id);
+        return `
+            <tr>
+                <td>${school?.name || 'Unknown'}</td>
+                <td><span class="status-${o.status}">${o.status}</span></td>
+                <td>KES ${Number(o.total_amount).toLocaleString()}</td>
+                <td><button class="btn btn-blue" onclick="printCorpReceipt('${o.id}')">Receipt</button></td>
+            </tr>
+        `;
+    }).join("");
 }
 
 /**
- * CHART HELPERS (Standardized)
+ * RENDER PRODUCT DROPDOWNS
+ * Used in the "Create Order" section.
  */
-function renderProfitChart(labels, data) {
-    const canvas = document.getElementById("profitChart");
-    if (!canvas) return;
-
-    if (window.myProfitChart) window.myProfitChart.destroy();
-
-    window.myProfitChart = new Chart(canvas, {
-        type: "pie", // Switched to pie for better profit visualization
-        data: {
-            labels: labels,
-            datasets: [{
-                data: data,
-                backgroundColor: ["#e74c3c", "#2ecc71", "#3498db"]
-            }]
-        },
-        options: { responsive: true, maintainAspectRatio: false }
-    });
-}
-
 function renderProductDropdowns() {
-    const retailSelect = document.getElementById("orderProductSelect");
-    if (!retailSelect) return;
-    
+    const selects = ["orderProductSelect"]; // Add other product select IDs here
     const products = window.db.products || [];
-    let options = '<option value="">-- Select Product --</option>';
-    products.forEach(p => {
-        options += `<option value="${p.id}" data-price="${p.price}">${p.name} (Stock: ${p.stock})</option>`;
+
+    selects.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        
+        el.innerHTML = '<option value="">Select Product</option>' + 
+            products.map(p => `<option value="${p.id}">${p.name} (Stock: ${p.stock})</option>`).join("");
     });
-    retailSelect.innerHTML = options;
 }
 
+/**
+ * RENDER RETAILER DROPDOWN
+ */
 function renderRetailerDropdown() {
-    const select = document.getElementById("retailerSelect");
-    if (!select) return;
-    
+    const el = document.getElementById("retailerSelect");
+    if (!el) return;
+
     const retailers = window.db.retailers || [];
-    let options = '<option value="">-- Select Retailer --</option>';
-    retailers.forEach(r => {
-        options += `<option value="${r.id}">${r.name}</option>`;
-    });
-    select.innerHTML = options;
+    el.innerHTML = '<option value="">Select Retailer</option>' + 
+        retailers.map(r => `<option value="${r.id}">${r.name}</option>`).join("");
+}
+
+/**
+ * RENDER SCHOOL DROPDOWN
+ */
+function renderSchoolDropdown() {
+    const el = document.getElementById("corpSchoolSelect");
+    if (!el) return;
+
+    const schools = window.db.schools || [];
+    el.innerHTML = '<option value="">Select School</option>' + 
+        schools.map(s => `<option value="${s.id}">${s.name}</option>`).join("");
 }
