@@ -55,28 +55,37 @@ async function addProduct() {
  * RENDER PRODUCTS TABLE
  * Uses the global window.db.products
  */
+/**
+ * RENDER PRODUCTS
+ * Pulls data from window.db.products
+ */
 function renderProducts() {
-    // Ensure we are looking for the correct tbody ID from your HTML
-    const tableBody = document.getElementById("productBody") || document.getElementById("productsTable");
-    if (!tableBody || !window.db.products) return;
+    const container = document.getElementById("productGrid"); // Ensure this ID exists in HTML
+    if (!container) {
+        console.warn("Product container (productGrid) not found.");
+        return;
+    }
 
-    const searchTerm = (document.getElementById("productSearch")?.value || "").toLowerCase();
+    const products = window.db.products || [];
 
-    const filtered = window.db.products.filter(p => 
-        (p.name || "").toLowerCase().includes(searchTerm)
-    );
+    if (products.length === 0) {
+        container.innerHTML = '<div class="no-data">No products available in inventory.</div>';
+        return;
+    }
 
-    tableBody.innerHTML = filtered.map(p => `
-        <tr>
-            <td><strong>${p.name}</strong></td>
-            <td>${p.stock || 0}</td>
-            <td>KES ${Number(p.price).toLocaleString()}</td>
-            <td>KES ${Number(p.company_fee).toLocaleString()}</td>
-            <td>
-                <button class="btn btn-blue" onclick="editProduct('${p.id}')">Edit</button>
-                <button class="btn btn-red" onclick="deleteProduct('${p.id}')">Delete</button>
-            </td>
-        </tr>
+    container.innerHTML = products.map(product => `
+        <div class="product-card">
+            <div class="product-info">
+                <h4>${product.name}</h4>
+                <p class="sku">SKU: ${product.sku || 'N/A'}</p>
+                <p class="price">KES ${Number(product.price).toLocaleString()}</p>
+                <p class="stock">Stock: <span class="${product.stock < 10 ? 'text-red' : ''}">${product.stock}</span></p>
+            </div>
+            <div class="product-actions">
+                <button onclick="editProduct('${product.id}')" class="btn-edit">Edit</button>
+                <button onclick="addToCart('${product.id}')" class="btn-add">Add to Order</button>
+            </div>
+        </div>
     `).join("");
 }
 
