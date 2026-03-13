@@ -138,17 +138,23 @@
      * Fetches branding for login page immediately, then checks session.
      */
     document.addEventListener("DOMContentLoaded", async () => {
-        console.log("DOM Loaded. Initializing Branding...");
-        
-        // Ensure branding shows on login page even before auth
-        if (typeof renderBranding === "function") {
-            await renderBranding(); 
-        }
+    window.db = window.db || {};
+    window.cart = [];
 
-        if (typeof restoreSession === "function") {
-            await restoreSession();
-        }
-    });
+    // 1. Load branding first so the login page looks right
+    if (typeof loadBranding === "function") {
+        await loadBranding();
+    }
+
+    // 2. Initialize Supabase Auth Listener (Defined in auth.js or core.js)
+    // This will automatically trigger handleAuthSuccess if a session exists
+    if (typeof initAuthListener === "function") {
+        initAuthListener();
+    } else {
+        // Fallback if you don't use a listener
+        if (typeof restoreSession === "function") await restoreSession();
+    }
+});
 
     /**
      * TAB NAVIGATION HANDLER

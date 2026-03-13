@@ -28,29 +28,30 @@ async function initApp() {
  * HANDLE AUTH SUCCESS
  * Switches from login to dashboard and loads all data.
  */
-async function handleAuthSuccess(authUser) {
+async function handleAuthSuccess(session) {
     try {
-        // Fetch the profile from our custom 'users' table
-        const { data: profile, error } = await supa
+        const { data: profile, error: profErr } = await supa
             .from("users")
             .select("*")
-            .eq("auth_user_id", authUser.id)
-            .single();
+            .eq("auth_user_id", session.user.id)
+            .maybeSingle();
 
-        if (error || !profile) {
-            console.error("Profile fetch error:", error);
-            // If user exists in Auth but not in Users table, they might be a new admin
-            window.currentUser = { id: authUser.id, role: 'admin', email: authUser.email };
-        } else {
-            window.currentUser = profile;
+        if (profErr || !profile) {
+            console.error("Profile fetch error:", profErr);
+            // If JWT is expired or profile is missing, clear session
+            if (profErr?.message.includes("JWT expired")) {
+                await logout(); 
+                return;
+            }
+            throw profErr || new Error("Profile not found");
         }
 
-        await sync(); // Load all database tables
-        showScreen("dashboardSection");
-        
+        window.currentUser = profile;
+        await sync();
+        showScreen("dashboard"); // Or whatever your dashboard ID is
     } catch (err) {
         console.error("Auth Success Error:", err);
-        showScreen("loginPage");
+        // Do not call sync() here if there is an error
     }
 }
 
@@ -59,42 +60,61 @@ async function handleAuthSuccess(authUser) {
  * The most important function. It pulls fresh data from all tables
  * and triggers the 'renderAll' function to update the UI.
  */
+/**
+ * GLOBAL SYNC
+ * Pulls fresh data and triggers UI updates.
+ */
 async function sync() {
-    console.log("Syncing database...");
+    console.log("app.js:63 Syncing database...");
     
-    // Inside app.js sync()
-const tables = [
-    "branding", "products", "retailers", "orders", 
-    "order_items", "schools", "corporate_orders", // Make sure 'schools' is here!
-    "corporate_order_items", "users", "payroll", "messages"
-];
+    // 1. Ensure the global DB object exists
+    window.db = window.db || {};
 
-    for (const table of tables) {
-        const { data, error } = await supa.from(table).select("*");
-        if (!error) {
-            db[table] = data;
-        } else {
-            console.warn(`Failed to sync table: ${table}`, error);
+    const tables = [
+        "branding", "products", "retailers", "orders", 
+        "order_items", "schools", "corporate_orders", 
+        "corporate_order_items", "users", "payroll", "messages"
+    ];
+
+    try {
+        // 2. Fetch all tables in parallel for better performance
+        const syncPromises = tables.map(table => 
+            supa.from(table).select("*").then(({ data, error }) => {
+                if (error) {
+                    console.warn(`Failed to sync table: ${table}`, error);
+                    return { table, data: [] };
+                }
+                return { table, data };
+            })
+        );
+
+        const results = await Promise.all(syncPromises);
+
+        // 3. Assign results to window.db
+        results.forEach(res => {
+            window.db[res.table] = res.data;
+        });
+
+        console.log("Database sync complete. Data mapping:", Object.keys(window.db));
+
+        // 4. Update Branding (Updates logo/names across the app)
+        if (typeof renderBranding === "function") {
+            renderBranding();
         }
+
+        // 5. Trigger Master Render
+        if (typeof renderAll === "function") {
+            renderAll();
+        }
+
+        // 6. Update specific UI components safely
+        if (typeof renderRetailerDropdown === "function") renderRetailerDropdown();
+        if (typeof renderSchools === "function") renderSchools();
+        if (typeof renderProductDropdowns === "function") renderProductDropdowns();
+
+    } catch (err) {
+        console.error("Critical Sync Error:", err);
     }
-
-
-    // Update UI
-    renderAll();
-    
-    // Specific dropdown updates
-    if (typeof renderRetailerDropdown === "function") renderRetailerDropdown();
-    if (typeof renderSchools === "function") renderSchools();
-    if (typeof renderProductDropdowns === "function") renderProductDropdowns();
-	
-	if (!error) {
-    db[table] = data; // 1. Save data first
-}
-	
-	renderAll();
-renderProductDropdowns();
-renderRetailerDropdown();
-	
 }
 
 /**
