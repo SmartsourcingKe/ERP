@@ -7,22 +7,25 @@ function renderAll() {
     console.log("render.js:9 Master Render started...");
 
     try {
-        // 1. UI Permissions (Show/Hide tabs based on Role)
-        renderPermissions();
+        // 1. UI Permissions (Role-based view)
+        if (typeof renderPermissions === "function") renderPermissions();
 
-        // 2. Tab-Specific Data Tables
-        renderOrders();
-        renderRetailers();
-        renderProducts();
-        renderCorporate();
-        renderEmployees();
-        renderPayroll();
-        renderMessages();
+        // 2. Tab-Specific Data Tables (With Safety Checks)
+        // These will only run if the function is defined in your other JS files
+        if (typeof renderOrders === "function") {
+            renderOrders();
+        } else {
+            console.warn("Skipping renderOrders: Function not defined.");
+        }
 
-        // 3. Dropdowns (for forms)
-        renderProductDropdowns();
-        renderRetailerDropdown();
-        renderSchoolDropdown();
+        if (typeof renderRetailers === "function") renderRetailers();
+        if (typeof renderProducts === "function") renderProducts();
+        if (typeof renderCorporate === "function") renderCorporate();
+        if (typeof renderEmployees === "function") renderEmployees();
+        
+        // 3. Dropdowns
+        if (typeof renderProductDropdowns === "function") renderProductDropdowns();
+        if (typeof renderRetailerDropdown === "function") renderRetailerDropdown();
 
         console.log("render.js:28 Master Render complete.");
     } catch (err) {
