@@ -22,6 +22,10 @@ function renderAll() {
         if (typeof renderProducts === "function") renderProducts();
         if (typeof renderCorporate === "function") renderCorporate();
         if (typeof renderEmployees === "function") renderEmployees();
+		if (typeof renderOrders === "function") renderOrders();
+		if (typeof renderPayroll === "function") renderPayroll();
+		if (typeof renderMessages === "function") renderMessages();
+		if (typeof renderAdmin === "function") renderAdmin(); 
         
         // 3. Dropdowns
         if (typeof renderProductDropdowns === "function") renderProductDropdowns();
@@ -156,4 +160,25 @@ function renderSchoolDropdown() {
     const schools = window.db.schools || [];
     el.innerHTML = '<option value="">Select School</option>' + 
         schools.map(s => `<option value="${s.id}">${s.name}</option>`).join("");
+}
+
+/**
+ * RENDER ADMIN TOOLS
+ */
+function renderAdmin() {
+    const tbody = document.getElementById("adminUserTableBody");
+    if (!tbody) return;
+
+    const users = window.db.users || [];
+    
+    tbody.innerHTML = users.map(user => `
+        <tr>
+            <td>${user.full_name || 'N/A'}</td>
+            <td>${user.email}</td>
+            <td><span class="badge">${user.role}</span></td>
+            <td>
+                <button class="btn btn-blue" onclick="editUserRole('${user.id}')">Edit Role</button>
+            </td>
+        </tr>
+    `).join("");
 }

@@ -103,6 +103,78 @@
                 <tbody id="productBody"></tbody> </table>
         </div>
     </div>
+	
+	<div id="retailersTab" class="tab-content hidden">
+        <div class="card">
+            <h3>Register Retailer</h3>
+            <input id="retailerName" placeholder="Business Name">
+            <input id="retailerLocation" placeholder="Location">
+            <button class="btn btn-blue" onclick="addRetailer()">Save Retailer</button>
+        </div>
+        <div class="card">
+            <h3>Retailer List</h3>
+            <table>
+                <thead>
+                    <tr><th>Name</th><th>Location</th><th>Balance</th><th>Action</th></tr>
+                </thead>
+                <tbody id="retailerBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="corporateTab" class="tab-content hidden">
+        <div class="card">
+            <h3>Corporate & School Orders</h3>
+            <select id="schoolSelect">
+                <option value="">Select School...</option>
+            </select>
+            <div id="corporateOrderGrid"></div>
+            <button class="btn btn-green" onclick="processCorporateOrder()">Submit Order</button>
+        </div>
+    </div>
+
+    <div id="payrollTab" class="tab-content hidden">
+        <div class="card">
+            <h3>Staff Payroll</h3>
+            <table>
+                <thead>
+                    <tr><th>Employee</th><th>Base</th><th>Bonus</th><th>Total</th><th>Status</th></tr>
+                </thead>
+                <tbody id="payrollBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="messagesTab" class="tab-content hidden">
+        <div class="card">
+            <h3>Internal Messages</h3>
+            <div id="chatBox" style="height:300px; overflow-y:auto; border:1px solid #eee; padding:10px; margin-bottom:10px; background:#fafafa;"></div>
+            <div style="display:flex; gap:10px;">
+                <input id="messageInput" placeholder="Type message...">
+                <button class="btn btn-blue" onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+    </div>
+	
+	<div id="adminTab" class="tab-content hidden">
+        <div class="card">
+            <h3>User Management</h3>
+            <p>Control system access and roles.</p>
+            <table>
+                <thead>
+                    <tr><th>Name</th><th>Email</th><th>Role</th><th>Action</th></tr>
+                </thead>
+                <tbody id="adminUserTableBody"></tbody>
+            </table>
+        </div>
+        
+        <div class="card">
+            <h3>System Logs & Maintenance</h3>
+            <button class="btn btn-red" onclick="clearAllCache()">Clear Local Cache</button>
+            <button class="btn btn-blue" onclick="sync()">Force Database Sync</button>
+        </div>
+    </div>
+	
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
