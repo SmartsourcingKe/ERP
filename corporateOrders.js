@@ -1,48 +1,7 @@
-async function addSchool() {
-    if (!window.supa) return;
+// Add this at the top of corporateOrders.js
+let corporateCart = []; 
 
-    const name = document.getElementById("schoolName").value.trim();
-    const phone = document.getElementById("schoolPhone").value.trim();
-    const loc = document.getElementById("schoolLocation").value.trim();
-
-    if (!name) return alert("School name is required");
-
-    try {
-        const { error } = await supa.from("schools").insert([{ 
-            name: name, 
-            phone: phone, 
-            location: loc 
-        }]);
-
-        if (error) throw error;
-
-        alert("School registered successfully!");
-        // Clear inputs
-        document.getElementById("schoolName").value = "";
-        document.getElementById("schoolPhone").value = "";
-        document.getElementById("schoolLocation").value = "";
-        
-        await sync(); // Refresh the list for the dropdowns
-    } catch (err) {
-        alert("Error adding school: " + err.message);
-    }
-}
-
-/**
- * RENDER CORPORATE SCHOOL DROPDOWNS
- */
-function renderSchools() {
-    const schoolSelect = document.getElementById("corpSchoolSelect");
-    if (!schoolSelect || !db.schools) return;
-
-    schoolSelect.innerHTML = '<option value="">Select School</option>' +
-        db.schools.map(s => `<option value="${s.id}">${s.name}</option>`).join("");
-}
-
-/**
- * CORPORATE CART LOGIC
- * Allows adding multiple grades/levels to a single school order.
- */
+// Replace your existing addCorporateToCart and add the render function below it
 function addCorporateToCart() {
     const schoolId = document.getElementById("corpSchoolSelect").value;
     const level = document.getElementById("cbcLevel").value;
@@ -61,107 +20,192 @@ function addCorporateToCart() {
     };
 
     corporateCart.push(item);
+    
+    // Clear item inputs but keep school selected
+    document.getElementById("cbcLevel").value = "";
+    document.getElementById("cbcStudents").value = "";
+    document.getElementById("cbcPrice").value = "";
+    
     renderCorporateCart();
 }
 
-function renderCorporate() {
-    const body = document.getElementById("corporateBody");
-    if (!body || !db.corporate_orders) return;
-
-    body.innerHTML = db.corporate_orders.map(order => {
-        // Safe find: if db.schools isn't loaded yet, show "Loading..."
-        const school = (db.schools || []).find(s => s.id === order.school_id);
-        
-        return `
-            <tr>
-                <td>${school ? school.name : 'Unknown School'}</td>
-                <td>${order.status}</td>
-                <td>KES ${Number(order.total).toLocaleString()}</td>
-                <td>
-                    <button class="btn btn-blue" onclick="viewCorpOrder('${order.id}')">View</button>
-                </td>
-            </tr>
-        `;
-    }).join("");
-}
-
-/**
- * PROCESS CORPORATE ORDER
- * Saves the order and its items to Supabase.
- */
-async function createCorporateOrder() {
-    const schoolId = document.getElementById("corpSchoolSelect").value;
-    if (!schoolId || corporateCart.length === 0) return alert("Select school and add items to cart.");
-
-    const total = corporateCart.reduce((sum, item) => sum + item.subtotal, 0);
-
-    try {
-        // 1. Insert Master Order
-        const { data: order, error: orderErr } = await supa
-            .from("corporate_orders")
-            .insert([{
-                school_id: schoolId,
-                total: total,
-                status: 'Pending',
-                created_by: currentUser?.id
-            }])
-            .select()
-            .single();
-
-        if (orderErr) throw orderErr;
-
-        // 2. Insert Order Items (CBC Levels)
-        const orderItems = corporateCart.map(item => ({
-            corporate_order_id: order.id,
-            level: item.level,
-            student_count: item.students,
-            price_per_student: item.price_per_student,
-            subtotal: item.subtotal
-        }));
-
-        const { error: itemsErr } = await supa.from("corporate_order_items").insert(orderItems);
-        if (itemsErr) throw itemsErr;
-
-        alert("Corporate order processed successfully!");
-        corporateCart = []; // Clear cart
-        await sync();
-        
-    } catch (err) {
-        console.error("Corporate Order Error:", err);
-        alert("Failed to process order: " + err.message);
+function renderCorporateCart() {
+    const view = document.getElementById("corporateCartView");
+    if (!view) return;
+    
+    if (corporateCart.length === 0) {
+        view.innerHTML = "<em>Cart is empty</em>";
+        return;
     }
+
+    let html = "<ul>";
+    corporateCart.forEach((item, index) => {
+        html += `<li>${item.level}: ${item.students} students @ KES ${item.price_per_student} (Subtotal: KES ${item.subtotal.toLocaleString()})</li>`;
+    });
+    html += "</ul>";
+    view.innerHTML = html;
 }
 
-/**
- * RENDER CORPORATE ORDERS TABLE
- */
+// Cleaned up Render Corporate (Merged the two versions)
 function renderCorporate() {
     const body = document.getElementById("corporateBody");
     if (!body) return;
 
-    // SAFETY GUARD: Ensure arrays exist before we search them
     const orders = db.corporate_orders || [];
     const schools = db.schools || [];
-
     const search = (document.getElementById("schoolSearch")?.value || "").toLowerCase();
 
     body.innerHTML = orders
         .filter(o => {
-            // Find school name safely
             const school = schools.find(s => s.id === o.school_id);
-            const schoolName = (school?.name || "").toLowerCase();
-            return schoolName.includes(search);
+            return (school?.name || "").toLowerCase().includes(search);
         })
         .map(o => {
             const school = schools.find(s => s.id === o.school_id);
             return `
-            <tr>
-                <td>${school?.name || "Unknown School"}</td>
-                <td><span class="badge">${o.status}</span></td>
-                <td>KES ${Number(o.total || 0).toLocaleString()}</td>
-                <td>
-                    <button class="btn btn-blue" onclick="viewCorpOrder('${o.id}')">View</button>
-                </td>
-            </tr>`;
+            // Inside renderCorporate() function, update the return string:
+return `
+    <tr>
+        <td>${school?.name || "Unknown School"}</td>
+        <td><span class="badge">${o.status}</span></td>
+        <td>KES ${Number(o.total || 0).toLocaleString()}</td>
+        <td>
+            <button class="btn btn-blue" onclick="viewCorpOrder('${o.id}')">View</button>
+            <button class="btn btn-green" onclick="generateCorporateReceipt('${o.id}')">Receipt</button>
+        </td>
+    </tr>`;
         }).join("");
+}
+
+/**
+ * VIEW SPECIFIC CORPORATE ORDER DETAILS
+ * Fetches line items from the database and displays them.
+ */
+async function viewCorpOrder(orderId) {
+    try {
+        // Fetch items specifically for this order ID
+        const { data: items, error } = await supa
+            .from("corporate_order_items")
+            .select("*")
+            .eq("corporate_order_id", orderId);
+
+        if (error) throw error;
+
+        if (!items || items.length === 0) {
+            return alert("No items found for this order.");
+        }
+
+        // Format the items for display
+        let details = "Order Details:\n\n";
+        items.forEach((item, index) => {
+            details += `${index + 1}. ${item.level}\n`;
+            details += `   Students: ${item.student_count}\n`;
+            details += `   Price: KES ${item.price_per_student.toLocaleString()}\n`;
+            details += `   Subtotal: KES ${item.subtotal.toLocaleString()}\n`;
+            details += `--------------------------\n`;
+        });
+
+        const total = items.reduce((sum, i) => sum + i.subtotal, 0);
+        details += `GRAND TOTAL: KES ${total.toLocaleString()}`;
+
+        alert(details);
+
+    } catch (err) {
+        console.error("Error fetching order items:", err);
+        alert("Could not load order details: " + err.message);
+    }
+}
+
+/**
+ * GENERATE CORPORATE RECEIPT PDF
+ */
+async function generateCorporateReceipt(orderId) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    try {
+        // 1. Get Order and School Data
+        const order = db.corporate_orders.find(o => o.id === orderId);
+        const school = db.schools.find(s => s.id === order.school_id);
+
+        // 2. Fetch specific items for this order
+        const { data: items, error } = await supa
+            .from("corporate_order_items")
+            .select("*")
+            .eq("corporate_order_id", orderId);
+
+        if (error) throw error;
+
+        // 3. PDF Header
+        doc.setFontSize(22);
+        doc.text("OFFICIAL RECEIPT", 105, 20, { align: "center" });
+        
+        doc.setFontSize(12);
+        doc.text(`Company: ${document.getElementById('companyName')?.innerText || 'SmartsourcingKe'}`, 20, 40);
+        doc.text(`Receipt No: ${order.id.substring(0, 8).toUpperCase()}`, 20, 50);
+        doc.text(`Date: ${new Date(order.created_at).toLocaleDateString()}`, 20, 60);
+
+        // 4. Client Details
+        doc.setFont(undefined, 'bold');
+        doc.text("Bill To:", 20, 80);
+        doc.setFont(undefined, 'normal');
+        doc.text(`School: ${school?.name || 'N/A'}`, 20, 90);
+        doc.text(`Location: ${school?.location || 'N/A'}`, 20, 100);
+
+        // 5. Items Table Header
+        let y = 120;
+        doc.setFont(undefined, 'bold');
+        doc.text("Level/Description", 20, y);
+        doc.text("Qty", 100, y);
+        doc.text("Price", 130, y);
+        doc.text("Subtotal", 170, y);
+        doc.line(20, y + 2, 190, y + 2);
+
+        // 6. Loop Items
+        y += 10;
+        doc.setFont(undefined, 'normal');
+        items.forEach(item => {
+            doc.text(`${item.level}`, 20, y);
+            doc.text(`${item.student_count}`, 100, y);
+            doc.text(`${Number(item.price_per_student).toLocaleString()}`, 130, y);
+            doc.text(`${Number(item.subtotal).toLocaleString()}`, 170, y);
+            y += 10;
+        });
+
+        // 7. Total
+        doc.line(20, y, 190, y);
+        y += 10;
+        doc.setFontSize(14);
+        doc.setFont(undefined, 'bold');
+        doc.text(`TOTAL: KES ${Number(order.total).toLocaleString()}`, 170, y, { align: "right" });
+
+        // 8. Footer
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'italic');
+        doc.text("Thank you for your business.", 105, y + 30, { align: "center" });
+
+        // 9. Save the PDF
+        doc.save(`Receipt_${school?.name.replace(/\s+/g, '_')}_${orderId.substring(0,5)}.pdf`);
+
+    } catch (err) {
+        console.error("PDF Generation Error:", err);
+        alert("Error generating receipt: " + err.message);
+    }
+}
+
+function renderCorporateCart() {
+    const view = document.getElementById("corporateCartView");
+    if (!view) return;
+    
+    if (corporateCart.length === 0) {
+        view.innerHTML = "<em>Cart is empty</em>";
+        return;
+    }
+
+    let html = "<ul>";
+    corporateCart.forEach((item, index) => {
+        html += `<li>${item.level}: ${item.students} students @ KES ${item.price_per_student}</li>`;
+    });
+    html += "</ul>";
+    view.innerHTML = html;
 }

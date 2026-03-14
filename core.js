@@ -28,12 +28,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         const session = data?.session;
 
         if (session) {
-            if (typeof handleSignedIn === "function") {
-                await handleSignedIn(session);
+            // If session exists, trigger the signed-in flow in app.js
+            if (typeof handleAuthSuccess === "function") {
+                await handleAuthSuccess(session);
             }
         } else {
-            if (typeof handleSignedOut === "function") {
-                handleSignedOut();
+            // Show login screen if no session
+            if (typeof showScreen === "function") {
+                showScreen("loginPage");
             }
         }
 
@@ -50,40 +52,30 @@ document.addEventListener("DOMContentLoaded", async () => {
  * Reacts to Sign In / Sign Out events globally.
  */
 if (window.supa) {
-    supa.auth.onAuthStateChange((event, session) => {
+    supa.auth.onAuthStateChange(async (event, session) => {
         console.log("AUTH EVENT:", event);
 
         if (event === "SIGNED_IN" && session) {
-            if (typeof handleSignedIn === "function") {
-                handleSignedIn(session);
+            if (typeof handleAuthSuccess === "function") {
+                await handleAuthSuccess(session);
             }
         }
 
         if (event === "SIGNED_OUT") {
-            if (typeof handleSignedOut === "function") {
-                handleSignedOut();
+            window.currentUser = null;
+            if (typeof showScreen === "function") {
+                showScreen("loginPage");
             }
         }
-		
-		let isSyncing = false;
-
-async function safeSync() {
-    if (isSyncing) return; // If already syncing, don't start another one
-    isSyncing = true;
-    
-    await sync(); // Your existing sync function
-    
-    isSyncing = false;
-}
-		
     });
 }
 
 /**
  * GLOBAL EVENT LISTENERS
- * Attaches clicks to buttons. This is safer than inline onclick in some environments.
+ * Attaches clicks to buttons. This is safer than inline onclick.
  */
 function initGlobalListeners() {
+    // Login Button
     const loginBtn = document.getElementById("loginBtn");
     if (loginBtn) {
         loginBtn.addEventListener("click", () => {
@@ -91,12 +83,30 @@ function initGlobalListeners() {
         });
     }
 
-    // Note: In your HTML, the logout button might not have an ID 'logoutBtn'. 
-    // We target the class 'btn-red' or add an ID to the HTML logout button.
+    // Logout Button
     const logoutBtn = document.getElementById("logoutBtn") || document.querySelector(".btn-red");
     if (logoutBtn) {
-        logoutBtn.addEventListener("click", () => {
-            if (typeof logout === "function") logout();
+        logoutBtn.addEventListener("click", async () => {
+            if (window.supa) {
+                await supa.auth.signOut();
+            }
         });
+    }
+}
+
+/**
+ * SAFE SYNC WRAPPER
+ * Prevents multiple sync processes from running at the same time.
+ */
+let isSyncing = false;
+async function safeSync() {
+    if (isSyncing) return;
+    isSyncing = true;
+    try {
+        if (typeof sync === "function") {
+            await sync();
+        }
+    } finally {
+        isSyncing = false;
     }
 }

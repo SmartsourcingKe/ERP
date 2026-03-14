@@ -7,17 +7,17 @@ async function updateBranding() {
         return alert("Access Denied: Admin privileges required.");
     }
 
-    const name = document.getElementById("brandCompanyName").value;
-    const tagline = document.getElementById("brandTagline").value;
-    const logoFile = document.getElementById("brandLogoFile").files[0];
-    const bgFile = document.getElementById("brandBgFile").files[0];
+    // Map these to the IDs in your index.html's Admin Tab
+    const name = document.getElementById("brandCompanyName")?.value;
+    const tagline = document.getElementById("brandTagline")?.value;
+    const logoFile = document.getElementById("brandLogoFile")?.files[0];
+    const bgFile = document.getElementById("brandBgFile")?.files[0];
 
-    // Use current DB values as fallback
     let logoUrl = window.db.branding?.logo_url || null;
     let bgUrl = window.db.branding?.background_url || null;
 
     try {
-        // 1. Upload Logo if provided
+        // 1. Upload Logo to Storage if provided
         if (logoFile) {
             const fileName = `logo_${Date.now()}.${logoFile.name.split('.').pop()}`;
             const { error: upErr } = await supa.storage.from("branding").upload(fileName, logoFile);
@@ -25,7 +25,7 @@ async function updateBranding() {
             logoUrl = supa.storage.from("branding").getPublicUrl(fileName).data.publicUrl;
         }
 
-        // 2. Upload Background if provided
+        // 2. Upload Background to Storage if provided
         if (bgFile) {
             const fileName = `bg_${Date.now()}.${bgFile.name.split('.').pop()}`;
             const { error: upErr } = await supa.storage.from("branding").upload(fileName, bgFile);
@@ -33,72 +33,65 @@ async function updateBranding() {
             bgUrl = supa.storage.from("branding").getPublicUrl(fileName).data.publicUrl;
         }
 
-        const payload = { 
-            company_name: name, 
-            tagline: tagline, 
-            logo_url: logoUrl, 
-            background_url: bgUrl 
-        };
-
-        // 3. Upsert Logic: Check for existing row
-        const { data: existing } = await supa.from("branding").select("id").limit(1).maybeSingle();
-
-        let dbErr;
-        if (existing) {
-            const { error } = await supa.from("branding").update(payload).eq("id", existing.id);
-            dbErr = error;
-        } else {
-            const { error } = await supa.from("branding").insert([payload]);
-            dbErr = error;
-        }
+        // 3. Upsert into the branding table
+        const { error: dbErr } = await supa.from("branding").upsert({
+            id: 1, 
+            company_name: name,
+            tagline: tagline,
+            logo_url: logoUrl,
+            background_url: bgUrl,
+            updated_at: new Date()
+        });
 
         if (dbErr) throw dbErr;
 
-        // Refresh global state and UI
-        await loadBranding(); 
         alert("Branding updated successfully!");
-
+        await sync(); // Refresh global data and UI
     } catch (err) {
-        console.error("Branding update failed:", err);
-        alert("Error: " + err.message);
+        console.error("Branding Update Error:", err);
+        alert("Failed to update branding: " + err.message);
     }
 }
 
 /**
  * RENDER BRANDING
- * Applies the logo, company name, and background to the UI.
- * This is designed to work for both Login and Dashboard.
+ * Displays the branding data across the login and dashboard screens.
  */
 function renderBranding() {
-    const brand = window.db.branding;
+    const brand = Array.isArray(window.db.branding) ? window.db.branding[0] : window.db.branding;
     if (!brand) return;
 
+    // Mapping to your index.html IDs
     const elements = {
-        companyLogo: document.getElementById("companyLogo"),
         companyName: document.getElementById("companyName"),
-        companyTagline: document.getElementById("companyTagline"),
-        loginLogo: document.getElementById("loginLogo"),
         loginCompanyName: document.getElementById("loginCompanyName"),
-        loginTagline: document.getElementById("loginTagline")
+        companyTagline: document.getElementById("companyTagline"),
+        loginTagline: document.getElementById("loginTagline"),
+        companyLogo: document.getElementById("companyLogo"),
+        loginLogo: document.getElementById("loginLogo")
     };
 
-    // Apply Text Branding
-    if (elements.companyName) elements.companyName.textContent = brand.company_name || "";
+    // Apply Company Name
+    if (elements.companyName) elements.companyName.textContent = brand.company_name || "SmartsourcingKe ERP";
     if (elements.loginCompanyName) elements.loginCompanyName.textContent = brand.company_name || "SmartsourcingKe ERP";
+    
+    // Apply Tagline
     if (elements.companyTagline) elements.companyTagline.textContent = brand.tagline || "";
     if (elements.loginTagline) elements.loginTagline.textContent = brand.tagline || "";
 
-    // Apply Logo Branding
+    // Apply Logo URLs
     if (brand.logo_url) {
-        [elements.companyLogo, elements.loginLogo].forEach(img => {
-            if (img) {
-                img.src = brand.logo_url;
-                img.classList.remove("hidden");
-            }
-        });
+        if (elements.companyLogo) {
+            elements.companyLogo.src = brand.logo_url;
+            elements.companyLogo.classList.remove("hidden");
+        }
+        if (elements.loginLogo) {
+            elements.loginLogo.src = brand.logo_url;
+            elements.loginLogo.classList.remove("hidden");
+        }
     }
 
-    // Apply App-wide Background Image
+    // Apply Background Image to Body
     if (brand.background_url) {
         document.body.style.backgroundImage = `linear-gradient(rgba(244, 246, 249, 0.85), rgba(244, 246, 249, 0.85)), url('${brand.background_url}')`;
         document.body.style.backgroundSize = "cover";
@@ -109,18 +102,12 @@ function renderBranding() {
 
 /**
  * LOAD BRANDING
- * Publicly accessible function to fetch branding regardless of login status.
  */
 async function loadBranding() {
-    console.log("Fetching branding from Supabase...");
-    const { data, error } = await supa.from("branding").select("*").limit(1);
-    
-    if (error) {
-        return console.warn("Branding fetch failed:", error.message);
-    }
-    
-    if (data && data.length > 0) {
-        window.db.branding = data[0]; 
+    const { data, error } = await supa.from("branding").select("*").maybeSingle();
+    if (error) console.error("Load Branding Error:", error);
+    if (data) {
+        window.db.branding = data;
         renderBranding();
     }
 }

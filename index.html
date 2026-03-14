@@ -27,6 +27,18 @@
         .brand-name { font-size:2em; font-weight:bold; margin:0; }
         .brand-motto { font-style:italic; color:#7f8c8d; margin-top:5px; }
         .login-container { max-width:400px; margin:100px auto; text-align:center; padding:30px; }
+		.chat-bubble { max-width: 70%; padding: 10px; border-radius: 12px; margin-bottom: 5px; position: relative; }
+		.chat-left { align-self: flex-start; background: #e9e9eb; color: black; border-bottom-left-radius: 2px; }
+		.chat-right { align-self: flex-end; background: var(--blue); color: white; border-bottom-right-radius: 2px; }
+		.product-card { border: 1px solid #eee; padding: 15px; border-radius: 8px; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+		.product-info h4 { margin: 0 0 10px 0; color: var(--primary); }
+		.sku { font-size: 11px; color: #7f8c8d; }
+		.price { font-weight: bold; color: var(--green); margin: 5px 0; }
+		.stock { font-size: 13px; }
+		.text-red { color: var(--red); font-weight: bold; }
+		.product-actions { margin-top: 10px; display: flex; gap: 5px; }
+		.btn-edit { background: #95a5a6; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
+		.btn-add { background: var(--blue); color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -65,16 +77,22 @@
         <button class="tab-btn" onclick="openTab('messagesTab',this)">Messages</button>
     </div>
 
-    <div id="ordersTab" class="tab-content">
-        <div class="card">
-            <h3>Create Order</h3>
-            <select id="retailerSelect">...</select>
-            <select id="orderProductSelect">...</select>
-            <input id="orderQty" type="number" placeholder="Quantity">
-            <button class="btn btn-blue" onclick="addToCart()">Add to Cart</button>
-            <div id="cartView" style="margin: 15px 0;"></div>
-            <button class="btn btn-green" onclick="createOrder()">Process Order</button>
-        </div>
+    <div class="card">
+    <h3>Create Order</h3>
+    <select id="orderProductSelect" class="product-select">
+        <option value="">Select Product...</option>
+    </select>
+    <input type="number" id="orderQty" placeholder="Quantity" value="1" style="width: 80px;">
+    <button class="btn btn-blue" onclick="addToCart()">Add to Cart</button>
+
+    <table style="margin-top: 15px;">
+        <thead>
+            <tr><th>Product</th><th>Qty</th><th>Subtotal</th><th>Action</th></tr>
+        </thead>
+        <tbody id="cartBody"></tbody>
+    </table>
+    <button class="btn btn-green" onclick="createOrder()">Submit Order</button>
+</div>
         <div class="card">
             <h3>Orders History</h3>
             <input id="orderSearch" placeholder="Search orders..." oninput="renderOrders()">
@@ -85,95 +103,164 @@
     </div>
 
     <div id="inventoryTab" class="tab-content hidden">
-        <div class="card">
-            <h3>Add Product</h3>
-            <form id="productForm">
-                <input id="productName" placeholder="Product Name">
-                <input id="productStock" type="number" placeholder="Stock Quantity">
-                <input id="productBasePrice" type="number" placeholder="Manufacturing Price">
-                <input id="productFee" type="number" placeholder="Company Fee">
-                <button type="button" class="btn btn-green" onclick="addProduct()">Save Product</button>
-            </form>
-        </div>
-        <div class="card">
-            <h3>Inventory List</h3>
-            <div id="productGrid" class="hidden"></div> <input id="productSearch" placeholder="Search product..." oninput="renderProducts()">
-            <table>
-                <thead><tr><th>Product</th><th>Stock</th><th>Price</th><th>Action</th></tr></thead>
-                <tbody id="productBody"></tbody> </table>
-        </div>
+    <div class="card">
+        <h3>Add Product</h3>
+        <form id="productForm">
+            <input id="productName" placeholder="Product Name">
+            <input id="productStock" type="number" placeholder="Stock Quantity">
+            <input id="productBasePrice" type="number" placeholder="Manufacturing Price">
+            <input id="productFee" type="number" placeholder="Company Fee">
+            <button type="button" class="btn btn-green" onclick="addProduct()">Save Product</button>
+        </form>
     </div>
+
+    <div class="card">
+        <h3>Inventory List</h3>
+        <input id="productSearch" placeholder="Search product..." oninput="renderProducts()">
+        <div id="productGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
+            </div>
+    </div>
+</div>
 	
 	<div id="retailersTab" class="tab-content hidden">
-        <div class="card">
-            <h3>Register Retailer</h3>
-            <input id="retailerName" placeholder="Business Name">
-            <input id="retailerLocation" placeholder="Location">
-            <button class="btn btn-blue" onclick="addRetailer()">Save Retailer</button>
-        </div>
-        <div class="card">
-            <h3>Retailer List</h3>
-            <table>
-                <thead>
-                    <tr><th>Name</th><th>Location</th><th>Balance</th><th>Action</th></tr>
-                </thead>
-                <tbody id="retailerBody"></tbody>
-            </table>
-        </div>
+    <div class="card">
+        <h3>Register Retailer</h3>
+        <input id="retailerName" placeholder="Business Name">
+        <input id="retailerPhone" placeholder="Phone Number"> 
+		<input id="retailerLocation" placeholder="Location">
+        <button class="btn btn-blue" onclick="addRetailer()">Save Retailer</button>
     </div>
+    <div class="card">
+        <h3>Retailer List</h3>
+        <input id="retailerSearch" placeholder="Search retailers..." oninput="renderRetailers()"> <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Phone</th> <th>Location</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="retailerBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<div id="adminTab" class="tab-content hidden">
+   <div class="card">
+    <h3>Company Branding</h3>
+    <input id="brandInputName" placeholder="Update Company Name">
+    <input id="brandInputTagline" placeholder="Update Tagline">
+    <label>Logo File:</label>
+    <input type="file" id="brandLogoFile">
+    <label>Background File:</label>
+    <input type="file" id="brandBgFile">
+    <button class="btn btn-blue" onclick="updateBranding()">Save Branding Changes</button>
+</div>
+    <div class="card">
+        <h3>User Management</h3>
+        <table>
+            <thead>
+                <tr><th>Name</th><th>Email</th><th>Role</th><th>Action</th></tr>
+            </thead>
+            <tbody id="adminUserTableBody"></tbody>
+        </table>
+    </div>
+</div>
 
     <div id="corporateTab" class="tab-content hidden">
-        <div class="card">
-            <h3>Corporate & School Orders</h3>
-            <select id="schoolSelect">
-                <option value="">Select School...</option>
-            </select>
-            <div id="corporateOrderGrid"></div>
-            <button class="btn btn-green" onclick="processCorporateOrder()">Submit Order</button>
-        </div>
+    <div id="corporateTab" class="tab-content hidden">
+    <div class="card">
+        <h3>Register New School</h3>
+        <input id="schoolName" placeholder="School Name">
+        <input id="schoolPhone" placeholder="Phone Number">
+        <input id="schoolLocation" placeholder="Location">
+        <button class="btn btn-blue" onclick="addSchool()">Register School</button>
     </div>
+
+    <div class="card">
+        <h3>Create Corporate Order</h3>
+        <select id="corpSchoolSelect">
+            <option value="">Select School...</option>
+        </select>
+        <div style="display: flex; gap: 10px;">
+            <input id="cbcLevel" placeholder="Grade/Level (e.g. Grade 1)">
+            <input id="cbcStudents" type="number" placeholder="No. of Students">
+            <input id="cbcPrice" type="number" placeholder="Price per Student">
+        </div>
+        <button class="btn btn-blue" onclick="addCorporateToCart()">Add to Cart</button>
+        <div id="corporateCartView" style="margin: 15px 0; border: 1px dashed #ccc; padding: 10px;"></div>
+        <button class="btn btn-green" onclick="createCorporateOrder()">Process Full Order</button>
+    </div>
+
+    <div class="card">
+        <h3>Corporate Order History</h3>
+        <input id="schoolSearch" placeholder="Search by school..." oninput="renderCorporate()">
+        <table>
+            <thead>
+                <tr><th>School</th><th>Status</th><th>Total</th><th>Action</th></tr>
+            </thead>
+            <tbody id="corporateBody"></tbody>
+        </table>
+    </div>
+</div>
 
     <div id="payrollTab" class="tab-content hidden">
-        <div class="card">
-            <h3>Staff Payroll</h3>
-            <table>
-                <thead>
-                    <tr><th>Employee</th><th>Base</th><th>Bonus</th><th>Total</th><th>Status</th></tr>
-                </thead>
-                <tbody id="payrollBody"></tbody>
-            </table>
-        </div>
+    <div class="card">
+        <h3>Payroll Management</h3>
+        <button class="btn btn-green" onclick="generatePayroll()" style="margin-bottom: 20px;">
+            Generate Monthly Payroll
+        </button>
+        <table>
+            <thead>
+                <tr>
+                    <th>Employee</th>
+                    <th>Base (KES)</th>
+                    <th>Commission (KES)</th>
+                    <th>Total (KES)</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="payrollBody"></tbody>
+        </table>
     </div>
+</div>
 
     <div id="messagesTab" class="tab-content hidden">
-        <div class="card">
-            <h3>Internal Messages</h3>
-            <div id="chatBox" style="height:300px; overflow-y:auto; border:1px solid #eee; padding:10px; margin-bottom:10px; background:#fafafa;"></div>
-            <div style="display:flex; gap:10px;">
-                <input id="messageInput" placeholder="Type message...">
-                <button class="btn btn-blue" onclick="sendMessage()">Send</button>
-            </div>
+    <div class="card">
+        <h3>Internal Messages</h3>
+        <div id="messagesContainer" style="height:400px; overflow-y:auto; border:1px solid #eee; padding:15px; margin-bottom:10px; background:#fafafa; display:flex; flex-direction:column; gap:10px;"></div>
+        <div style="display:flex; gap:10px;">
+            <input id="messageInput" placeholder="Type message...">
+            <button class="btn btn-blue" onclick="sendMessage()">Send</button>
         </div>
     </div>
-	
-	<div id="adminTab" class="tab-content hidden">
-        <div class="card">
-            <h3>User Management</h3>
-            <p>Control system access and roles.</p>
-            <table>
-                <thead>
-                    <tr><th>Name</th><th>Email</th><th>Role</th><th>Action</th></tr>
-                </thead>
-                <tbody id="adminUserTableBody"></tbody>
-            </table>
+</div>
+
+<div id="reportsTab" class="tab-content hidden">
+    <div class="card">
+        <h3>Financial Performance</h3>
+        <div style="height: 300px; margin-bottom: 20px;">
+            <canvas id="monthlyTrendChart"></canvas>
         </div>
-        
-        <div class="card">
-            <h3>System Logs & Maintenance</h3>
-            <button class="btn btn-red" onclick="clearAllCache()">Clear Local Cache</button>
-            <button class="btn btn-blue" onclick="sync()">Force Database Sync</button>
-        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Month</th>
+                    <th>Retail Fee (KES)</th>
+                    <th>Corporate (KES)</th>
+                    <th>Payroll (KES)</th>
+                    <th>Net Profit (KES)</th>
+                </tr>
+            </thead>
+            <tbody id="financeBody"></tbody>
+        </table>
     </div>
+
+    <div class="card">
+        <h3>Staff Performance</h3>
+        <button class="btn btn-blue" onclick="exportPerformancePDF()">Export PDF Report</button>
+    </div>
+</div>
 	
 </div>
 

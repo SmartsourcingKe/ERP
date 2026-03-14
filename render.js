@@ -4,36 +4,27 @@
  * It is called after every database sync.
  */
 function renderAll() {
-    console.log("render.js:9 Master Render started...");
-
+    console.log("Master Render started...");
     try {
-        // 1. UI Permissions (Role-based view)
+        // Use this pattern for every single render call
         if (typeof renderPermissions === "function") renderPermissions();
-
-        // 2. Tab-Specific Data Tables (With Safety Checks)
-        // These will only run if the function is defined in your other JS files
-        if (typeof renderOrders === "function") {
-            renderOrders();
-        } else {
-            console.warn("Skipping renderOrders: Function not defined.");
-        }
-
+        if (typeof renderOrders === "function") renderOrders();
         if (typeof renderRetailers === "function") renderRetailers();
         if (typeof renderProducts === "function") renderProducts();
         if (typeof renderCorporate === "function") renderCorporate();
         if (typeof renderEmployees === "function") renderEmployees();
-		if (typeof renderOrders === "function") renderOrders();
-		if (typeof renderPayroll === "function") renderPayroll();
-		if (typeof renderMessages === "function") renderMessages();
-		if (typeof renderAdmin === "function") renderAdmin(); 
+        if (typeof renderPayroll === "function") renderPayroll();
+        if (typeof renderMessages === "function") renderMessages();
+        if (typeof renderAdmin === "function") renderAdmin(); 
         
-        // 3. Dropdowns
+        // Dropdowns
         if (typeof renderProductDropdowns === "function") renderProductDropdowns();
         if (typeof renderRetailerDropdown === "function") renderRetailerDropdown();
-
-        console.log("render.js:28 Master Render complete.");
+        if (typeof renderSchoolDropdown === "function") renderSchoolDropdown(); // Added check
+        
+        console.log("Master Render complete.");
     } catch (err) {
-        console.error("Master Render Failed:", err);
+        console.error("Render Error:", err);
     }
 }
 
