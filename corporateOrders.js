@@ -2,6 +2,8 @@
 let corporateCart = []; 
 
 // Replace your existing addCorporateToCart and add the render function below it
+let corporateCart = []; 
+
 function addCorporateToCart() {
     const schoolId = document.getElementById("corpSchoolSelect").value;
     const level = document.getElementById("cbcLevel").value;
@@ -12,16 +14,13 @@ function addCorporateToCart() {
         return alert("Please fill in school, level, students, and price.");
     }
 
-    const item = {
+    corporateCart.push({
         level: level,
         students: students,
         price_per_student: price,
         subtotal: students * price
-    };
-
-    corporateCart.push(item);
+    });
     
-    // Clear item inputs but keep school selected
     document.getElementById("cbcLevel").value = "";
     document.getElementById("cbcStudents").value = "";
     document.getElementById("cbcPrice").value = "";
@@ -29,12 +28,27 @@ function addCorporateToCart() {
     renderCorporateCart();
 }
 
+function renderCorporateCart() {
+    const view = document.getElementById("corporateCartView");
+    if (!view) return;
+    if (corporateCart.length === 0) {
+        view.innerHTML = "<em>Cart is empty</em>";
+        return;
+    }
+    let html = "<ul>";
+    corporateCart.forEach((item) => {
+        html += `<li>${item.level}: ${item.students} students @ KES ${item.price_per_student.toLocaleString()}</li>`;
+    });
+    html += "</ul>";
+    view.innerHTML = html;
+}
+
 function renderCorporate() {
     const body = document.getElementById("corporateBody");
     if (!body) return;
 
-    const orders = window.db.corporate_orders || [];
-    const schools = window.db.schools || [];
+    const orders = window.db?.corporate_orders || [];
+    const schools = window.db?.schools || [];
     const search = (document.getElementById("schoolSearch")?.value || "").toLowerCase();
 
     body.innerHTML = orders
@@ -46,7 +60,7 @@ function renderCorporate() {
             const school = schools.find(s => s.id === o.school_id);
             return `
             <tr>
-                <td>${school?.name || "Unknown School"}</td>
+                <td>${school ? school.name : "Unknown School"}</td>
                 <td><span class="badge">${o.status}</span></td>
                 <td>KES ${Number(o.total || 0).toLocaleString()}</td>
                 <td>
@@ -57,36 +71,7 @@ function renderCorporate() {
         }).join("");
 }
 
-// Cleaned up Render Corporate (Merged the two versions)
-function renderCorporate() {
-    const body = document.getElementById("corporateBody");
-    if (!body) return;
-
-    const orders = db.corporate_orders || [];
-    const schools = db.schools || [];
-    const search = (document.getElementById("schoolSearch")?.value || "").toLowerCase();
-
-    body.innerHTML = orders
-        .filter(o => {
-            const school = schools.find(s => s.id === o.school_id);
-            return (school?.name || "").toLowerCase().includes(search);
-        })
-        .map(o => {
-            const school = schools.find(s => s.id === o.school_id);
-            return `
-            // Inside renderCorporate() function, update the return string:
-return `
-    <tr>
-        <td>${school?.name || "Unknown School"}</td>
-        <td><span class="badge">${o.status}</span></td>
-        <td>KES ${Number(o.total || 0).toLocaleString()}</td>
-        <td>
-            <button class="btn btn-blue" onclick="viewCorpOrder('${o.id}')">View</button>
-            <button class="btn btn-green" onclick="generateCorporateReceipt('${o.id}')">Receipt</button>
-        </td>
-    </tr>`;
-        }).join("");
-}
+// Keep your existing viewCorpOrder and generateCorporateReceipt functions below this...
 
 /**
  * VIEW SPECIFIC CORPORATE ORDER DETAILS
@@ -202,21 +187,4 @@ async function generateCorporateReceipt(orderId) {
         console.error("PDF Generation Error:", err);
         alert("Error generating receipt: " + err.message);
     }
-}
-
-function renderCorporateCart() {
-    const view = document.getElementById("corporateCartView");
-    if (!view) return;
-    
-    if (corporateCart.length === 0) {
-        view.innerHTML = "<em>Cart is empty</em>";
-        return;
-    }
-
-    let html = "<ul>";
-    corporateCart.forEach((item, index) => {
-        html += `<li>${item.level}: ${item.students} students @ KES ${item.price_per_student}</li>`;
-    });
-    html += "</ul>";
-    view.innerHTML = html;
 }
