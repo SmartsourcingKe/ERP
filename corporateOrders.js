@@ -33,8 +33,8 @@ function renderCorporate() {
     const body = document.getElementById("corporateBody");
     if (!body) return;
 
-    const orders = db.corporate_orders || [];
-    const schools = db.schools || [];
+    const orders = window.db.corporate_orders || [];
+    const schools = window.db.schools || [];
     const search = (document.getElementById("schoolSearch")?.value || "").toLowerCase();
 
     body.innerHTML = orders
