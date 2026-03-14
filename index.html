@@ -73,22 +73,70 @@
     </div>
 
     <div id="ordersTab" class="tab-content">
-        <div class="card">
-            <h3>New Retailer Order</h3>
-            <label>1. Select Retailer:</label>
-            <select id="retailerSelect"><option value="">Loading...</option></select>
-            <label>2. Product:</label>
-            <select id="orderProductSelect"></select>
-            <input type="number" id="orderQty" value="1">
+    <div class="card">
+        <h3>New Retailer Order</h3>
+        
+        <div style="margin-bottom: 15px;">
+            <label><strong>1. Select Retailer:</strong></label>
+            <select id="retailerSelect" style="width: 100%; padding: 8px; margin-top: 5px;">
+                <option value="">-- Choose Retailer --</option>
+            </select>
+        </div>
+
+        <div style="display: flex; gap: 10px; align-items: flex-end;">
+            <div style="flex: 2;">
+                <label><strong>2. Select Product:</strong></label>
+                <select id="orderProductSelect" class="product-select" style="width: 100%; padding: 8px; margin-top: 5px;">
+                    <option value="">-- Choose Product --</option>
+                </select>
+            </div>
+            <div style="flex: 1;">
+                <label>Qty:</label>
+                <input type="number" id="orderQty" value="1" min="1" style="width: 100%; padding: 8px; margin-top: 5px;">
+            </div>
             <button class="btn btn-blue" onclick="addToCart()">Add to Cart</button>
-            <tbody id="cartBody"></tbody>
-            <button class="btn btn-green" style="width:100%;" onclick="createOrder()">Process Final Order</button>
         </div>
-        <div class="card">
-            <h3>Order History</h3>
-            <tbody id="ordersBody"></tbody>
+
+        <table style="margin-top: 20px; width: 100%;">
+            <thead>
+                <tr style="background: #eee;">
+                    <th>Product</th>
+                    <th>Qty</th>
+                    <th>Subtotal</th>
+                    <th>Actions</th> </tr>
+            </thead>
+            <tbody id="cartBody">
+                </tbody>
+        </table>
+
+        <div style="text-align: right; margin-top: 10px; font-weight: bold; font-size: 1.2em;">
+            Total: KES <span id="cartTotalText">0</span>
         </div>
+
+        <button class="btn btn-green" style="width: 100%; margin-top: 15px; font-size: 16px;" onclick="createOrder()">
+            Process Final Order
+        </button>
     </div>
+
+    <div class="card">
+        <h3>Recent Orders History</h3>
+        <input id="orderSearch" placeholder="Search by retailer..." oninput="renderOrders()" style="margin-bottom:10px;">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Retailer</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="ordersBody">
+                </tbody>
+        </table>
+    </div>
+</div>
 
     <div id="retailersTab" class="tab-content hidden">
         <div class="card">
