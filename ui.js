@@ -53,7 +53,11 @@ function toggleMenu() {
  * Calls all modular render functions safely.
  */
 function renderAll() {
-    if (!window.db) return;
+    // If the database hasn't loaded yet, don't crash, just wait.
+    if (!window.db || Object.keys(window.db).length === 0) {
+        console.warn("Render skipped: window.db is empty.");
+        return;
+    }
 
     console.log("Refreshing UI components...");
 
