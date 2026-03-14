@@ -7,7 +7,6 @@
     <title>SmartsourcingKe ERP</title>
 
     <style>
-        /* CSS kept exactly as provided for design consistency */
         :root { --primary:#1f2d3d; --green:#27ae60; --blue:#3498db; --red:#e74c3c; --bg:#f4f6f9; }
         body { font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin:0; padding:20px; background:var(--bg); }
         .hidden { display:none !important; }
@@ -81,8 +80,7 @@
             <input id="orderSearch" placeholder="Search orders..." oninput="renderOrders()">
             <table>
                 <thead><tr><th>ID</th><th>Retailer</th><th>Total</th><th>Status</th><th>Date</th><th>Action</th></tr></thead>
-                <tbody id="ordersBody"></tbody>
-            </table>
+                <tbody id="orderBody"></tbody> </table>
         </div>
     </div>
 
@@ -99,15 +97,13 @@
         </div>
         <div class="card">
             <h3>Inventory List</h3>
-            <input id="productSearch" placeholder="Search product..." oninput="renderProducts()">
+            <div id="productGrid" class="hidden"></div> <input id="productSearch" placeholder="Search product..." oninput="renderProducts()">
             <table>
                 <thead><tr><th>Product</th><th>Stock</th><th>Price</th><th>Action</th></tr></thead>
-                <tbody id="productBody"></tbody>
-            </table>
+                <tbody id="productBody"></tbody> </table>
         </div>
     </div>
-
-    </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -122,7 +118,7 @@
 <script src="branding.js"></script>
 <script src="products.js"></script>
 <script src="retailers.js"></script>
-<script src="js/orders.js"></script>
+<script src="orders.js"></script>
 <script src="retailerOrders.js"></script>
 <script src="corporateOrders.js"></script>
 <script src="employees.js"></script>
@@ -134,32 +130,20 @@
 <script src="render.js"></script>
 
 <script>
-    /**
-     * INITIALIZATION
-     * Fetches branding for login page immediately, then checks session.
-     */
     document.addEventListener("DOMContentLoaded", async () => {
-    window.db = window.db || {};
-    window.cart = [];
+        window.db = window.db || {};
+        window.cart = [];
 
-    // 1. Load branding first so the login page looks right
-    if (typeof loadBranding === "function") {
-        await loadBranding();
-    }
+        if (typeof loadBranding === "function") {
+            await loadBranding();
+        }
 
-    // 2. Initialize Supabase Auth Listener (Defined in auth.js or core.js)
-    // This will automatically trigger handleAuthSuccess if a session exists
-    if (typeof initAuthListener === "function") {
-        initAuthListener();
-    } else {
-        // Fallback if you don't use a listener
-        if (typeof restoreSession === "function") await restoreSession();
-    }
-});
+        // Use the function in app.js to start
+        if (typeof initApp === "function") {
+            await initApp();
+        }
+    });
 
-    /**
-     * TAB NAVIGATION HANDLER
-     */
     function openTab(tabId, btn) {
         document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -170,7 +154,6 @@
             btn.classList.add('active');
         }
 
-        // Specific Chart Renders when clicking Profit or Performance
         if (tabId === 'profitTab' && typeof renderProfitDashboard === "function") {
             renderProfitDashboard();
         }
