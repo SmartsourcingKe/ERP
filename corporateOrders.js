@@ -1,9 +1,6 @@
 // Add this at the top of corporateOrders.js
 let corporateCart = []; 
 
-// Replace your existing addCorporateToCart and add the render function below it
-let corporateCart = []; 
-
 function addCorporateToCart() {
     const schoolId = document.getElementById("corpSchoolSelect").value;
     const level = document.getElementById("cbcLevel").value;
