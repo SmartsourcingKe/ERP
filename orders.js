@@ -24,16 +24,17 @@ function renderOrders() {
         const statusClass = `status-${order.status?.toLowerCase() || 'pending'}`;
         
         return `
-            <tr>
-                <td>${order.order_number || order.id.slice(0,8)}</td>
-                <td>${date}</td>
-                <td>KES ${Number(order.total_amount || 0).toLocaleString()}</td>
-                <td><span class="badge ${statusClass}">${order.status || 'Pending'}</span></td>
-                <td>
-                    <button class="btn-view" onclick="viewOrderDetails('${order.id}')">View</button>
-                    <button class="btn-print" onclick="printReceipt('${order.id}')">Receipt</button>
-                </td>
-            </tr>
-        `;
-    }).join("");
+           tbody.innerHTML = orders.map(order => `
+    <tr>
+        <td>${order.id.slice(0,8)}</td>
+        <td>${new Date(order.created_at).toLocaleDateString()}</td>
+        <td>KES ${order.total}</td>
+        <td>${order.status}</td>
+        <td>${new Date(order.created_at).toLocaleTimeString()}</td>
+        <td>
+            <button class="btn btn-blue" onclick="viewOrder('${order.id}')" style="padding:2px 5px; font-size:10px;">View</button>
+            ${order.status === 'disbursed' ? `<button class="btn btn-green" onclick="generateAndStoreReceipt('${order.id}')" style="padding:2px 5px; font-size:10px;">Receipt</button>` : ''}
+        </td>
+    </tr>
+`).join("");
 }
