@@ -77,30 +77,48 @@
         <button class="tab-btn" onclick="openTab('messagesTab',this)">Messages</button>
     </div>
 
+    <div id="retailerTab" class="tab-content hidden">
     <div class="card">
-    <h3>Create Order</h3>
-    <select id="orderProductSelect" class="product-select">
-        <option value="">Select Product...</option>
-    </select>
-    <input type="number" id="orderQty" placeholder="Quantity" value="1" style="width: 80px;">
-    <button class="btn btn-blue" onclick="addToCart()">Add to Cart</button>
-
-    <table style="margin-top: 15px;">
-        <thead>
-            <tr><th>Product</th><th>Qty</th><th>Subtotal</th><th>Action</th></tr>
-        </thead>
-        <tbody id="cartBody"></tbody>
-    </table>
-    <button class="btn btn-green" onclick="createOrder()">Submit Order</button>
-</div>
-        <div class="card">
-            <h3>Orders History</h3>
-            <input id="orderSearch" placeholder="Search orders..." oninput="renderOrders()">
-            <table>
-                <thead><tr><th>ID</th><th>Retailer</th><th>Total</th><th>Status</th><th>Date</th><th>Action</th></tr></thead>
-                <tbody id="orderBody"></tbody> </table>
+        <h3>Create New Order</h3>
+        
+        <div style="margin-bottom: 15px;">
+            <label><strong>1. Select Retailer:</strong></label>
+            <select id="retailerSelect" style="width: 100%; padding: 8px; margin-top: 5px;">
+                <option value="">-- Loading Retailers... --</option>
+            </select>
         </div>
+
+        <div style="display: flex; gap: 10px; align-items: flex-end;">
+            <div style="flex: 2;">
+                <label><strong>2. Select Product:</strong></label>
+                <select id="orderProductSelect" class="product-select" style="width: 100%; padding: 8px; margin-top: 5px;">
+                    <option value="">-- Choose Product --</option>
+                </select>
+            </div>
+            <div style="flex: 1;">
+                <label>Qty:</label>
+                <input type="number" id="orderQty" value="1" style="width: 100%; padding: 8px; margin-top: 5px;">
+            </div>
+            <button class="btn btn-blue" onclick="addToCart()">Add to Cart</button>
+        </div>
+
+        <table style="margin-top: 20px; width: 100%;">
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Qty</th>
+                    <th>Subtotal</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="cartBody"></tbody>
+        </table>
+
+        <button class="btn btn-green" style="width: 100%; margin-top: 15px; font-size: 16px;" onclick="createOrder()">
+            Place Final Order
+        </button>
     </div>
+</div>
 
     <div id="inventoryTab" class="tab-content hidden">
     <div class="card">

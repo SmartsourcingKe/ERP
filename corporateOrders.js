@@ -29,21 +29,32 @@ function addCorporateToCart() {
     renderCorporateCart();
 }
 
-function renderCorporateCart() {
-    const view = document.getElementById("corporateCartView");
-    if (!view) return;
-    
-    if (corporateCart.length === 0) {
-        view.innerHTML = "<em>Cart is empty</em>";
-        return;
-    }
+function renderCorporate() {
+    const body = document.getElementById("corporateBody");
+    if (!body) return;
 
-    let html = "<ul>";
-    corporateCart.forEach((item, index) => {
-        html += `<li>${item.level}: ${item.students} students @ KES ${item.price_per_student} (Subtotal: KES ${item.subtotal.toLocaleString()})</li>`;
-    });
-    html += "</ul>";
-    view.innerHTML = html;
+    const orders = db.corporate_orders || [];
+    const schools = db.schools || [];
+    const search = (document.getElementById("schoolSearch")?.value || "").toLowerCase();
+
+    body.innerHTML = orders
+        .filter(o => {
+            const school = schools.find(s => s.id === o.school_id);
+            return (school?.name || "").toLowerCase().includes(search);
+        })
+        .map(o => {
+            const school = schools.find(s => s.id === o.school_id);
+            return `
+            <tr>
+                <td>${school?.name || "Unknown School"}</td>
+                <td><span class="badge">${o.status}</span></td>
+                <td>KES ${Number(o.total || 0).toLocaleString()}</td>
+                <td>
+                    <button class="btn btn-blue" onclick="viewCorpOrder('${o.id}')">View</button>
+                    <button class="btn btn-green" onclick="generateCorporateReceipt('${o.id}')">Receipt</button>
+                </td>
+            </tr>`;
+        }).join("");
 }
 
 // Cleaned up Render Corporate (Merged the two versions)
