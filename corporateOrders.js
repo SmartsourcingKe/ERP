@@ -40,32 +40,61 @@ function renderCorporateCart() {
     view.innerHTML = html;
 }
 
+/**
+ * RENDER CORPORATE SECTION
+ * Lists schools and corporate order history
+ */
 function renderCorporate() {
-    const body = document.getElementById("corporateBody");
-    if (!body) return;
-
-    const orders = window.db?.corporate_orders || [];
-    const schools = window.db?.schools || [];
-    const search = (document.getElementById("schoolSearch")?.value || "").toLowerCase();
-
-    body.innerHTML = orders
-        .filter(o => {
-            const school = schools.find(s => s.id === o.school_id);
-            return (school?.name || "").toLowerCase().includes(search);
-        })
-        .map(o => {
-            const school = schools.find(s => s.id === o.school_id);
-            return `
+    // 1. Render School List
+    const schoolBody = document.getElementById("schoolBody");
+    const schoolSearch = document.getElementById("schoolSearch")?.value.toLowerCase() || "";
+    const schools = (window.db.schools || []).filter(s => s.name.toLowerCase().includes(schoolSearch));
+    
+    if (schoolBody) {
+        schoolBody.innerHTML = schools.map(s => `
             <tr>
-                <td>${school ? school.name : "Unknown School"}</td>
-                <td><span class="badge">${o.status}</span></td>
-                <td>KES ${Number(o.total || 0).toLocaleString()}</td>
+                <td>${s.name}</td>
+                <td>${s.phone}</td>
+                <td>${s.location}</td>
+            </tr>
+        `).join("");
+    }
+
+    // 2. Render Corporate Order History
+    const orderBody = document.getElementById("corpOrdersBody");
+    if (!orderBody) return;
+
+    const orders = window.db.corporate_orders || [];
+    orderBody.innerHTML = orders.map(o => {
+        const school = (window.db.schools || []).find(s => s.id === o.school_id);
+        const isPending = o.status === 'pending';
+        
+        return `
+            <tr>
+                <td>${new Date(o.created_at).toLocaleDateString()}</td>
+                <td>${school ? school.name : 'Unknown'}</td>
+                <td>KES ${Number(o.total).toLocaleString()}</td>
+                <td><span class="badge ${o.status}">${o.status.toUpperCase()}</span></td>
                 <td>
-                    <button class="btn btn-blue" onclick="viewCorpOrder('${o.id}')">View</button>
-                    <button class="btn btn-green" onclick="generateCorporateReceipt('${o.id}')">Receipt</button>
+                    ${isPending 
+                        ? `<button class="btn btn-green" onclick="updateCorpOrderStatus('${o.id}', 'disbursed')">Mark Disbursed</button>` 
+                        : `<button class="btn btn-blue" onclick="showOnScreenReceipt('${o.id}', 'corporate')">Print Receipt</button>`
+                    }
                 </td>
-            </tr>`;
-        }).join("");
+            </tr>
+        `;
+    }).join("");
+}
+
+/**
+ * UPDATE STATUS
+ */
+async function updateCorpOrderStatus(orderId, newStatus) {
+    const { error } = await supa.from("corporate_orders").update({ status: newStatus }).eq("id", orderId);
+    if (error) return alert("Error updating status: " + error.message);
+    
+    alert(`Order ${newStatus} successfully!`);
+    await sync(); // Refresh all data
 }
 
 // Keep your existing viewCorpOrder and generateCorporateReceipt functions below this...
@@ -183,5 +212,38 @@ async function generateCorporateReceipt(orderId) {
     } catch (err) {
         console.error("PDF Generation Error:", err);
         alert("Error generating receipt: " + err.message);
+    }
+}
+
+function showOnScreenReceipt(orderId, type = 'retail') {
+    let order, entity, items;
+    
+    if (type === 'corporate') {
+        order = window.db.corporate_orders.find(o => o.id === orderId);
+        entity = window.db.schools.find(s => s.id === order.school_id);
+        items = window.db.corporate_order_items.filter(i => i.corporate_order_id === orderId);
+    } else {
+        order = window.db.orders.find(o => o.id === orderId);
+        entity = window.db.retailers.find(r => r.id === order.retailer_id);
+        items = window.db.order_items.filter(i => i.order_id === orderId);
+    }
+
+    // ... Use the same Modal population logic from our previous step ...
+    // Change "Retailer" label to "School" if type === 'corporate'
+    document.getElementById("receiptModal").classList.remove("hidden");
+}
+
+async function addSchool() {
+    const name = document.getElementById("schoolName").value;
+    const phone = document.getElementById("schoolPhone").value;
+    const location = document.getElementById("schoolLocation").value;
+
+    if(!name) return alert("School name required");
+
+    const { error } = await supa.from("schools").insert([{ name, phone, location }]);
+    if (error) alert(error.message);
+    else {
+        alert("School saved!");
+        await sync(); 
     }
 }

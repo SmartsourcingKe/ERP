@@ -7,94 +7,39 @@ window.salesChart = window.salesChart || null;
  * RENDER MONTHLY FINANCE TABLE & CHART
  * Consolidates retail, corporate, and payroll data into a monthly view.
  */
+// Update in reports.js
 function renderMonthlyFinance() {
-    if (!window.db) return;
-
     const monthlyData = {};
-
-    // Helper to initialize and add values to monthly object
     const track = (dateStr, manufacturer = 0, fee = 0, corporate = 0, payroll = 0) => {
         const date = new Date(dateStr);
         const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-
         if (!monthlyData[key]) {
             monthlyData[key] = { manufacturer: 0, fee: 0, corporate: 0, payroll: 0 };
         }
-
         monthlyData[key].manufacturer += manufacturer;
         monthlyData[key].fee += fee;
         monthlyData[key].corporate += corporate;
         monthlyData[key].payroll += payroll;
     };
 
-    // 1. Process Retail Orders
+    // 1. Process Retail (Fee = Your Profit)
     (db.orders || []).filter(o => o.status === "disbursed").forEach(order => {
         const items = (db.order_items || []).filter(i => i.order_id === order.id);
-        let orderMan = 0, orderFee = 0;
-
         items.forEach(item => {
-            const prod = (db.products || []).find(p => p.id === item.product_id);
-            if (prod) {
-                // Calculation: Price = Mfg Base + Company Fee
-                orderMan += (Number(prod.price) - Number(prod.company_fee)) * item.quantity;
-                orderFee += Number(prod.company_fee) * item.quantity;
-            }
+            const product = db.products.find(p => p.id === item.product_id);
+            const fee = (product?.company_fee || 0) * item.quantity;
+            const manCost = ((product?.price || 0) - (product?.company_fee || 0)) * item.quantity;
+            track(order.created_at, manCost, fee, 0, 0);
         });
-        track(order.created_at, orderMan, orderFee, 0, 0);
     });
 
-    // 2. Process Corporate Orders
-    (db.corporate_orders || []).filter(c => c.status === "disbursed").forEach(corp => {
-        track(corp.created_at, 0, 0, Number(corp.total || 0), 0);
-    });
-
-    // 3. Process Payroll (Expenses)
+    // 2. Process Payroll (Subtracting from profit)
     (db.payroll || []).forEach(p => {
-        track(p.payroll_month + "-01", 0, 0, 0, Number(p.total || 0));
+        track(p.payroll_month + "-01", 0, 0, 0, Number(p.total_pay));
     });
 
-    // Generate HTML Table
-    let tableHtml = `
-        <table class="card">
-            <thead>
-                <tr>
-                    <th>Month</th>
-                    <th>Mfg Costs</th>
-                    <th>Co. Profit</th>
-                    <th>Corporate</th>
-                    <th>Payroll</th>
-                    <th>Net Gain</th>
-                </tr>
-            </thead>
-            <tbody>`;
-
-    const labels = [], netGains = [];
-    Object.keys(monthlyData).sort().forEach(month => {
-        const m = monthlyData[month];
-        const netGain = (m.fee + m.corporate) - m.payroll;
-
-        labels.push(month);
-        netGains.push(netGain);
-
-        tableHtml += `
-            <tr>
-                <td>${month}</td>
-                <td>${m.manufacturer.toLocaleString()}</td>
-                <td>${m.fee.toLocaleString()}</td>
-                <td>${m.corporate.toLocaleString()}</td>
-                <td style="color:var(--red)">(${m.payroll.toLocaleString()})</td>
-                <td style="font-weight:bold; color:${netGain >= 0 ? 'var(--green)' : 'var(--red)'}">
-                    ${netGain.toLocaleString()}
-                </td>
-            </tr>`;
-    });
-
-    tableHtml += "</tbody></table>";
-    const container = document.getElementById("monthlyFinance");
-    if (container) container.innerHTML = tableHtml;
-
-    // 4. Render/Update Chart
-    updateTrendChart(labels, netGains);
+    renderProfitTable(monthlyData);
+    updateProfitChart(monthlyData);
 }
 
 /**
@@ -125,6 +70,22 @@ function updateTrendChart(labels, data) {
         monthlyTrendChart.data.datasets[0].data = data;
         monthlyTrendChart.update();
     }
+	
+	const staffPerformance = db.users.filter(u => u.role === 'staff').map(user => {
+    const userOrders = (db.orders || []).filter(o => o.created_by === user.id && o.status === 'disbursed');
+    let totalProfitGenerated = 0;
+    
+    userOrders.forEach(order => {
+        const items = (db.order_items || []).filter(i => i.order_id === order.id);
+        items.forEach(item => {
+            const product = db.products.find(p => p.id === item.product_id);
+            totalProfitGenerated += (product?.company_fee || 0) * item.quantity;
+        });
+    });
+
+    return { name: user.full_name, profit: totalProfitGenerated };
+});
+
 }
 
 /**

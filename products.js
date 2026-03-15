@@ -3,26 +3,20 @@
  * Saves a new item to the products table and refreshes UI.
  */
 async function addProduct() {
-    // 1. Safety Checks
-    if (!window.supa || !window.currentUser) {
-        return alert("Session expired. Please log in again.");
-    }
-
     const nameInput = document.getElementById("productName");
     const stockInput = document.getElementById("productStock");
     const priceInput = document.getElementById("productBasePrice");
-    const feeInput = document.getElementById("productFee");
-    const productForm = document.getElementById("productForm");
+    const feeInput = document.getElementById("productCompanyFee"); // Fixed ID
 
     if (!nameInput.value.trim()) return alert("Product name is required.");
-
-    // 2. Prepare Payload (Matches renamed 'name' column)
+    
     const payload = {
         name: nameInput.value.trim(),
         stock: Number(stockInput.value) || 0,
         price: Number(priceInput.value) || 0,
         company_fee: Number(feeInput.value) || 0
     };
+    // ... rest of your existing insert logic
 
     try {
         // 3. Insert to Supabase
@@ -53,21 +47,17 @@ async function addProduct() {
 
 /**
  * RENDER PRODUCTS TABLE
- * Uses the global window.db.products
+* Uses the global window.db.products
  */
 /**
  * RENDER PRODUCTS
  * Pulls data from window.db.products
  */
 function renderProducts() {
-    const container = document.getElementById("productGrid"); // Ensure this ID exists in HTML
-    if (!container) {
-        console.warn("Product container (productGrid) not found.");
-        return;
-    }
+    const container = document.getElementById("inventoryGrid");
+    if (!container) return;
 
     const products = window.db.products || [];
-
     if (products.length === 0) {
         container.innerHTML = '<div class="no-data">No products available in inventory.</div>';
         return;
@@ -77,13 +67,12 @@ function renderProducts() {
         <div class="product-card">
             <div class="product-info">
                 <h4>${product.name}</h4>
-                <p class="sku">SKU: ${product.sku || 'N/A'}</p>
+                <p class="sku">ID: ${product.id.slice(0,8)}</p>
                 <p class="price">KES ${Number(product.price).toLocaleString()}</p>
                 <p class="stock">Stock: <span class="${product.stock < 10 ? 'text-red' : ''}">${product.stock}</span></p>
             </div>
             <div class="product-actions">
-                <button onclick="editProduct('${product.id}')" class="btn-edit">Edit</button>
-                <button onclick="addToCart('${product.id}')" class="btn-add">Add to Order</button>
+                <button onclick="editProduct('${product.id}')" class="btn-edit">Edit Stock</button>
             </div>
         </div>
     `).join("");
@@ -108,5 +97,29 @@ async function deleteProduct(id) {
         await sync();
     } catch (err) {
         alert("Delete failed: " + err.message);
+    }
+}
+
+async function editProduct(id) {
+    const product = window.db.products.find(p => p.id === id);
+    if (!product) return;
+
+    const newStock = prompt(`Update stock for ${product.name}:`, product.stock);
+    
+    if (newStock !== null && !isNaN(newStock)) {
+        try {
+            const { error } = await supa
+                .from("products")
+                .update({ stock: parseInt(newStock) })
+                .eq("id", id);
+
+            if (error) throw error;
+
+            alert("Stock updated successfully!");
+            await sync(); // Refresh data and UI
+        } catch (err) {
+            console.error("Update Error:", err);
+            alert("Failed to update: " + err.message);
+        }
     }
 }

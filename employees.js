@@ -25,13 +25,14 @@ async function addEmployee() {
     if (userId) {
         // 2. Create the Database Profile (INSERT, not Update)
         const { error: dbError } = await supa.from("users").insert([{
-            auth_user_id: userId,
-            full_name: fullName,
-            email: email,
-            role: role,
-            basic_salary: Number(basic),
-            commission_rate: Number(commission)
-        }]);
+    auth_user_id: userId,
+    full_name: fullName,
+    email: email,
+    role: role, // Ensure this matches 'staff' from your dropdown
+    basic_salary: Number(basic),
+    commission_rate: Number(commission),
+    pic: photoUrl // This is the image for ID printing
+}]);
 
         if (dbError) {
             console.error(dbError);
@@ -43,36 +44,26 @@ async function addEmployee() {
     }
 }
 
-/**
- * RENDER EMPLOYEE LIST
- */
 function renderEmployees() {
-    const body = document.getElementById("employeeBody");
-    if (!body || !db.users) return;
+    const tbody = document.getElementById("employeeBody");
+    if (!tbody) return;
 
-    const search = (document.getElementById("employeeSearch")?.value || "").toLowerCase();
-
-    body.innerHTML = db.users
-        .filter(u => 
-            (u.full_name || "").toLowerCase().includes(search) || 
-            (u.email || "").toLowerCase().includes(search)
-        )
-        .map(u => `
-            <tr>
-                <td>${u.full_name || u.email}</td>
-                <td>${u.email}</td>
-                <td><span class="badge">${u.role}</span></td>
-                <td>
-                    <button class="btn btn-blue" onclick="generateUserID('${u.id}')">ID Card</button>
-                    <button class="btn btn-red" onclick="deleteEmployee('${u.id}')">Delete</button>
-                </td>
-            </tr>
-        `).join("");
+    const employees = window.db.users || [];
+    tbody.innerHTML = employees.map(emp => `
+        <tr>
+            <td><img src="${emp.pic || 'default-avatar.png'}" style="width:30px; border-radius:50%;"></td>
+            <td>${emp.full_name}</td>
+            <td>${emp.email}</td>
+            <td>${emp.role}</td>
+            <td>
+                <button class="btn btn-blue" onclick="printStaffID('${emp.id}')">ID</button>
+                <button class="btn btn-green" onclick="resetStaffPassword('${emp.id}')">Key</button>
+                <button class="btn btn-red" onclick="deleteEmployee('${emp.id}')">Delete</button>
+            </td>
+        </tr>
+    `).join("");
 }
 
-/**
- * DELETE EMPLOYEE
- */
 async function deleteEmployee(id) {
     if (!currentUser || currentUser.role !== "admin") return alert("Admin only");
     if (!confirm("Are you sure you want to delete this employee? This will not remove their login credentials.")) return;
@@ -146,4 +137,26 @@ async function generateUserID(userId) {
     doc.line(60, 48, 80, 48);
 
     doc.save(`ID_${user.full_name.replace(/\s/g, '_')}.pdf`);
+}
+
+async function printStaffID(id) {
+    const user = window.db.users.find(u => u.id === id);
+    const brand = window.db.branding?.[0] || {};
+
+    const idHtml = `
+        <div id="idCard" style="width:54mm; height:86mm; border:1px solid #ccc; border-radius:10px; padding:10px; text-align:center; background:white;">
+            <img src="${brand.logo_url}" style="height:30px; margin-bottom:10px;">
+            <div style="font-weight:bold; font-size:12px;">${brand.company_name}</div>
+            <hr>
+            <img src="${user.pic || 'avatar.png'}" style="width:100px; height:100px; border-radius:10px; margin:10px 0; border:2px solid #eee;">
+            <h3 style="margin:5px 0;">${user.full_name}</h3>
+            <p style="color:blue; font-weight:bold; margin:0;">${user.role.toUpperCase()}</p>
+            <div style="margin-top:20px; font-size:10px;">ID: ${user.id.slice(0,8)}</div>
+        </div>
+    `;
+
+    // Inject this into our existing receiptModal to preview it on screen
+    const content = document.getElementById("receiptContent");
+    content.innerHTML = idHtml + '<button class="btn btn-blue no-print" onclick="window.print()">Print ID</button>';
+    document.getElementById("receiptModal").classList.remove("hidden");
 }

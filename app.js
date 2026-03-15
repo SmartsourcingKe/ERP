@@ -49,13 +49,17 @@ async function handleAuthSuccess(session) {
         console.log("Authenticated User ID:", userId);
 
         // Fetch the profile from our custom 'users' table
-        const { data: profile, error: profErr } = await supa
-            .from("users")
-            .select("*")
-            .eq("auth_user_id", userId)
-            .maybeSingle();
+        // Get the database profile so window.currentUser.role is available
+const { data: profile } = await supa
+    .from('users')
+    .select('*')
+    .eq('auth_user_id', userId)
+    .single();
 
-        if (profErr) throw profErr;
+if (profile) {
+    // This merges the database role/name into the current user object
+    window.currentUser = { ...session.user, ...profile };
+}
         
         if (!profile) {
             console.error("Access Denied: No profile found in 'public.users' table.");

@@ -111,3 +111,26 @@ async function loadBranding() {
         renderBranding();
     }
 }
+
+function applyBranding(brand) {
+    if (!brand) return;
+
+    // Institution Name & Tagline
+    document.title = brand.company_name || "ERP System";
+    const nameEls = document.querySelectorAll(".institution-name"); // Use a class for all name placeholders
+    nameEls.forEach(el => el.textContent = brand.company_name);
+
+    // Background Image logic
+    if (brand.background_url) {
+        const loginPage = document.getElementById("loginPage");
+        if (loginPage) {
+            loginPage.style.backgroundImage = `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('${brand.background_url}')`;
+            loginPage.style.backgroundSize = "cover";
+        }
+    }
+    
+    // Watermark for Receipts (Update the global CSS variable)
+    if (brand.logo_url) {
+        document.documentElement.style.setProperty('--brand-logo', `url(${brand.logo_url})`);
+    }
+}

@@ -56,3 +56,10 @@ async function addRetailer() {
         await sync(); // Refresh data using app.js sync
     }
 }
+
+function viewRetailer(id) {
+    const retailer = window.db.retailers.find(r => r.id === id);
+    if (retailer) {
+        alert(`Retailer: ${retailer.name}\nPhone: ${retailer.phone}\nLocation: ${retailer.location}`);
+    }
+}

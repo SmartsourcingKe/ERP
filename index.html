@@ -38,6 +38,9 @@
 		.product-actions { margin-top: 10px; display: flex; gap: 5px; }
 		.btn-edit { background: #95a5a6; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
 		.btn-add { background: var(--blue); color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
+		.badge { padding: 4px 8px; border-radius: 4px; font-size: 0.8em; font-weight: bold; color: white; }
+.badge.pending { background: #f39c12; }    /* Orange for Pending */
+.badge.disbursed { background: #27ae60; }  /* Green for Disbursed */
     </style>
 </head>
 <body>
@@ -107,17 +110,32 @@
 </div>
 
     <div id="retailersTab" class="tab-content hidden">
-        <div class="card">
-            <h3>Register Retailer</h3>
-            <input id="retailerName" placeholder="Business Name">
-            <input id="retailerPhone" placeholder="Phone">
-            <input id="retailerLocation" placeholder="Location">
-            <button class="btn btn-blue" onclick="addRetailer()">Save Retailer</button>
-        </div>
-        <div class="card">
-            <tbody id="retailerBody"></tbody>
-        </div>
+    <div class="card">
+        <h3>Register Retailer</h3>
+        <input id="retailerName" placeholder="Business Name">
+        <input id="retailerPhone" placeholder="Phone">
+        <input id="retailerLocation" placeholder="Location">
+        <button class="btn btn-blue" onclick="addRetailer()">Save Retailer</button>
     </div>
+
+    <div class="card">
+        <h3>Retailer List</h3>
+        <input id="retailerSearch" placeholder="Search by name, phone, or location..." oninput="renderRetailers()">
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Phone</th>
+                    <th>Location</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="retailerBody">
+                </tbody>
+        </table>
+    </div>
+</div>
 
     <div id="inventoryTab" class="tab-content hidden">
         <div class="card">
@@ -133,12 +151,27 @@
 
     <div id="corporateTab" class="tab-content hidden">
         <div class="card">
-            <h3>Register School</h3>
-            <input id="schoolName" placeholder="School Name">
-            <input id="schoolPhone" placeholder="Phone">
-            <input id="schoolLocation" placeholder="Location">
-            <button class="btn btn-blue" onclick="addSchool()">Register School</button>
-        </div>
+    <h3>Register School</h3>
+    <input id="schoolName" placeholder="School Name">
+    <input id="schoolPhone" placeholder="Phone">
+    <input id="schoolLocation" placeholder="Location">
+    <button class="btn btn-blue" onclick="addSchool()">Save School</button>
+</div>
+
+<div class="card">
+    <h3>Registered Schools</h3>
+    <input id="schoolSearch" placeholder="Search schools..." oninput="renderCorporate()">
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Phone</th>
+                <th>Location</th>
+            </tr>
+        </thead>
+        <tbody id="schoolBody"></tbody>
+    </table>
+</div>
         <div class="card">
             <h3>Corporate Order</h3>
             <select id="corpSchoolSelect"></select>
@@ -152,10 +185,28 @@
         <tbody id="corporateBody"></tbody>
     </div>
 
-    <div id="payrollTab" class="tab-content hidden">
-        <button class="btn btn-green" onclick="generatePayroll()">Generate Monthly Payroll</button>
-        <tbody id="payrollBody"></tbody>
+<div id="payrollTab" class="tab-content hidden">
+    <div class="card">
+        <h3>Payroll Management</h3>
+        <button class="btn btn-green" onclick="generatePayroll()">Generate Payroll for Current Month</button>
     </div>
+    <div class="card">
+        <h3>Payroll History</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Month</th>
+                    <th>Staff Name</th>
+                    <th>Basic</th>
+                    <th>Commission</th>
+                    <th>Total Pay</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="payrollBody"></tbody>
+        </table>
+    </div>
+</div>
 
     <div id="adminTab" class="tab-content hidden">
         <div class="card">
@@ -182,11 +233,29 @@
     </div>
 
     <div id="profitTab" class="tab-content hidden">
-        <div class="card">
-            <h3>Financial Performance</h3>
-            <tbody id="financeBody"></tbody>
+    <div class="card">
+        <h3>Financial Overview</h3>
+        <div style="height: 300px;">
+            <canvas id="monthlyTrendChart"></canvas>
         </div>
     </div>
+    <div class="card">
+        <h3>Monthly Breakdown</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Month</th>
+                    <th>Product Costs</th>
+                    <th>Sales Profit (Fees)</th>
+                    <th>Corporate Revenue</th>
+                    <th>Payroll Expenses</th>
+                    <th>NET PROFIT</th>
+                </tr>
+            </thead>
+            <tbody id="monthlyFinanceBody"></tbody>
+        </table>
+    </div>
+</div>
 	
 	<div id="receiptModal" class="hidden" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:10000; display:flex; justify-content:center; align-items:center;">
     <div id="receiptContent" style="background:white; width:80mm; padding:10mm; position:relative; overflow:hidden; box-shadow:0 0 20px rgba(0,0,0,0.5); font-family:'Courier New', Courier, monospace;">

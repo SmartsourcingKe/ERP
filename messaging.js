@@ -9,17 +9,11 @@ function subscribeToMessages() {
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
             if (!window.db.messages) window.db.messages = [];
             
-            // Avoid duplicate messages if loadMessages and subscription trigger simultaneously
-            const exists = db.messages.find(m => m.id === payload.new.id);
+            // Check if it's already there to prevent double-showing
+            const exists = window.db.messages.some(m => m.id === payload.new.id);
             if (!exists) {
-                db.messages.push(payload.new);
-                renderMessages();
-                
-                // Alert user if they aren't looking at the chat
-                const messagesTab = document.getElementById("messagesTab");
-                if (messagesTab && messagesTab.classList.contains("hidden")) {
-                    console.log("New message received in background.");
-                }
+                window.db.messages.push(payload.new);
+                renderMessages(); // Re-draw the chat box
             }
         })
         .subscribe();
@@ -30,25 +24,29 @@ function subscribeToMessages() {
  */
 async function sendMessage() {
     const input = document.getElementById("messageInput");
+    const receiverId = document.getElementById("messageStaffSelect")?.value; // Get selected staff
+    
     if (!input || !window.currentUser) return;
 
     const textValue = input.value.trim();
     if (!textValue) return;
 
     try {
+        // Use 'body' to match your render logic, and include a receiver_id
         const { error } = await supa.from("messages").insert({
-            sender_id: currentUser.auth_user_id,
-            sender_name: currentUser.full_name,
-            text: textValue,    // Try 'text'
-            content: textValue  // Adding 'content' as well to satisfy the constraint
+            sender_id: currentUser.id, // Use .id which is the UUID
+            receiver_id: receiverId || null, // Optional: for private or group chat
+            body: textValue, 
+            created_at: new Date()
         });
 
         if (error) throw error;
-        input.value = "";
-        
+
+        input.value = ""; // Clear input on success
+        // No need to manually push to db.messages; the subscription handles it!
     } catch (err) {
-        console.error("Messaging Error:", err.message);
-        alert("Failed to send message: " + err.message);
+        console.error("Send Error:", err);
+        alert("Failed to send: " + err.message);
     }
 }
 
@@ -57,25 +55,26 @@ async function sendMessage() {
  * Displays the chat and converts IDs to Names.
  */
 function renderMessages() {
-    // FIXED: Changed ID from "messages" to "messagesContainer"
-    const box = document.getElementById("messagesContainer");
-    if (!box || !window.db) return; // Guard 1: Is DB ready?
-    if (!db.messages) db.messages = []; // Guard 2: Is the message list there?
+    const box = document.getElementById("messageBox");
+    if (!box || !window.db.messages) return;
 
-    box.innerHTML = db.messages.map(m => {
-        const sender = db.users?.find(u => u.auth_user_id === m.sender_id);
-        const senderName = sender ? sender.full_name : "System User";
-        const isMe = m.sender_id === (currentUser?.auth_user_id || "");
+    box.innerHTML = window.db.messages.map(m => {
+        // Find who sent it
+        const sender = (window.db.users || []).find(u => u.auth_user_id === m.sender_id || u.id === m.sender_id);
+        const senderName = sender ? sender.full_name : "System";
+        
+        // Check if the current user is the sender
+        const isMe = m.sender_id === window.currentUser.id;
 
-        // FIXED: Using your CSS classes 'chat-left' and 'chat-right' from index.html
         return `
             <div class="chat-bubble ${isMe ? 'chat-right' : 'chat-left'}">
-                <small style="display:block; font-size:10px; opacity:0.8;">${senderName}</small>
-                <div>${m.text || m.body || ""}</div>
+                <small style="font-size: 10px; opacity: 0.7;">${senderName}</small>
+                <div class="message-text">${m.body || m.text}</div>
             </div>
         `;
     }).join("");
 
+    // Auto-scroll to the latest message
     box.scrollTop = box.scrollHeight;
 }
 

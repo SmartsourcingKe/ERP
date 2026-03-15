@@ -170,10 +170,7 @@ function showOnScreenReceipt(orderId) {
     document.getElementById("receiptModal").classList.remove("hidden");
 }
 
-/**
- * RENDER ORDER HISTORY
- * Displays past orders and provides the Print button.
- */
+
 function renderOrders() {
     const tbody = document.getElementById("ordersBody");
     if (!tbody) return;
@@ -181,19 +178,51 @@ function renderOrders() {
     const orders = window.db.orders || [];
     const retailers = window.db.retailers || [];
 
-    tbody.innerHTML = orders.map(o => {
+    // Sort by date so new ones are at the top
+    const sortedOrders = [...orders].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+    tbody.innerHTML = sortedOrders.map(o => {
         const retailer = retailers.find(r => r.id === o.retailer_id);
+        const isPending = o.status === 'pending';
+        
         return `
             <tr>
                 <td>${new Date(o.created_at).toLocaleDateString()}</td>
                 <td>${retailer ? retailer.name : 'Unknown'}</td>
                 <td>KES ${Number(o.total).toLocaleString()}</td>
-                <td><span class="badge">${o.status}</span></td>
-                // Inside your renderOrders loop
-<td>
-    <button class="btn btn-blue" onclick="showOnScreenReceipt('${o.id}')">View Receipt</button>
-</td>
+                <td><span class="badge ${o.status}">${o.status.toUpperCase()}</span></td>
+                <td>
+                    ${isPending 
+                        ? `<button class="btn btn-green" onclick="updateOrderStatus('${o.id}', 'disbursed')">Mark Disbursed</button>` 
+                        : `<button class="btn btn-blue" onclick="showOnScreenReceipt('${o.id}')">Print Receipt</button>`
+                    }
+                </td>
             </tr>
         `;
     }).join("");
+}
+
+/**
+ * UPDATE ORDER STATUS
+ * Changes status to 'disbursed' so receipt can be printed
+ */
+async function updateOrderStatus(orderId, newStatus) {
+    try {
+        const { error } = await supa
+            .from("orders")
+            .update({ status: newStatus })
+            .eq("id", orderId);
+
+        if (error) throw error;
+
+        alert(`Order successfully ${newStatus}!`);
+        
+        // Refresh local data and UI
+        await sync(); 
+        renderOrders();
+        
+    } catch (err) {
+        console.error("Status Update Error:", err);
+        alert("Failed to update status: " + err.message);
+    }
 }

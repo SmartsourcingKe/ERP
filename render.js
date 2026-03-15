@@ -32,11 +32,17 @@ function renderAll() {
  * RENDER PERMISSIONS
  * Shows or hides admin-only buttons based on the user's role.
  */
+ 
 function renderPermissions() {
-    const user = window.currentUser;
+    // 1. Get the profile from your database table using the logged-in ID
+    const userProfile = (window.db.users || []).find(u => u.auth_user_id === window.currentUser?.id);
+    
+    // Fallback: If profile isn't synced yet, use the current user object
+    const user = userProfile || window.currentUser;
+    
     if (!user) return;
 
-    // Elements that only admins should see
+    // YOUR ORIGINAL LIST - I haven't changed a thing here
     const adminElements = [
         'performanceBtn', 
         'payrollBtn', 
@@ -47,6 +53,7 @@ function renderPermissions() {
     adminElements.forEach(id => {
         const el = document.getElementById(id);
         if (el) {
+            // Check the role from the database profile
             if (user.role === 'admin') {
                 el.classList.remove('hidden');
             } else {
@@ -56,7 +63,9 @@ function renderPermissions() {
     });
 
     const welcome = document.getElementById("welcome");
-    if (welcome) welcome.textContent = `Welcome, ${user.full_name || 'User'}`;
+    if (welcome) {
+        welcome.textContent = `Welcome, ${user.full_name || user.email || 'User'}`;
+    }
 }
 
 /**
