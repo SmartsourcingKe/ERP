@@ -130,57 +130,44 @@ async function createOrder() {
 /**
  * PRINT RETAIL RECEIPT (PDF)
  */
-async function printRetailReceipt(orderId) {
+function showOnScreenReceipt(orderId) {
     const order = window.db.orders?.find(o => o.id === orderId);
     const retailer = window.db.retailers?.find(r => r.id === order?.retailer_id);
     const items = window.db.order_items?.filter(i => i.order_id === orderId) || [];
+    const branding = window.db.branding?.[0] || {}; // Get first branding row
 
-    if (!order || !retailer) return alert("Order data not found.");
+    if (!order) return alert("Order data not found.");
 
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
+    // Set Branding
+    document.getElementById("receiptCompanyName").textContent = branding.company_name || "SmartsourcingKe";
+    document.getElementById("receiptTagline").textContent = branding.tagline || "";
+    document.getElementById("receiptLogo").src = branding.logo_url || "";
+    document.getElementById("watermarkImg").src = branding.logo_url || "";
 
-    // 1. Branding Header
-    if (window.db.branding?.logo_url) {
-        try {
-            const logo = await fetchImageAsBase64(window.db.branding.logo_url);
-            if (logo) doc.addImage(logo, 'PNG', 85, 10, 40, 20);
-        } catch (e) { console.warn("Logo failed to load for PDF"); }
-    }
-    
-    doc.setFontSize(18).text(window.db.branding?.company_name || "ERP System", 105, 35, {align:"center"});
-    doc.setFontSize(10).text(window.db.branding?.tagline || "", 105, 40, {align:"center"});
+    // Set Meta Info
+    document.getElementById("receiptMeta").innerHTML = `
+        <strong>Retailer:</strong> ${retailer?.name || 'Cash Sale'}<br>
+        <strong>Order ID:</strong> ${order.id.slice(0, 8)}<br>
+        <strong>Date:</strong> ${new Date(order.created_at).toLocaleString()}
+    `;
 
-    doc.setFontSize(14).text("OFFICIAL RECEIPT", 20, 55);
-    doc.setFontSize(10).text(`Retailer: ${retailer.name}`, 20, 62);
-    doc.text(`Date: ${new Date(order.created_at).toLocaleDateString()}`, 150, 62);
-    doc.line(20, 65, 190, 65);
-
-    // 2. Table Header
-    let y = 75;
-    doc.setFont("helvetica", "bold");
-    doc.text("Item", 20, y);
-    doc.text("Qty", 100, y);
-    doc.text("Price", 130, y);
-    doc.text("Subtotal", 160, y);
-    
-    doc.setFont("helvetica", "normal");
-    y += 5;
-    
-    items.forEach(item => {
+    // Populate Items
+    const itemsHtml = items.map(item => {
         const prod = window.db.products.find(p => p.id === item.product_id);
-        y += 8;
-        doc.text(prod?.name || "Product", 20, y);
-        doc.text(String(item.quantity), 100, y);
-        doc.text(Number(item.price).toLocaleString(), 130, y);
-        doc.text((item.quantity * item.price).toLocaleString(), 160, y);
-    });
+        return `
+            <tr>
+                <td>${prod?.name || 'Item'}</td>
+                <td style="text-align:center;">${item.quantity}</td>
+                <td style="text-align:right;">${(item.quantity * item.price).toLocaleString()}</td>
+            </tr>
+        `;
+    }).join("");
 
-    y += 15;
-    doc.setFontSize(14).setFont("helvetica", "bold");
-    doc.text(`Total Paid: KES ${Number(order.total).toLocaleString()}`, 190, y, {align:"right"});
+    document.getElementById("receiptItemsBody").innerHTML = itemsHtml;
+    document.getElementById("receiptGrandTotal").textContent = `TOTAL: KES ${Number(order.total).toLocaleString()}`;
 
-    doc.save(`Receipt_${retailer.name.replace(/\s/g, '_')}.pdf`);
+    // Show the Modal
+    document.getElementById("receiptModal").classList.remove("hidden");
 }
 
 /**
@@ -202,9 +189,10 @@ function renderOrders() {
                 <td>${retailer ? retailer.name : 'Unknown'}</td>
                 <td>KES ${Number(o.total).toLocaleString()}</td>
                 <td><span class="badge">${o.status}</span></td>
-                <td>
-                    <button class="btn btn-blue" onclick="printRetailReceipt('${o.id}')">Print Receipt</button>
-                </td>
+                // Inside your renderOrders loop
+<td>
+    <button class="btn btn-blue" onclick="showOnScreenReceipt('${o.id}')">View Receipt</button>
+</td>
             </tr>
         `;
     }).join("");

@@ -127,6 +127,9 @@ function renderProductDropdowns() {
         el.innerHTML = '<option value="">Select Product</option>' + 
             products.map(p => `<option value="${p.id}">${p.name} (Stock: ${p.stock})</option>`).join("");
     });
+	
+	
+	
 }
 
 /**

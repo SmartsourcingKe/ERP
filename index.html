@@ -38,7 +38,7 @@
 		.product-actions { margin-top: 10px; display: flex; gap: 5px; }
 		.btn-edit { background: #95a5a6; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
 		.btn-add { background: var(--blue); color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
-    </style>>
+    </style>
 </head>
 <body>
 
@@ -187,6 +187,54 @@
             <tbody id="financeBody"></tbody>
         </div>
     </div>
+	
+	<div id="receiptModal" class="hidden" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:10000; display:flex; justify-content:center; align-items:center;">
+    <div id="receiptContent" style="background:white; width:80mm; padding:10mm; position:relative; overflow:hidden; box-shadow:0 0 20px rgba(0,0,0,0.5); font-family:'Courier New', Courier, monospace;">
+        <div id="receiptWatermark" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); opacity:0.1; width:60mm; z-index:0; pointer-events:none;">
+            <img id="watermarkImg" src="" style="width:100%;">
+        </div>
+
+        <div style="position:relative; z-index:1;">
+            <div style="text-align:center; border-bottom:1px dashed #000; padding-bottom:10px; margin-bottom:10px;">
+                <img id="receiptLogo" src="" style="max-height:50px; margin-bottom:5px;"><br>
+                <strong id="receiptCompanyName" style="font-size:1.2em;"></strong><br>
+                <span id="receiptTagline" style="font-size:0.8em;"></span>
+            </div>
+
+            <div id="receiptMeta" style="font-size:0.9em; margin-bottom:10px;"></div>
+
+            <table style="width:100%; font-size:0.9em; border-collapse:collapse;">
+                <thead>
+                    <tr style="border-bottom:1px solid #000;">
+                        <th style="text-align:left;">Item</th>
+                        <th style="text-align:center;">Qty</th>
+                        <th style="text-align:right;">Total</th>
+                    </tr>
+                </thead>
+                <tbody id="receiptItemsBody"></tbody>
+            </table>
+
+            <div style="border-top:1px dashed #000; margin-top:10px; padding-top:10px; text-align:right;">
+                <strong id="receiptGrandTotal" style="font-size:1.1em;"></strong>
+            </div>
+
+            <div style="margin-top:20px; text-align:center; font-size:0.8em;">
+                <p>Thank you for your business!</p>
+                <button class="btn btn-blue no-print" onclick="window.print()">Print Now</button>
+                <button class="btn btn-red no-print" onclick="document.getElementById('receiptModal').classList.add('hidden')">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+@media print {
+    body * { visibility: hidden; }
+    #receiptModal, #receiptModal *, #receiptContent, #receiptContent * { visibility: visible; }
+    #receiptModal { position: absolute; left: 0; top: 0; background: white; width: 100%; }
+    .no-print { display: none !important; }
+}
+</style>
 
 </div>
 
