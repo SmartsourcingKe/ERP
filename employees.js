@@ -8,39 +8,34 @@ async function addEmployee() {
     const email = document.getElementById("empEmail").value;
     const password = document.getElementById("empPassword").value;
     const fullName = document.getElementById("empFullName").value;
-    const basic = document.getElementById("empBasic").value;
-    const commission = document.getElementById("empCommissionRate").value;
     const role = document.getElementById("empRole").value;
 
-    // 1. Create the Auth User
-    const { data: authData, error: authError } = await supa.auth.signUp({
-        email,
-        password
-    });
+    try {
+        // 1. Create the Auth Account
+        const { data: authData, error: authError } = await supa.auth.signUp({
+            email: email,
+            password: password
+        });
 
-    if (authError) return alert("Auth Error: " + authError.message);
+        if (authError) throw authError;
 
-    const userId = authData.user?.id;
+        // 2. IMMEDIATELY insert into public.users
+        const { error: profileError } = await supa.from('users').insert([{
+            auth_user_id: authData.user.id, // Linking to the Auth ID
+            full_name: fullName,
+            email: email,
+            role: role,
+            basic_salary: Number(document.getElementById("empBasic").value) || 0,
+            commission_rate: Number(document.getElementById("empCommissionRate").value) || 0
+        }]);
 
-    if (userId) {
-        // 2. Create the Database Profile (INSERT, not Update)
-        const { error: dbError } = await supa.from("users").insert([{
-    auth_user_id: userId,
-    full_name: fullName,
-    email: email,
-    role: role, // Ensure this matches 'staff' from your dropdown
-    basic_salary: Number(basic),
-    commission_rate: Number(commission),
-    pic: photoUrl // This is the image for ID printing
-}]);
-
-        if (dbError) {
-            console.error(dbError);
-            return alert("Database Error: " + dbError.message);
-        }
+        if (profileError) throw profileError;
 
         alert("Employee created successfully!");
-        await sync(); // Refresh the list
+        await sync(); 
+    } catch (err) {
+        console.error("Employee Creation Error:", err.message);
+        alert(err.message);
     }
 }
 

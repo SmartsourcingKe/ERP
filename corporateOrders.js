@@ -218,6 +218,7 @@ async function generateCorporateReceipt(orderId) {
 function showOnScreenReceipt(orderId, type = 'retail') {
     let order, entity, items;
     
+    // 1. Get the Correct Data
     if (type === 'corporate') {
         order = window.db.corporate_orders.find(o => o.id === orderId);
         entity = window.db.schools.find(s => s.id === order.school_id);
@@ -228,8 +229,43 @@ function showOnScreenReceipt(orderId, type = 'retail') {
         items = window.db.order_items.filter(i => i.order_id === orderId);
     }
 
-    // ... Use the same Modal population logic from our previous step ...
-    // Change "Retailer" label to "School" if type === 'corporate'
+    if (!order) return alert("Order not found");
+
+    // 2. Fill Branding (Logo, Name, Tagline)
+    const branding = window.db.branding || {};
+    document.getElementById("receiptLogo").src = branding.logo_url || "";
+    document.getElementById("watermarkImg").src = branding.logo_url || "";
+    document.getElementById("receiptCompanyName").innerText = branding.company_name || "SmartsourcingKe";
+    document.getElementById("receiptTagline").innerText = branding.tagline || "";
+
+    // 3. Fill Meta Data
+    document.getElementById("receiptMeta").innerHTML = `
+        <strong>Order No:</strong> ${order.id.substring(0,8).toUpperCase()}<br>
+        <strong>Date:</strong> ${new Date(order.created_at).toLocaleString()}<br>
+        <strong>Customer:</strong> ${entity ? entity.name : 'N/A'}
+    `;
+
+    // 4. Fill Items Table (Amount Calculation)
+    const tbody = document.getElementById("receiptItemsBody");
+    tbody.innerHTML = items.map(item => {
+        // For Retail: item.product_id | For Corporate: item.level
+        const description = item.level || (window.db.products.find(p => p.id === item.product_id)?.name) || "Item";
+        const qty = item.students || item.quantity;
+        const total = item.subtotal || (item.price * item.quantity);
+        
+        return `
+            <tr style="border-bottom: 1px dashed #eee;">
+                <td style="padding:5px;">${description}</td>
+                <td style="text-align:center;">${qty}</td>
+                <td style="text-align:right;">${Number(total).toLocaleString()}</td>
+            </tr>
+        `;
+    }).join("");
+
+    // 5. Fill Grand Total
+    document.getElementById("receiptGrandTotal").innerText = `TOTAL KES: ${Number(order.total).toLocaleString()}`;
+
+    // 6. Show the Modal
     document.getElementById("receiptModal").classList.remove("hidden");
 }
 
