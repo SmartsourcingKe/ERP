@@ -131,42 +131,43 @@ async function createOrder() {
  * PRINT RETAIL RECEIPT (PDF)
  */
 function showOnScreenReceipt(orderId) {
-    const order = window.db.orders?.find(o => o.id === orderId);
-    const retailer = window.db.retailers?.find(r => r.id === order?.retailer_id);
-    const items = window.db.order_items?.filter(i => i.order_id === orderId) || [];
-    const branding = window.db.branding?.[0] || {}; // Get first branding row
+    const order = (window.db.orders || []).find(o => o.id === orderId);
+    if (!order) return alert("Order not found");
 
-    if (!order) return alert("Order data not found.");
+    const retailer = (window.db.retailers || []).find(r => r.id === order.retailer_id);
+    const items = (window.db.order_items || []).filter(i => i.order_id === orderId);
 
-    // Set Branding
-    document.getElementById("receiptCompanyName").textContent = branding.company_name || "SmartsourcingKe";
-    document.getElementById("receiptTagline").textContent = branding.tagline || "";
-    document.getElementById("receiptLogo").src = branding.logo_url || "";
-    document.getElementById("watermarkImg").src = branding.logo_url || "";
+    // 1. Fill Header Branding (Matches your receiptLogo ID)
+    const logoImg = document.getElementById("receiptLogo");
+    if (logoImg) logoImg.src = window.db.branding?.logo_url || "";
+    
+    document.getElementById("receiptCompanyName").innerText = window.db.branding?.company_name || "SmartsourcingKe";
+    document.getElementById("receiptTagline").innerText = window.db.branding?.tagline || "";
 
-    // Set Meta Info
+    // 2. Fill Meta Data (Date and Order Number)
     document.getElementById("receiptMeta").innerHTML = `
-        <strong>Retailer:</strong> ${retailer?.name || 'Cash Sale'}<br>
-        <strong>Order ID:</strong> ${order.id.slice(0, 8)}<br>
-        <strong>Date:</strong> ${new Date(order.created_at).toLocaleString()}
+        <strong>Order ID:</strong> ${order.id.substring(0, 8)}<br>
+        <strong>Date:</strong> ${new Date(order.created_at).toLocaleString()}<br>
+        <strong>Customer:</strong> ${retailer ? retailer.name : 'Walk-in'}
     `;
 
-    // Populate Items
-    const itemsHtml = items.map(item => {
-        const prod = window.db.products.find(p => p.id === item.product_id);
+    // 3. Fill Items Table
+    const tbody = document.getElementById("receiptItemsBody");
+    tbody.innerHTML = items.map(item => {
+        const product = (window.db.products || []).find(p => p.id === item.product_id);
         return `
-            <tr>
-                <td>${prod?.name || 'Item'}</td>
+            <tr style="border-bottom: 1px solid #eee;">
+                <td style="padding:5px;">${product ? product.name : 'Unknown Product'}</td>
                 <td style="text-align:center;">${item.quantity}</td>
-                <td style="text-align:right;">${(item.quantity * item.price).toLocaleString()}</td>
+                <td style="text-align:right;">KES ${Number(item.price * item.quantity).toLocaleString()}</td>
             </tr>
         `;
     }).join("");
 
-    document.getElementById("receiptItemsBody").innerHTML = itemsHtml;
-    document.getElementById("receiptGrandTotal").textContent = `TOTAL: KES ${Number(order.total).toLocaleString()}`;
+    // 4. Fill Total
+    document.getElementById("receiptGrandTotal").innerText = `TOTAL: KES ${Number(order.total).toLocaleString()}`;
 
-    // Show the Modal
+    // 5. Show the Modal
     document.getElementById("receiptModal").classList.remove("hidden");
 }
 

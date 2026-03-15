@@ -270,3 +270,30 @@ async function processCorporateOrder() {
         console.error(err);
     }
 }
+
+function renderSchools() {
+    const tbody = document.getElementById("schoolTableBody");
+    if (!tbody) return;
+
+    // Pulls from your global database object
+    const schools = window.db.schools || [];
+    
+    if (schools.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">No schools registered yet.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = schools.map(school => `
+        <tr>
+            <td>${school.name}</td>
+            <td>${school.phone}</td>
+            <td>${school.location}</td>
+        </tr>
+    `).join("");
+    
+    // Also update the dropdown for Corporate Orders
+    const select = document.getElementById("corpSchoolSelect");
+    if (select) {
+        select.innerHTML = schools.map(s => `<option value="${s.id}">${s.name}</option>`).join("");
+    }
+}

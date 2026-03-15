@@ -22,30 +22,52 @@ function subscribeToMessages() {
 /**
  * SEND MESSAGE
  */
-async function sendMessage() {
-    const input = document.getElementById("messageInput");
-    if (!input || !window.currentUser) return;
+// Function to send message to Supabase
+async function sendInternalMessage() {
+    const input = document.getElementById("internalMsgInput");
+    const content = input.value.trim();
 
-    const textValue = input.value.trim();
-    if (!textValue) return;
+    if (!content) return;
 
     try {
-        // Try sending with the most common column name 'body'
-        // If your table uses 'text', change 'body' to 'text' below
-        const { error } = await supa.from("messages").insert({
-            sender_id: window.currentUser.id, 
-            body: textValue, 
-            created_at: new Date()
-        });
+        const { error } = await supa.from("internal_messages").insert([{
+            sender_name: window.currentUser.full_name || "Staff",
+            sender_id: window.currentUser.id,
+            content: content
+        }]);
 
         if (error) throw error;
-
-        input.value = ""; // Clear the box
-        // The real-time listener will automatically show the message for you
+        
+        input.value = ""; // Clear input
+        await loadInternalMessages(); // Refresh chat
     } catch (err) {
-        console.error("Messaging Error:", err);
-        alert("Send failed. Check if your table has a 'body' column.");
+        console.error("Chat error:", err);
     }
+}
+
+// Function to load and display messages
+async function loadInternalMessages() {
+    const chatBox = document.getElementById("internalChatBox");
+    if (!chatBox) return;
+
+    const { data: messages, error } = await supa
+        .from("internal_messages")
+        .select("*")
+        .order('created_at', { ascending: true });
+
+    if (error) return console.error(error);
+
+    chatBox.innerHTML = messages.map(msg => `
+        <div style="align-self: ${msg.sender_id === window.currentUser.id ? 'flex-end' : 'flex-start'}; 
+                    background: ${msg.sender_id === window.currentUser.id ? '#dcf8c6' : '#fff'}; 
+                    padding: 8px 12px; border-radius: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); max-width: 70%;">
+            <strong style="font-size: 0.8em; color: #555;">${msg.sender_name}</strong><br>
+            <span>${msg.content}</span>
+            <div style="font-size: 0.6em; color: #999; text-align: right;">${new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+        </div>
+    `).join("");
+
+    chatBox.scrollTop = chatBox.scrollHeight; // Auto-scroll to bottom
 }
 
 /**
