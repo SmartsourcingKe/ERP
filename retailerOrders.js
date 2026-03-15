@@ -182,3 +182,30 @@ async function printRetailReceipt(orderId) {
 
     doc.save(`Receipt_${retailer.name.replace(/\s/g, '_')}.pdf`);
 }
+
+/**
+ * RENDER ORDER HISTORY
+ * Displays past orders and provides the Print button.
+ */
+function renderOrders() {
+    const tbody = document.getElementById("ordersBody");
+    if (!tbody) return;
+
+    const orders = window.db.orders || [];
+    const retailers = window.db.retailers || [];
+
+    tbody.innerHTML = orders.map(o => {
+        const retailer = retailers.find(r => r.id === o.retailer_id);
+        return `
+            <tr>
+                <td>${new Date(o.created_at).toLocaleDateString()}</td>
+                <td>${retailer ? retailer.name : 'Unknown'}</td>
+                <td>KES ${Number(o.total).toLocaleString()}</td>
+                <td><span class="badge">${o.status}</span></td>
+                <td>
+                    <button class="btn btn-blue" onclick="printRetailReceipt('${o.id}')">Print Receipt</button>
+                </td>
+            </tr>
+        `;
+    }).join("");
+}
