@@ -24,29 +24,27 @@ function subscribeToMessages() {
  */
 async function sendMessage() {
     const input = document.getElementById("messageInput");
-    const receiverId = document.getElementById("messageStaffSelect")?.value; // Get selected staff
-    
     if (!input || !window.currentUser) return;
 
     const textValue = input.value.trim();
     if (!textValue) return;
 
     try {
-        // Use 'body' to match your render logic, and include a receiver_id
+        // Try sending with the most common column name 'body'
+        // If your table uses 'text', change 'body' to 'text' below
         const { error } = await supa.from("messages").insert({
-            sender_id: currentUser.id, // Use .id which is the UUID
-            receiver_id: receiverId || null, // Optional: for private or group chat
+            sender_id: window.currentUser.id, 
             body: textValue, 
             created_at: new Date()
         });
 
         if (error) throw error;
 
-        input.value = ""; // Clear input on success
-        // No need to manually push to db.messages; the subscription handles it!
+        input.value = ""; // Clear the box
+        // The real-time listener will automatically show the message for you
     } catch (err) {
-        console.error("Send Error:", err);
-        alert("Failed to send: " + err.message);
+        console.error("Messaging Error:", err);
+        alert("Send failed. Check if your table has a 'body' column.");
     }
 }
 

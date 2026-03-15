@@ -16,7 +16,17 @@ async function addProduct() {
         price: Number(priceInput.value) || 0,
         company_fee: Number(feeInput.value) || 0
     };
-    // ... rest of your existing insert logic
+
+const productForm = document.getElementById("productForm");
+if (productForm) {
+    productForm.reset();
+} else {
+    // Manually clear if no form wrapper exists
+    document.getElementById("productName").value = "";
+    document.getElementById("productStock").value = "";
+    document.getElementById("productBasePrice").value = "";
+    document.getElementById("productCompanyFee").value = "";
+}
 
     try {
         // 3. Insert to Supabase

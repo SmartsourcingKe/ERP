@@ -247,3 +247,26 @@ async function addSchool() {
         await sync(); 
     }
 }
+
+// Inside corporateOrders.js -> processCorporateOrder()
+async function processCorporateOrder() {
+    const schoolId = document.getElementById("corpSchoolSelect").value;
+    if (!schoolId || corporateCart.length === 0) {
+        return alert("Please select a school and add items to the cart.");
+    }
+
+    const totalAmount = corporateCart.reduce((sum, item) => sum + item.subtotal, 0);
+
+    try {
+        const { data: order, error: orderErr } = await supa.from("corporate_orders").insert([{
+            school_id: schoolId,
+            total: totalAmount,
+            status: 'pending',
+            created_by: window.currentUser.id
+        }]).select().single();
+        
+        // ... rest of your existing logic continues here ...
+    } catch (err) {
+        console.error(err);
+    }
+}
