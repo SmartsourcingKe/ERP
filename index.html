@@ -68,6 +68,38 @@
     border-bottom: 1px solid #000;
     margin: 0 auto 5px;
 }
+
+@media print {
+    /* Hide the entire ERP interface, sidebars, and buttons */
+    body * {
+        visibility: hidden;
+    }
+
+    /* Only show the receipt content and its children */
+    #receiptModal, #receiptModal *, #receiptContent, #receiptContent * {
+        visibility: visible;
+    }
+
+    /* Position the receipt at the very top-left of the paper */
+    #receiptModal {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        background: white !important;
+    }
+
+    /* Hide the "Print" and "Close" buttons on the physical paper */
+    .no-print {
+        display: none !important;
+    }
+
+    /* Ensure the watermark and background colors print */
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+}
     </style>
 </head>
 <body>
@@ -99,7 +131,9 @@
         <button id="payrollBtn" class="tab-btn hidden" onclick="openTab('payrollTab',this)">Payroll</button>
         <button id="adminBtn" class="tab-btn hidden" onclick="openTab('adminTab',this)">Admin</button>
         <button id="profitBtn" class="tab-btn hidden" onclick="openTab('profitTab',this)">Profit</button>
-        <button class="tab-btn" onclick="openTab('messagingTab',this)">Messages</button>
+        <button class="tab-btn" onclick="openTab('messagesTab', this)">
+    Messages <span id="msgBadge" class="badge-count hidden">0</span>
+</button>
     </div>
 
     <div id="ordersTab" class="tab-content">
@@ -407,11 +441,12 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", async () => {
-        window.db = window.db || {};
-        window.cart = [];
-        if (typeof loadBranding === "function") await loadBranding();
-        if (typeof initApp === "function") await initApp();
-    });
+    // Only initialize once!
+    if (!window.appInitialized) {
+        window.appInitialized = true;
+        await initApp(); 
+    }
+});
 
     function openTab(tabId, btn) {
     document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));

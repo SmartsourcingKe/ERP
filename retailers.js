@@ -4,32 +4,24 @@ async function addRetailer() {
     const phone = document.getElementById("retailerPhone").value.trim();
     const location = document.getElementById("retailerLocation").value.trim();
 
-    if (!name || !phone) {
-        return alert("Please enter at least a name and phone number.");
-    }
+    if (!name || !phone) return alert("Name and Phone are required.");
 
     try {
         const { error } = await supa.from("retailers").insert([{ 
-            name, 
-            phone, 
-            location,
+            name: name, 
+            phone: phone, 
+            location: location,
+            // Use the ID of the person currently logged in
             created_by: window.currentUser.id 
         }]);
 
         if (error) throw error;
 
-        alert("Retailer saved successfully!");
-        
-        // Clear the input fields
-        document.getElementById("retailerName").value = "";
-        document.getElementById("retailerPhone").value = "";
-        document.getElementById("retailerLocation").value = "";
-
-        // REFRESH DATA: This makes the new retailer appear in the list
-        await sync(); 
+        alert("Retailer saved!");
+        await sync(); // Refresh the list immediately
         renderRetailers(); 
     } catch (err) {
-        console.error("Error saving retailer:", err.message);
+        console.error(err);
         alert("Save failed: " + err.message);
     }
 }
