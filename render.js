@@ -75,20 +75,25 @@ function renderRetailers() {
     const tbody = document.getElementById("retailerBody");
     if (!tbody) return;
 
-    const data = window.db.retailers || [];
-    const search = document.getElementById("retailerSearch")?.value.toLowerCase() || "";
-
-    const filtered = data.filter(r => 
-        (r.name?.toLowerCase().includes(search)) || 
-        (r.phone?.includes(search)) ||
-        (r.location?.toLowerCase().includes(search))
+    const searchTerm = document.getElementById("retailerSearch")?.value.toLowerCase() || "";
+    const retailers = (window.db.retailers || []).filter(r => 
+        r.name.toLowerCase().includes(searchTerm) || 
+        r.phone.includes(searchTerm)
     );
 
-    tbody.innerHTML = filtered.map(r => `
+    if (retailers.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4">No retailers found.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = retailers.map(r => `
         <tr>
-            <td><strong>${r.name}</strong></td>
+            <td>${r.name}</td>
             <td>${r.phone}</td>
             <td>${r.location}</td>
+            <td>
+                <button class="btn btn-blue" onclick="selectRetailerForOrder('${r.id}')">New Order</button>
+            </td>
         </tr>
     `).join("");
 }
@@ -184,4 +189,70 @@ function renderAdmin() {
             </td>
         </tr>
     `).join("");
+}
+
+function renderProducts() {
+    const grid = document.getElementById("inventoryGrid");
+    if (!grid) return;
+
+    const products = window.db.products || [];
+    
+    if (products.length === 0) {
+        grid.innerHTML = "<p>No products in inventory.</p>";
+        return;
+    }
+
+    grid.innerHTML = products.map(p => `
+        <div class="product-card">
+            <div class="product-info">
+                <h4>${p.name}</h4>
+                <p class="price">Price: KES ${p.base_price.toLocaleString()}</p>
+                <p class="stock ${p.stock <= 5 ? 'text-red' : ''}">
+                    Stock: ${p.stock}
+                </p>
+                <p class="sku">Profit/Fee: KES ${p.company_fee}</p>
+            </div>
+            <div class="product-actions">
+                <button class="btn-edit" onclick="editProduct('${p.id}')">Edit</button>
+            </div>
+        </div>
+    `).join("");
+}
+
+function renderEmployees() {
+    const tbody = document.getElementById("employeeTableBody");
+    if (!tbody) return;
+
+    const staff = window.db.users || [];
+    
+    tbody.innerHTML = staff.map(user => `
+        <tr>
+            <td><img src="${user.photo_url || 'default-avatar.png'}" style="width:40px; height:40px; border-radius:50%; object-fit:cover;"></td>
+            <td>${user.full_name}</td>
+            <td><span class="badge ${user.role === 'admin' ? 'disbursed' : 'pending'}">${user.role}</span></td>
+            <td>Active</td>
+            <td>
+                <button class="btn btn-blue" onclick="previewIDCard('${user.id}')">View ID</button>
+                <button class="btn btn-red" onclick="editStaff('${user.id}')">Edit</button>
+            </td>
+        </tr>
+    `).join("");
+}
+
+function previewIDCard(userId) {
+    const user = window.db.users.find(u => u.id === userId);
+    const branding = window.db.branding || {};
+
+    // Map data to the ID Template
+    document.getElementById("idHeaderName").innerText = branding.company_name || "COMPANY ERP";
+    document.getElementById("idLogo").src = branding.logo_url || "";
+    document.getElementById("idWatermark").src = branding.bg_url || ""; // Watermark image
+    
+    document.getElementById("idStaffPhoto").src = user.photo_url || "default-avatar.png";
+    document.getElementById("idStaffName").innerText = user.full_name;
+    document.getElementById("idStaffRole").innerText = user.role;
+    document.getElementById("idStaffEmail").innerText = user.email;
+
+    // Show the modal
+    document.getElementById("idCardModal").classList.remove("hidden");
 }

@@ -6,25 +6,27 @@ function addToCart() {
     const productId = document.getElementById("orderProductSelect").value;
     const qty = parseInt(document.getElementById("orderQty").value);
     
-    if (!productId || qty <= 0) return alert("Select a product and quantity");
-
+    // Find the product in your database to get its price
     const product = window.db.products.find(p => p.id === productId);
     
-    // Check if item already in cart
-    const existing = window.cart.find(item => item.productId === productId);
-    if (existing) {
-        existing.qty += qty;
+    if (!product) return alert("Please select a valid product.");
+    if (qty <= 0) return alert("Quantity must be at least 1.");
+
+    // Check if the item is already in the cart
+    const existingItem = window.cart.find(item => item.productId === productId);
+    
+    if (existingItem) {
+        existingItem.qty += qty;
     } else {
         window.cart.push({
             productId: product.id,
             name: product.name,
-            price: product.base_price,
+            price: product.base_price, // Ensure this field name matches your Supabase table
             qty: qty
         });
     }
 
-    // THIS IS THE MISSING STEP: Update the UI
-    renderCart();
+    renderCart(); // Refresh the table display
 }
 
 function renderCart() {

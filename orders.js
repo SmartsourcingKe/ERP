@@ -85,3 +85,42 @@ async function createOrder() {
         renderOrders(); 
     }
 }
+
+async function processOrder() {
+    const retailerId = document.getElementById("retailerSelect").value;
+    if (!retailerId || window.cart.length === 0) {
+        return alert("Please select a retailer and add items to the cart.");
+    }
+
+    const totalAmount = window.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+
+    try {
+        // 1. Insert the Main Order
+        const { data: order, error: orderErr } = await supa.from("orders").insert([{
+            retailer_id: retailerId,
+            total: totalAmount,
+            status: 'pending'
+        }]).select().single();
+
+        if (orderErr) throw orderErr;
+
+        // 2. Prepare and Insert Order Items
+        const orderItems = window.cart.map(item => ({
+            order_id: order.id,
+            product_id: item.productId,
+            quantity: item.qty,
+            price_at_sale: item.price
+        }));
+
+        const { error: itemsErr } = await supa.from("order_items").insert(orderItems);
+        if (itemsErr) throw itemsErr;
+
+        alert("Order completed successfully!");
+        window.cart = []; // Clear the cart
+        renderCart();    // Update the UI
+        await sync();    // Refresh data from Supabase
+    } catch (err) {
+        console.error("Order processing error:", err.message);
+        alert("Failed to complete order: " + err.message);
+    }
+}

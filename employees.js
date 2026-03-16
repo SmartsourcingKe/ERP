@@ -9,33 +9,39 @@ async function addEmployee() {
     const password = document.getElementById("empPassword").value;
     const fullName = document.getElementById("empFullName").value;
     const role = document.getElementById("empRole").value;
+    const photoFile = document.getElementById("empPhotoFile").files[0];
+
+    if (!email || !password || !photoFile) return alert("Email, Password, and Photo are required!");
 
     try {
-        // 1. Create the Auth Account
-        const { data: authData, error: authError } = await supa.auth.signUp({
-            email: email,
-            password: password
-        });
-
+        // 1. Create Login (Auth)
+        const { data: authData, error: authError } = await supa.auth.signUp({ email, password });
         if (authError) throw authError;
 
-        // 2. IMMEDIATELY insert into public.users
+        // 2. Upload ID Photo
+        const fileExt = photoFile.name.split('.').pop();
+        const fileName = `${authData.user.id}.${fileExt}`;
+        const { error: uploadError } = await supa.storage.from('id-photos').upload(fileName, photoFile);
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supa.storage.from('id-photos').getPublicUrl(fileName);
+
+        // 3. Create Database Profile
         const { error: profileError } = await supa.from('users').insert([{
-            auth_user_id: authData.user.id, // Linking to the Auth ID
+            auth_user_id: authData.user.id,
             full_name: fullName,
             email: email,
             role: role,
-            basic_salary: Number(document.getElementById("empBasic").value) || 0,
-            commission_rate: Number(document.getElementById("empCommissionRate").value) || 0
+            photo_url: urlData.publicUrl
         }]);
 
         if (profileError) throw profileError;
 
-        alert("Employee created successfully!");
-        await sync(); 
+        alert("Staff registered successfully!");
+        await sync();
+        renderEmployees();
     } catch (err) {
-        console.error("Employee Creation Error:", err.message);
-        alert(err.message);
+        alert("Registration Failed: " + err.message);
     }
 }
 
@@ -154,4 +160,27 @@ async function printStaffID(id) {
     const content = document.getElementById("receiptContent");
     content.innerHTML = idHtml + '<button class="btn btn-blue no-print" onclick="window.print()">Print ID</button>';
     document.getElementById("receiptModal").classList.remove("hidden");
+}
+
+async function editStaff(userId) {
+    const user = window.db.users.find(u => u.id === userId);
+    if (!user) return;
+
+    // Prompt for new details (or open a pre-filled modal)
+    const newName = prompt("Update Full Name:", user.full_name);
+    const newRole = prompt("Update Role (staff/admin):", user.role);
+
+    if (newName && newRole) {
+        const { error } = await supa
+            .from('users')
+            .update({ full_name: newName, role: newRole })
+            .eq('id', userId);
+
+        if (error) alert("Update failed: " + error.message);
+        else {
+            alert("Profile updated!");
+            await sync();
+            renderEmployees();
+        }
+    }
 }

@@ -1,59 +1,36 @@
-/**
- * RENDER RETAILERS
- * Aligns data correctly: Name | Phone | Location | Action
- */
-function renderRetailers() {
-    const tbody = document.getElementById("retailerBody");
-    if (!tbody) return;
 
-    const searchTerm = document.getElementById("retailerSearch")?.value.toLowerCase() || "";
-    
-    // Filter from global state
-    const retailers = (window.db.retailers || []).filter(r => 
-        r.name.toLowerCase().includes(searchTerm) || 
-        (r.phone && r.phone.includes(searchTerm))
-    );
-
-    // Create rows to match the 4 columns in the HTML
-    tbody.innerHTML = retailers.map(r => `
-        <tr>
-            <td>${r.name}</td>
-            <td>${r.phone || 'N/A'}</td>
-            <td>${r.location || 'N/A'}</td>
-            <td>
-                <button class="btn btn-blue" onclick="viewRetailer('${r.id}')" style="padding:2px 5px; font-size:10px;">View</button>
-            </td>
-        </tr>
-    `).join("");
-}
-
-/**
- * ADD RETAILER
- * Saves Name, Phone, and Location to Supabase
- */
 async function addRetailer() {
-    const name = document.getElementById("retailerName").value;
-    const phone = document.getElementById("retailerPhone").value;
-    const location = document.getElementById("retailerLocation").value;
+    const name = document.getElementById("retailerName").value.trim();
+    const phone = document.getElementById("retailerPhone").value.trim();
+    const location = document.getElementById("retailerLocation").value.trim();
 
-    if (!name || !phone) return alert("Business Name and Phone are required.");
+    if (!name || !phone) {
+        return alert("Please enter at least a name and phone number.");
+    }
 
-    const { error } = await supa.from("retailers").insert([{
-        name,
-        phone,
-        location,
-        created_by: window.currentUser.id
-    }]);
+    try {
+        const { error } = await supa.from("retailers").insert([{ 
+            name, 
+            phone, 
+            location,
+            created_by: window.currentUser.id 
+        }]);
 
-    if (error) {
-        alert("Error: " + error.message);
-    } else {
-        alert("Retailer added successfully!");
-        // Clear inputs
+        if (error) throw error;
+
+        alert("Retailer saved successfully!");
+        
+        // Clear the input fields
         document.getElementById("retailerName").value = "";
         document.getElementById("retailerPhone").value = "";
         document.getElementById("retailerLocation").value = "";
-        await sync(); // Refresh data using app.js sync
+
+        // REFRESH DATA: This makes the new retailer appear in the list
+        await sync(); 
+        renderRetailers(); 
+    } catch (err) {
+        console.error("Error saving retailer:", err.message);
+        alert("Save failed: " + err.message);
     }
 }
 

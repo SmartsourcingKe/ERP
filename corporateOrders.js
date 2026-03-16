@@ -26,18 +26,24 @@ function addCorporateToCart() {
 }
 
 function renderCorporateCart() {
-    const view = document.getElementById("corporateCartView");
-    if (!view) return;
-    if (corporateCart.length === 0) {
-        view.innerHTML = "<em>Cart is empty</em>";
-        return;
-    }
-    let html = "<ul>";
-    corporateCart.forEach((item) => {
-        html += `<li>${item.level}: ${item.students} students @ KES ${item.price_per_student.toLocaleString()}</li>`;
-    });
-    html += "</ul>";
-    view.innerHTML = html;
+    const tbody = document.getElementById("corporateCartTable");
+    const totalDisplay = document.getElementById("corporateTotalDisplay");
+    if (!tbody) return;
+
+    let grandTotal = 0;
+    tbody.innerHTML = corporateCart.map((item, index) => {
+        grandTotal += item.subtotal;
+        return `
+            <tr>
+                <td>${item.level}</td>
+                <td>${item.students}</td>
+                <td>${item.subtotal.toLocaleString()}</td>
+                <td><button onclick="corporateCart.splice(${index},1); renderCorporateCart();" style="color:red;">Remove</button></td>
+            </tr>
+        `;
+    }).join("");
+
+    totalDisplay.innerText = `Total: KES ${grandTotal.toLocaleString()}`;
 }
 
 /**
@@ -270,42 +276,80 @@ function showOnScreenReceipt(orderId, type = 'retail') {
 }
 
 async function addSchool() {
-    const name = document.getElementById("schoolName").value;
-    const phone = document.getElementById("schoolPhone").value;
-    const location = document.getElementById("schoolLocation").value;
+    const name = document.getElementById("schoolName").value.trim();
+    const phone = document.getElementById("schoolPhone").value.trim();
+    const location = document.getElementById("schoolLocation").value.trim();
 
-    if(!name) return alert("School name required");
-
-    const { error } = await supa.from("schools").insert([{ name, phone, location }]);
-    if (error) alert(error.message);
-    else {
-        alert("School saved!");
-        await sync(); 
+    if (!name || !phone) {
+        return alert("Please enter at least the School Name and Phone.");
     }
+
+    try {
+        // 1. Save to Supabase
+        const { error } = await supa.from("schools").insert([{
+            name: name,
+            phone: phone,
+            location: location,
+            created_by: window.currentUser.id // Essential for security/RLS
+        }]);
+
+        if (error) throw error;
+
+        alert("School saved successfully!");
+
+        // 2. Clear inputs
+        document.getElementById("schoolName").value = "";
+        document.getElementById("schoolPhone").value = "";
+        document.getElementById("schoolLocation").value = "";
+
+        // 3. REFRESH EVERYTHING
+        await sync();        // Pulls new data from Supabase
+        renderSchools();     // Redraws the school table
+        updateSchoolDropdown(); // Adds the new school to the Order dropdown
+        
+    } catch (err) {
+        console.error("Save Error:", err.message);
+        alert("Failed to save school: " + err.message);
+    }
+}
+
+function updateSchoolDropdown() {
+    const select = document.getElementById("corpSchoolSelect");
+    if (!select) return;
+
+    const schools = window.db.schools || [];
+    
+    // Keep the first default option
+    select.innerHTML = '<option value="">-- Select School --</option>';
+    
+    schools.forEach(school => {
+        const opt = document.createElement("option");
+        opt.value = school.id;
+        opt.textContent = school.name;
+        select.appendChild(opt);
+    });
 }
 
 // Inside corporateOrders.js -> processCorporateOrder()
 async function processCorporateOrder() {
     const schoolId = document.getElementById("corpSchoolSelect").value;
-    if (!schoolId || corporateCart.length === 0) {
-        return alert("Please select a school and add items to the cart.");
-    }
+    if (!schoolId || corporateCart.length === 0) return alert("Select a school and add items.");
 
     const totalAmount = corporateCart.reduce((sum, item) => sum + item.subtotal, 0);
 
     try {
-        // 1. Create the Main Order
-        const { data: order, error: orderErr } = await supa.from("corporate_orders").insert([{
+        // Insert Main Order
+        const { data: order, error: oErr } = await supa.from("corporate_orders").insert([{
             school_id: schoolId,
             total: totalAmount,
             status: 'pending',
             created_by: window.currentUser.id
         }]).select().single();
 
-        if (orderErr) throw orderErr;
+        if (oErr) throw oErr;
 
-        // 2. Map items to include the new order ID
-        const finalItems = corporateCart.map(item => ({
+        // Insert Line Items
+        const items = corporateCart.map(item => ({
             corporate_order_id: order.id,
             level: item.level,
             student_count: item.students,
@@ -313,17 +357,15 @@ async function processCorporateOrder() {
             subtotal: item.subtotal
         }));
 
-        // 3. Insert into corporate_order_items
-        const { error: itemErr } = await supa.from("corporate_order_items").insert(finalItems);
-        if (itemErr) throw itemErr;
+        const { error: iErr } = await supa.from("corporate_order_items").insert(items);
+        if (iErr) throw iErr;
 
-        alert("Corporate order processed successfully!");
-        corporateCart = []; // Clear cart
+        alert("Corporate order saved!");
+        corporateCart = []; // Clear local cart
         renderCorporateCart();
-        await sync(); 
+        await sync(); // Refresh database view
     } catch (err) {
-        console.error(err);
-        alert("Order failed: " + err.message);
+        alert("Error: " + err.message);
     }
 }
 

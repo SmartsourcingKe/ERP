@@ -3,90 +3,46 @@
  * Saves a new item to the products table and refreshes UI.
  */
 async function addProduct() {
-    const nameInput = document.getElementById("productName");
-    const stockInput = document.getElementById("productStock");
-    const priceInput = document.getElementById("productBasePrice");
-    const feeInput = document.getElementById("productCompanyFee"); // Fixed ID
+    const name = document.getElementById("productName").value;
+    const stock = Number(document.getElementById("productStock").value);
+    const price = Number(document.getElementById("productBasePrice").value);
+    const fee = Number(document.getElementById("productCompanyFee").value);
 
-    if (!nameInput.value.trim()) return alert("Product name is required.");
-    
-    const payload = {
-        name: nameInput.value.trim(),
-        stock: Number(stockInput.value) || 0,
-        price: Number(priceInput.value) || 0,
-        company_fee: Number(feeInput.value) || 0
-    };
-
-const productForm = document.getElementById("productForm");
-if (productForm) {
-    productForm.reset();
-} else {
-    // Manually clear if no form wrapper exists
-    document.getElementById("productName").value = "";
-    document.getElementById("productStock").value = "";
-    document.getElementById("productBasePrice").value = "";
-    document.getElementById("productCompanyFee").value = "";
-}
+    if (!name || stock < 0 || price <= 0) {
+        return alert("Please fill in all product details correctly.");
+    }
 
     try {
-        // 3. Insert to Supabase
-        const { error } = await supa.from("products").insert([payload]);
+        const { error } = await supa.from("products").insert([{
+            name: name,
+            stock: stock,
+            base_price: price,
+            company_fee: fee
+        }]);
+
         if (error) throw error;
 
-        // 4. Success Flow
-        alert("Product added successfully");
+        alert("Product added successfully!");
 
-        // Reset form safely
-        if (productForm) {
-            productForm.reset();
-        } else {
-            nameInput.value = "";
-            stockInput.value = "";
-            priceInput.value = "";
-            feeInput.value = "";
-        }
+        // Clear inputs
+        document.getElementById("productName").value = "";
+        document.getElementById("productStock").value = "";
+        document.getElementById("productBasePrice").value = "";
+        document.getElementById("productCompanyFee").value = "";
 
-        // 5. REFRESH: Pull fresh data and redraw UI
+        // REFRESH DATA & LIST
         await sync(); 
-
+        if (typeof renderProducts === "function") {
+            renderProducts(); 
+        } else {
+            // Fallback if function is in render.js
+            await renderInventory(); 
+        }
     } catch (err) {
-        console.error("Product Insert Error:", err);
-        alert("Error: " + (err.message || "Failed to save product"));
+        alert("Error adding product: " + err.message);
     }
 }
 
-/**
- * RENDER PRODUCTS TABLE
-* Uses the global window.db.products
- */
-/**
- * RENDER PRODUCTS
- * Pulls data from window.db.products
- */
-function renderProducts() {
-    const container = document.getElementById("inventoryGrid");
-    if (!container) return;
-
-    const products = window.db.products || [];
-    if (products.length === 0) {
-        container.innerHTML = '<div class="no-data">No products available in inventory.</div>';
-        return;
-    }
-
-    container.innerHTML = products.map(product => `
-        <div class="product-card">
-            <div class="product-info">
-                <h4>${product.name}</h4>
-                <p class="sku">ID: ${product.id.slice(0,8)}</p>
-                <p class="price">KES ${Number(product.price).toLocaleString()}</p>
-                <p class="stock">Stock: <span class="${product.stock < 10 ? 'text-red' : ''}">${product.stock}</span></p>
-            </div>
-            <div class="product-actions">
-                <button onclick="editProduct('${product.id}')" class="btn-edit">Edit Stock</button>
-            </div>
-        </div>
-    `).join("");
-}
 
 /**
  * DELETE PRODUCT

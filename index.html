@@ -35,6 +35,39 @@
             #receiptModal { position: absolute; left: 0; top: 0; background: white; width: 100%; }
             .no-print { display: none !important; }
         }
+		.id-card-container {
+    width: 320px;
+    height: 480px;
+    background: #fff;
+    border: 1px solid #000;
+    border-radius: 10px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 0 10px rgba(0,0,0,0.2);
+}
+.id-header {
+    background: var(--primary);
+    color: #fff;
+    padding: 10px;
+    text-align: center;
+}
+.id-photo-frame {
+    width: 120px;
+    height: 120px;
+    margin: 20px auto;
+    border: 3px solid var(--blue);
+    border-radius: 5px;
+    overflow: hidden;
+}
+.id-signature-area {
+    margin-top: 30px;
+    text-align: center;
+}
+.signature-line {
+    width: 150px;
+    border-bottom: 1px solid #000;
+    margin: 0 auto 5px;
+}
     </style>
 </head>
 <body>
@@ -99,22 +132,30 @@
     </div>
 
     <div id="retailersTab" class="tab-content hidden">
-        <div class="card">
-            <h3>Register Retailer</h3>
-            <input id="retailerName" placeholder="Business Name">
-            <input id="retailerPhone" placeholder="Phone">
-            <input id="retailerLocation" placeholder="Location">
-            <button class="btn btn-blue" onclick="addRetailer()">Save Retailer</button>
-        </div>
-        <div class="card">
-            <h3>Retailer List</h3>
-            <input id="retailerSearch" placeholder="Search..." oninput="renderRetailers()">
-            <table>
-                <thead><tr><th>Name</th><th>Phone</th><th>Location</th><th>Action</th></tr></thead>
-                <tbody id="retailerBody"></tbody>
-            </table>
-        </div>
+    <div class="card">
+        <h3>Register Retailer</h3>
+        <input id="retailerName" placeholder="Business Name">
+        <input id="retailerPhone" placeholder="Phone">
+        <input id="retailerLocation" placeholder="Location">
+        <button class="btn btn-blue" onclick="addRetailer()">Save Retailer</button>
     </div>
+
+    <div class="card">
+        <h3>Retailer List</h3>
+        <input id="retailerSearch" placeholder="Search..." oninput="renderRetailers()">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Phone</th>
+                    <th>Location</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="retailerBody"></tbody>
+        </table>
+    </div>
+</div>
 
     <div id="inventoryTab" class="tab-content hidden">
         <div class="card">
@@ -122,7 +163,7 @@
             <input type="text" id="productName" placeholder="Product Name">
             <input type="number" id="productStock" placeholder="Stock">
             <input type="number" id="productBasePrice" placeholder="Selling Price">
-            <input type="number" id="productCompanyFee" placeholder="Profit per Item">
+            <input type="number" id="productCompanyFee" placeholder="productCompanyFee">
             <button class="btn btn-green" onclick="addProduct()">Save Product</button>
         </div>
         <div class="card">
@@ -132,39 +173,63 @@
     </div>
 
     <div id="corporateTab" class="tab-content hidden">
-        <div class="card">
-            <h3>Manage Schools</h3>
-            <input type="text" id="schoolName" placeholder="School Name">
-            <input type="text" id="schoolPhone" placeholder="Phone">
-            <input type="text" id="schoolLocation" placeholder="Location">
-            <button class="btn btn-blue" onclick="addSchool()">Save School</button>
-            <table>
-                <thead><tr><th>Name</th><th>Phone</th><th>Location</th></tr></thead>
-                <tbody id="schoolTableBody"></tbody>
-            </table>
-        </div>
-        <div class="card">
-            <h3>Create New Corporate Order</h3>
-            <select id="corpSchoolSelect"><option value="">-- Select School --</option></select>
-            <div style="display:flex; gap:10px; flex-wrap: wrap;">
-                <select id="cbcLevel">
-                    <option value="">-- Select Grade --</option>
-                    <option value="PP1">PP1</option><option value="PP2">PP2</option>
-                    <option value="Grade 1">Grade 1</option><option value="Grade 2">Grade 2</option>
-                    <option value="Grade 3">Grade 3</option><option value="Grade 4">Grade 4</option>
-                    <option value="Grade 5">Grade 5</option><option value="Grade 6">Grade 6</option>
-                </select>
-                <input type="number" id="cbcStudents" placeholder="No. of Students">
-                <input type="number" id="cbcPrice" placeholder="Price per Student">
-                <button class="btn btn-blue" onclick="addCorporateToCart()">Add to Cart</button>
-            </div>
-            <table style="margin-top:15px;">
-                <thead><tr><th>Level</th><th>Students</th><th>Price</th><th>Total</th></tr></thead>
-                <tbody id="corporateCartBody"></tbody>
-            </table>
-            <button class="btn btn-green" style="margin-top:10px;" onclick="processCorporateOrder()">Complete Corporate Order</button>
-        </div>
+    <div class="card">
+        <h3>Manage Schools</h3>
+        <input type="text" id="schoolName" placeholder="School Name">
+        <input type="text" id="schoolPhone" placeholder="Phone Number">
+        <input type="text" id="schoolLocation" placeholder="Location">
+        <button class="btn btn-blue" onclick="addSchool()">Save School</button>
+        
+        <table style="width:100%; margin-top:15px;">
+            <thead>
+                <tr><th>Name</th><th>Phone</th><th>Location</th></tr>
+            </thead>
+            <tbody id="schoolTableBody"></tbody>
+        </table>
     </div>
+
+    <div class="card">
+        <h3>Create New Corporate Order</h3>
+        <select id="corpSchoolSelect">
+            <option value="">-- Select School --</option>
+        </select>
+        
+        <div style="display:flex; gap:10px; margin-top:10px;">
+            <select id="cbcLevel" style="flex:2;">
+                <option value="">-- Select Grade --</option>
+                <option value="PP1">PP1</option><option value="PP2">PP2</option>
+                <option value="Grade 1">Grade 1</option><option value="Grade 2">Grade 2</option>
+                <option value="Grade 3">Grade 3</option><option value="Grade 4">Grade 4</option>
+				<option value="Grade 5">Grade 5</option><option value="Grade 6">Grade 6</option>
+				<option value="Grade 7">Grade 7</option><option value="Grade 8">Grade 8</option>
+				<option value="Grade 9">Grade 9</option><option value="Grade 10">Grade 10</option>
+				<option value="Grade 11">Grade 11</option><option value="Grade 12">Grade 12</option>
+            </select>
+            <input type="number" id="cbcStudents" placeholder="Students" style="flex:1;">
+            <input type="number" id="cbcPrice" placeholder="Price/Student" style="flex:1;">
+            <button class="btn btn-blue" onclick="addCorporateToCart()">Add to Cart</button>
+        </div>
+
+        <table style="width:100%; margin-top:20px; border-top: 2px solid #eee;">
+            <thead>
+                <tr><th>Grade</th><th>Students</th><th>Subtotal</th><th>Action</th></tr>
+            </thead>
+            <tbody id="corporateCartTable"></tbody>
+        </table>
+        <h3 id="corporateTotalDisplay">Total: KES 0</h3>
+        <button class="btn btn-green" onclick="processCorporateOrder()">Complete Corporate Order</button>
+    </div>
+
+    <div class="card">
+        <h3>Corporate Order History</h3>
+        <table>
+            <thead>
+                <tr><th>Date</th><th>School</th><th>Total</th><th>Status</th><th>Action</th></tr>
+            </thead>
+            <tbody id="corpOrdersBody"></tbody>
+        </table>
+    </div>
+</div>
 
     <div id="payrollTab" class="tab-content hidden">
         <div class="card"><h3>Payroll</h3><button class="btn btn-green" onclick="generatePayroll()">Generate Payroll</button></div>
@@ -172,24 +237,97 @@
     </div>
 
     <div id="adminTab" class="tab-content hidden">
-        <div class="card">
-            <h3>Branding</h3>
+    <div class="card">
+        <h3>System Branding & ID Settings</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
             <input type="text" id="brandCompanyName" placeholder="Institution Name">
-            <input type="file" id="brandLogoFile" accept="image/*">
-            <button class="btn btn-green" onclick="updateBranding()">Save Branding</button>
-        </div>
-        <div class="card">
-            <h3>Staff List</h3>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                <input type="text" id="empFullName" placeholder="Full Name">
-                <input type="email" id="empEmail" placeholder="Email">
-                <input type="password" id="empPassword" placeholder="Password">
-                <select id="empRole"><option value="staff">Staff</option><option value="admin">Admin</option></select>
+            <input type="text" id="brandTagline" placeholder="Tagline (e.g. Quality Excellence)">
+            <div>
+                <label>System Logo:</label>
+                <input type="file" id="brandLogoFile" accept="image/*">
             </div>
-            <button class="btn btn-blue" onclick="addEmployee()" style="margin-top:10px;">Register Staff</button>
-            <table><thead><tr><th>Name</th><th>Role</th><th>Action</th></tr></thead><tbody id="employeeTableBody"></tbody></table>
+            <div>
+                <label>ID Watermark/Background:</label>
+                <input type="file" id="brandBgFile" accept="image/*">
+            </div>
+        </div>
+        <button class="btn btn-green" style="margin-top:10px;" onclick="updateBranding()">Update Branding</button>
+    </div>
+
+    <div class="card">
+        <h3>Staff Management</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <input type="text" id="empFullName" placeholder="Full Name">
+            <input type="email" id="empEmail" placeholder="Login Email">
+            <input type="password" id="empPassword" placeholder="Login Password">
+            <select id="empRole">
+                <option value="staff">Staff</option>
+                <option value="admin">Admin</option>
+            </select>
+            <input type="number" id="empBasic" placeholder="Basic Salary">
+            <input type="number" id="empCommissionRate" placeholder="Commission %">
+            <div style="grid-column: span 2;">
+                <label>Staff ID Photo:</label>
+                <input type="file" id="empPhotoFile" accept="image/*">
+            </div>
+        </div>
+        <button class="btn btn-blue" style="margin-top:10px; width:100%;" onclick="addEmployee()">Create Account & Upload Photo</button>
+    </div>
+
+    <div class="card">
+        <h3>Active Staff Directory</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Photo</th>
+                    <th>Name</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="employeeTableBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<div id="idCardModal" class="modal hidden">
+    <div class="modal-content" style="width: 350px; padding: 0; border: none; background: transparent;">
+        <div id="printableIdCard" style="width: 320px; height: 500px; background: white; border: 2px solid #333; border-radius: 15px; position: relative; overflow: hidden; margin: auto; font-family: sans-serif;">
+            
+            <div style="background: var(--primary); color: white; padding: 15px; text-align: center;">
+                <img id="idLogo" src="" style="height: 40px; margin-bottom: 5px;"><br>
+                <strong id="idHeaderName" style="font-size: 14px; text-transform: uppercase;"></strong>
+            </div>
+
+            <img id="idWatermark" src="" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 200px; opacity: 0.1; z-index: 0;">
+
+            <div style="text-align: center; margin-top: 20px; position: relative; z-index: 1;">
+                <img id="idStaffPhoto" src="" style="width: 120px; height: 120px; border-radius: 10px; border: 3px solid var(--primary); object-fit: cover;">
+            </div>
+
+            <div style="text-align: center; margin-top: 15px; position: z-index: 1;">
+                <h2 id="idStaffName" style="margin: 0; color: #333;"></h2>
+                <p id="idStaffRole" style="margin: 5px 0; color: var(--blue); font-weight: bold; text-transform: uppercase; letter-spacing: 1px;"></p>
+                <p id="idStaffEmail" style="font-size: 12px; color: #666;"></p>
+            </div>
+
+            <div style="margin-top: 40px; text-align: center; position: relative; z-index: 1;">
+                <div style="width: 150px; border-bottom: 1px solid #333; margin: auto;"></div>
+                <p style="font-size: 10px; font-weight: bold; margin-top: 5px;">MANAGEMENT SIGNATURE</p>
+            </div>
+
+            <div style="position: absolute; bottom: 0; width: 100%; background: #eee; padding: 10px 0; text-align: center; font-size: 10px;">
+                Valid for SmartsourcingKe Authorized Personnel Only
+            </div>
+        </div>
+
+        <div class="no-print" style="margin-top: 20px; text-align: center;">
+            <button class="btn btn-green" onclick="window.print()">Print ID Card</button>
+            <button class="btn btn-red" onclick="document.getElementById('idCardModal').classList.add('hidden')">Close</button>
         </div>
     </div>
+</div>
 
     <div id="messagingTab" class="tab-content hidden">
         <div class="card">
@@ -229,6 +367,21 @@
             <button class="btn btn-red" onclick="document.getElementById('receiptModal').classList.add('hidden')">Close</button>
         </div>
     </div>
+	
+	<div id="messagesTab" class="tab-content hidden">
+    <div class="card" style="display: flex; flex-direction: column; height: 80vh;">
+        <h3>Internal Team Chat</h3>
+        
+        <div id="internalChatBox" style="flex-grow: 1; overflow-y: auto; border: 1px solid #ddd; padding: 15px; background: #f9f9f9; border-radius: 8px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 10px;">
+            </div>
+
+        <div style="display: flex; gap: 10px; background: white; padding: 10px; border-top: 1px solid #eee;">
+            <input type="text" id="internalMsgInput" placeholder="Type a message to the team..." style="flex-grow: 1; padding: 12px; border-radius: 6px; border: 1px solid #ccc;">
+            <button class="btn btn-blue" onclick="sendInternalMessage()">Send Message</button>
+        </div>
+    </div>
+</div>
+	
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -261,15 +414,23 @@
     });
 
     function openTab(tabId, btn) {
-        document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        const target = document.getElementById(tabId);
-        if (target) {
-            target.classList.remove('hidden');
-            btn.classList.add('active');
-        }
-        if (tabId === 'profitTab' && typeof renderProfitDashboard === "function") renderProfitDashboard();
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    
+    const target = document.getElementById(tabId);
+    if (target) {
+        target.classList.remove('hidden');
+        btn.classList.add('active');
     }
+
+    // Clear notification badge when the messages tab is opened
+    if (tabId === 'messagesTab') {
+        const badge = document.getElementById('msgBadge');
+        if (badge) badge.classList.add('hidden');
+        window.lastReadTimestamp = new Date().toISOString();
+    }
+}
+
 </script>
 </body>
 </html>
