@@ -26,46 +26,15 @@
         .brand-name { font-size:2em; font-weight:bold; margin:0; }
         .brand-motto { font-style:italic; color:#7f8c8d; margin-top:5px; }
         .login-container { max-width:400px; margin:100px auto; text-align:center; padding:30px; }
-		.chat-bubble { max-width: 70%; padding: 10px; border-radius: 12px; margin-bottom: 5px; position: relative; }
-		.chat-left { align-self: flex-start; background: #e9e9eb; color: black; border-bottom-left-radius: 2px; }
-		.chat-right { align-self: flex-end; background: var(--blue); color: white; border-bottom-right-radius: 2px; }
-		.product-card { border: 1px solid #eee; padding: 15px; border-radius: 8px; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-		.product-info h4 { margin: 0 0 10px 0; color: var(--primary); }
-		.sku { font-size: 11px; color: #7f8c8d; }
-		.price { font-weight: bold; color: var(--green); margin: 5px 0; }
-		.stock { font-size: 13px; }
-		.text-red { color: var(--red); font-weight: bold; }
-		.product-actions { margin-top: 10px; display: flex; gap: 5px; }
-		.btn-edit { background: #95a5a6; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
-		.btn-add { background: var(--blue); color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
-		.badge { padding: 4px 8px; border-radius: 4px; font-size: 0.8em; font-weight: bold; color: white; }
-.badge.pending { background: #f39c12; }    /* Orange for Pending */
-.badge.disbursed { background: #27ae60; }  /* Green for Disbursed */
-.modal {
-    position: fixed;
-    z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0,0,0,0.5); /* Dims the background */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
+        .modal { position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; }
+        .modal-content { background-color: white; padding: 20px; border-radius: 8px; max-width: 500px; width: 90%; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
 
-.modal-content {
-    background-color: white;
-    padding: 20px;
-    border-radius: 8px;
-    max-width: 500px;
-    width: 90%;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-}
-
-.hidden {
-    display: none !important;
-}
+        @media print {
+            body * { visibility: hidden; }
+            #receiptModal, #receiptModal * { visibility: visible; }
+            #receiptModal { position: absolute; left: 0; top: 0; background: white; width: 100%; }
+            .no-print { display: none !important; }
+        }
     </style>
 </head>
 <body>
@@ -97,441 +66,210 @@
         <button id="payrollBtn" class="tab-btn hidden" onclick="openTab('payrollTab',this)">Payroll</button>
         <button id="adminBtn" class="tab-btn hidden" onclick="openTab('adminTab',this)">Admin</button>
         <button id="profitBtn" class="tab-btn hidden" onclick="openTab('profitTab',this)">Profit</button>
-        <button class="tab-btn" onclick="openTab('messagesTab',this)">Messages</button>
+        <button class="tab-btn" onclick="openTab('messagingTab',this)">Messages</button>
     </div>
 
     <div id="ordersTab" class="tab-content">
-    <div class="card">
-    <h3>New Retailer Order</h3>
-    
-    <label>Select Retailer:</label>
-    <select id="retailerSelect" style="width: 100%; margin-bottom: 10px; padding: 8px;"></select>
-
-    <div style="display: flex; gap: 10px; align-items: flex-end;">
-        <div style="flex: 2;">
-            <label>Product:</label>
-            <select id="orderProductSelect" style="width: 100%; padding: 8px;"></select>
+        <div class="card">
+            <h3>New Retailer Order</h3>
+            <label>Select Retailer:</label>
+            <select id="retailerSelect"></select>
+            <div style="display: flex; gap: 10px;">
+                <select id="orderProductSelect" style="flex: 2;"></select>
+                <input type="number" id="orderQty" value="1" style="flex: 1;">
+                <button class="btn btn-blue" onclick="addToCart()">Add to Cart</button>
+            </div>
         </div>
-        <div style="flex: 1;">
-            <label>Quantity:</label>
-            <input type="number" id="orderQty" value="1" style="width: 100%; padding: 8px;">
+        <div class="card">
+            <h3>Current Order Items</h3>
+            <table>
+                <thead><tr><th>Product</th><th>Qty</th><th>Price</th><th>Total</th><th>Action</th></tr></thead>
+                <tbody id="cartTableBody"></tbody>
+            </table>
+            <h3 id="cartGrandTotal">Total: KES 0</h3>
+            <button class="btn btn-green" onclick="processOrder()">Complete Order</button>
         </div>
-        <button class="btn btn-blue" onclick="addToCart()">Add to Cart</button>
+        <div class="card">
+            <h3>Order History</h3>
+            <table>
+                <thead><tr><th>Date</th><th>Retailer</th><th>Total</th><th>Status</th><th>Action</th></tr></thead>
+                <tbody id="ordersBody"></tbody>
+            </table>
+        </div>
     </div>
-
-    <div class="card">
-    <h3>Current Order Items</h3>
-    <table style="width:100%; border-collapse: collapse;">
-        <thead>
-            <tr style="background:#eee;">
-                <th>Product</th>
-                <th>Qty</th>
-                <th>Price</th>
-                <th>Total</th>
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody id="cartTableBody"></tbody>
-    </table>
-    <h3 id="cartGrandTotal">Total: KES 0</h3>
-    <button class="btn btn-green" onclick="processOrder()">Complete Order</button>
-</div>
-</div>
-    
-    <div class="card">
-        <h3>Order History</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Retailer</th>
-                    <th>Total</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody id="ordersBody"></tbody>
-        </table>
-    </div>
-</div>
 
     <div id="retailersTab" class="tab-content hidden">
-    <div class="card">
-        <h3>Register Retailer</h3>
-        <input id="retailerName" placeholder="Business Name">
-        <input id="retailerPhone" placeholder="Phone">
-        <input id="retailerLocation" placeholder="Location">
-        <button class="btn btn-blue" onclick="addRetailer()">Save Retailer</button>
+        <div class="card">
+            <h3>Register Retailer</h3>
+            <input id="retailerName" placeholder="Business Name">
+            <input id="retailerPhone" placeholder="Phone">
+            <input id="retailerLocation" placeholder="Location">
+            <button class="btn btn-blue" onclick="addRetailer()">Save Retailer</button>
+        </div>
+        <div class="card">
+            <h3>Retailer List</h3>
+            <input id="retailerSearch" placeholder="Search..." oninput="renderRetailers()">
+            <table>
+                <thead><tr><th>Name</th><th>Phone</th><th>Location</th><th>Action</th></tr></thead>
+                <tbody id="retailerBody"></tbody>
+            </table>
+        </div>
     </div>
-
-    <div class="card">
-        <h3>Retailer List</h3>
-        <input id="retailerSearch" placeholder="Search by name, phone, or location..." oninput="renderRetailers()">
-        
-        <table>
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Phone</th>
-                    <th>Location</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody id="retailerBody">
-                </tbody>
-        </table>
-    </div>
-</div>
 
     <div id="inventoryTab" class="tab-content hidden">
-       <div class="card">
-    <h3>Add New Product</h3>
-    <input type="text" id="productName" placeholder="Product Name">
-    <input type="number" id="productStock" placeholder="Initial Stock">
-    <input type="number" id="productBasePrice" placeholder="Selling Price (to Retailer)">
-    <input type="number" id="productCompanyFee" placeholder="Your Profit/Fee per Item">
-    
-    <button class="btn btn-green" onclick="addProduct()">Save Product</button>
-</div>
-<div class="card">
-    <h3>Inventory List</h3>
-    <div id="inventoryGrid" class="grid-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">
-            </div>
-</div>
-        <div id="productGrid"></div>
-    </div>
-
-<div class="card">
-    <h3>Manage Schools</h3>
-    <input type="text" id="schoolName" placeholder="School Name">
-    <input type="text" id="schoolPhone" placeholder="Phone Number">
-    <input type="text" id="schoolLocation" placeholder="Location">
-    <button class="btn btn-blue" onclick="addSchool()">Save School</button>
-    
-    <table style="width:100%; margin-top:15px;">
-        <thead>
-            <tr><th>Name</th><th>Phone</th><th>Location</th></tr>
-        </thead>
-        <tbody id="schoolTableBody"></tbody>
-    </table>
-</div>
         <div class="card">
-    <h3>Create New Corporate Order</h3>
-    <select id="corpSchoolSelect">
-        <option value="">-- Select School --</option>
-    </select>
-    
-    <div style="display:flex; gap:10px; flex-wrap: wrap;">
-    <select id="cbcLevel" style="padding: 8px; border-radius: 6px; border: 1px solid #ccc;">
-        <option value="">-- Select Grade --</option>
-        <option value="PP1">PP1</option>
-        <option value="PP2">PP2</option>
-        <option value="Grade 1">Grade 1</option>
-        <option value="Grade 2">Grade 2</option>
-        <option value="Grade 3">Grade 3</option>
-        <option value="Grade 4">Grade 4</option>
-        <option value="Grade 5">Grade 5</option>
-        <option value="Grade 6">Grade 6</option>
-        <option value="Grade 7">Grade 7</option>
-        <option value="Grade 8">Grade 8</option>
-        <option value="Grade 9">Grade 9</option>
-        <option value="Grade 10">Grade 10</option>
-        <option value="Grade 11">Grade 11</option>
-        <option value="Grade 12">Grade 12</option>
-    </select>
-
-    <input type="number" id="cbcStudents" placeholder="No. of Students">
-    <input type="number" id="cbcPrice" placeholder="Price per Student">
-    <button class="btn btn-blue" onclick="addCorporateToCart()">Add</button>
-</div>
-</div>
-    
-    <button class="btn btn-blue" onclick="addCorporateToCart()">Add to Cart</button>
-</div>
-        <tbody id="corporateBody"></tbody>
+            <h3>Add New Product</h3>
+            <input type="text" id="productName" placeholder="Product Name">
+            <input type="number" id="productStock" placeholder="Stock">
+            <input type="number" id="productBasePrice" placeholder="Selling Price">
+            <input type="number" id="productCompanyFee" placeholder="Profit per Item">
+            <button class="btn btn-green" onclick="addProduct()">Save Product</button>
+        </div>
+        <div class="card">
+            <h3>Inventory List</h3>
+            <div id="inventoryGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;"></div>
+        </div>
     </div>
 
-<div id="payrollTab" class="tab-content hidden">
-    <div class="card">
-        <h3>Payroll Management</h3>
-        <button class="btn btn-green" onclick="generatePayroll()">Generate Payroll for Current Month</button>
+    <div id="corporateTab" class="tab-content hidden">
+        <div class="card">
+            <h3>Manage Schools</h3>
+            <input type="text" id="schoolName" placeholder="School Name">
+            <input type="text" id="schoolPhone" placeholder="Phone">
+            <input type="text" id="schoolLocation" placeholder="Location">
+            <button class="btn btn-blue" onclick="addSchool()">Save School</button>
+            <table>
+                <thead><tr><th>Name</th><th>Phone</th><th>Location</th></tr></thead>
+                <tbody id="schoolTableBody"></tbody>
+            </table>
+        </div>
+        <div class="card">
+            <h3>Create New Corporate Order</h3>
+            <select id="corpSchoolSelect"><option value="">-- Select School --</option></select>
+            <div style="display:flex; gap:10px; flex-wrap: wrap;">
+                <select id="cbcLevel">
+                    <option value="">-- Select Grade --</option>
+                    <option value="PP1">PP1</option><option value="PP2">PP2</option>
+                    <option value="Grade 1">Grade 1</option><option value="Grade 2">Grade 2</option>
+                    <option value="Grade 3">Grade 3</option><option value="Grade 4">Grade 4</option>
+                    <option value="Grade 5">Grade 5</option><option value="Grade 6">Grade 6</option>
+                </select>
+                <input type="number" id="cbcStudents" placeholder="No. of Students">
+                <input type="number" id="cbcPrice" placeholder="Price per Student">
+                <button class="btn btn-blue" onclick="addCorporateToCart()">Add to Cart</button>
+            </div>
+            <table style="margin-top:15px;">
+                <thead><tr><th>Level</th><th>Students</th><th>Price</th><th>Total</th></tr></thead>
+                <tbody id="corporateCartBody"></tbody>
+            </table>
+            <button class="btn btn-green" style="margin-top:10px;" onclick="processCorporateOrder()">Complete Corporate Order</button>
+        </div>
     </div>
-    <div class="card">
-        <h3>Payroll History</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Month</th>
-                    <th>Staff Name</th>
-                    <th>Basic</th>
-                    <th>Commission</th>
-                    <th>Total Pay</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody id="payrollBody"></tbody>
-        </table>
+
+    <div id="payrollTab" class="tab-content hidden">
+        <div class="card"><h3>Payroll</h3><button class="btn btn-green" onclick="generatePayroll()">Generate Payroll</button></div>
+        <div class="card"><table><thead><tr><th>Staff</th><th>Total Pay</th><th>Action</th></tr></thead><tbody id="payrollBody"></tbody></table></div>
     </div>
-</div>
 
     <div id="adminTab" class="tab-content hidden">
         <div class="card">
-    <h3>Company Branding</h3>
-    <div style="display: flex; flex-direction: column; gap: 10px;">
-        <input type="text" id="brandCompanyName" placeholder="Institution Name">
-        <input type="text" id="brandTagline" placeholder="Institution Tagline">
-        
-        <label>Company Logo (Top of Receipt):</label>
-        <input type="file" id="brandLogoFile" accept="image/*">
-        
-        <label>Watermark Image (Center of Receipt):</label>
-        <input type="file" id="brandBgFile" accept="image/*">
-        
-        <button class="btn btn-green" onclick="updateBranding()">Save Branding Changes</button>
-    </div>
-</div>
+            <h3>Branding</h3>
+            <input type="text" id="brandCompanyName" placeholder="Institution Name">
+            <input type="file" id="brandLogoFile" accept="image/*">
+            <button class="btn btn-green" onclick="updateBranding()">Save Branding</button>
+        </div>
         <div class="card">
-    <h3>Register New Staff</h3>
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-        <input type="text" id="empFullName" placeholder="Full Name">
-        <input type="email" id="empEmail" placeholder="Email (Used for Login)">
-        <input type="password" id="empPassword" placeholder="Password">
-        <select id="empRole">
-            <option value="staff">Staff</option>
-            <option value="admin">Admin</option>
-        </select>
-        <input type="number" id="empBasic" placeholder="Basic Salary (KES)">
-        <input type="number" id="empCommissionRate" placeholder="Commission % (e.g. 5)">
-    </div>
-    <button class="btn btn-blue" onclick="addEmployee()" style="margin-top: 10px; width: 100%;">Create Account & Save Staff</button>
-    
-    <h4 style="margin-top:20px;">Current Staff List</h4>
-    <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
-        <thead>
-            <tr style="background: #eee;">
-                <th style="padding: 8px; text-align: left;">Name</th>
-                <th style="padding: 8px; text-align: left;">Role</th>
-                <th style="padding: 8px; text-align: left;">Salary</th>
-                <th style="padding: 8px; text-align: center;">Action</th>
-            </tr>
-        </thead>
-        <tbody id="employeeTableBody">
-            </tbody>
-    </table>
-</div>
-    </div>
-	
-
-    <div id="messagesTab" class="tab-content hidden">
-    <div class="card chat-container">
-        <h3>Staff Chat</h3>
-        <div id="messageBox" class="chat-box" style="height: 400px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 10px;">
+            <h3>Staff List</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <input type="text" id="empFullName" placeholder="Full Name">
+                <input type="email" id="empEmail" placeholder="Email">
+                <input type="password" id="empPassword" placeholder="Password">
+                <select id="empRole"><option value="staff">Staff</option><option value="admin">Admin</option></select>
             </div>
-        
-        <div style="display: flex; gap: 10px;">
-            <textarea id="messageInput" placeholder="Type your message..." style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #ccc;"></textarea>
-            <button class="btn btn-blue" onclick="sendMessage()">Send</button>
+            <button class="btn btn-blue" onclick="addEmployee()" style="margin-top:10px;">Register Staff</button>
+            <table><thead><tr><th>Name</th><th>Role</th><th>Action</th></tr></thead><tbody id="employeeTableBody"></tbody></table>
         </div>
     </div>
-</div>
+
+    <div id="messagingTab" class="tab-content hidden">
+        <div class="card">
+            <h3>Staff Chat</h3>
+            <div id="internalChatBox" style="height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 15px; background: #f9f9f9; border-radius: 8px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 10px;"></div>
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="internalMsgInput" style="flex-grow: 1;" placeholder="Type message...">
+                <button class="btn btn-blue" onclick="sendInternalMessage()">Send</button>
+            </div>
+        </div>
+    </div>
 
     <div id="profitTab" class="tab-content hidden">
-    <div class="card">
-        <h3>Financial Overview</h3>
-        <div style="height: 300px;">
-            <canvas id="monthlyTrendChart"></canvas>
-        </div>
-		<div class="card">
-    <canvas id="monthlyTrendChart"></canvas> </div>
-<div class="card">
-    <table>
-        <tbody id="monthlyFinanceBody"></tbody> </table>
-</div>
+        <div class="card"><canvas id="monthlyTrendChart"></canvas></div>
+        <div class="card"><table><thead><tr><th>Month</th><th>Net Profit</th></tr></thead><tbody id="monthlyFinanceBody"></tbody></table></div>
     </div>
-    <div class="card">
-        <h3>Monthly Breakdown</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Month</th>
-                    <th>Product Costs</th>
-                    <th>Sales Profit (Fees)</th>
-                    <th>Corporate Revenue</th>
-                    <th>Payroll Expenses</th>
-                    <th>NET PROFIT</th>
-                </tr>
-            </thead>
-            <tbody id="monthlyFinanceBody"></tbody>
-        </table>
-    </div>
-</div>
-		
-	<div id="messagingTab" class="tab-content hidden">
-    <div class="card">
-        <h3>Internal Staff Communication</h3>
-        
-        <div id="internalChatBox" style="height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 15px; background: #f9f9f9; border-radius: 8px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 10px;">
-            </div>
-
-        <div style="display: flex; gap: 10px;">
-            <input type="text" id="internalMsgInput" placeholder="Type a message to the team..." style="flex-grow: 1; padding: 10px; border-radius: 6px; border: 1px solid #ccc;">
-            <button class="btn btn-blue" onclick="sendInternalMessage()">Send Message</button>
-        </div>
-    </div>
-</div>
-	
-	<div id="receiptModal" class="modal hidden">
+</div> <div id="receiptModal" class="modal hidden">
     <div class="modal-content" style="position:relative; width:400px; padding:20px; font-family:monospace;">
-        
         <div id="receiptWatermark" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); opacity:0.1; z-index:-1;">
             <img id="watermarkImg" src="" style="width:250px;">
         </div>
-
         <div style="text-align:center; border-bottom:1px solid #000; padding-bottom:10px;">
             <img id="receiptLogo" src="" style="max-height:60px;"><br>
             <strong id="receiptCompanyName"></strong><br>
             <span id="receiptTagline"></span>
         </div>
-
         <div id="receiptMeta" style="margin:10px 0; font-size:0.9em;"></div>
-
-        <table style="width:100%; border-collapse:collapse;">
-            <thead>
-                <tr style="border-bottom:1px dashed #000;">
-                    <th>ITEM</th>
-                    <th>QTY</th>
-                    <th style="text-align:right;">TOTAL</th>
-                </tr>
-            </thead>
+        <table>
+            <thead><tr><th>ITEM</th><th>QTY</th><th style="text-align:right;">TOTAL</th></tr></thead>
             <tbody id="receiptItemsBody"></tbody>
         </table>
-
         <div style="text-align:right; border-top:1px solid #000; margin-top:10px; padding-top:5px;">
             <strong id="receiptGrandTotal"></strong>
         </div>
-
         <div class="no-print" style="margin-top:20px; text-align:center;">
             <button class="btn btn-blue" onclick="window.print()">Print Now</button>
             <button class="btn btn-red" onclick="document.getElementById('receiptModal').classList.add('hidden')">Close</button>
         </div>
     </div>
 </div>
-	
-</div>
-
-<style>
-@media print {
-    body * { visibility: hidden; }
-    #receiptModal, #receiptModal *, #receiptContent, #receiptContent * { visibility: visible; }
-    #receiptModal { position: absolute; left: 0; top: 0; background: white; width: 100%; }
-    .no-print { display: none !important; }
-}
-</style>
-
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
 <script src="supabase.js"></script> 
-
 <script src="core.js"></script>
-
-
-
 <script src="sync.js"></script>
-
 <script src="ui.js"></script>
-
 <script src="auth.js"></script>
-
 <script src="branding.js"></script>
-
 <script src="products.js"></script>
-
 <script src="retailers.js"></script>
-
 <script src="orders.js"></script>
-
 <script src="retailerOrders.js"></script>
-
 <script src="corporateOrders.js"></script>
-
 <script src="employees.js"></script>
-
 <script src="payroll.js"></script>
-
 <script src="messaging.js"></script>
-
 <script src="reports.js"></script>
-
-
-
 <script src="app.js"></script>
-
 <script src="render.js"></script>
 
-
-
 <script>
-
     document.addEventListener("DOMContentLoaded", async () => {
-
         window.db = window.db || {};
-
         window.cart = [];
-
-
-
-        if (typeof loadBranding === "function") {
-
-            await loadBranding();
-
-        }
-
-
-
-        // Use the function in app.js to start
-
-        if (typeof initApp === "function") {
-
-            await initApp();
-
-        }
-
+        if (typeof loadBranding === "function") await loadBranding();
+        if (typeof initApp === "function") await initApp();
     });
 
-
-
     function openTab(tabId, btn) {
-
         document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
-
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-
-        
-
         const target = document.getElementById(tabId);
-
         if (target) {
-
             target.classList.remove('hidden');
-
             btn.classList.add('active');
-
         }
-
-
-
-        if (tabId === 'profitTab' && typeof renderProfitDashboard === "function") {
-
-            renderProfitDashboard();
-
-        }
-
+        if (tabId === 'profitTab' && typeof renderProfitDashboard === "function") renderProfitDashboard();
     }
-
 </script>
 </body>
 </html>
-

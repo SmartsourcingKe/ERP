@@ -294,16 +294,36 @@ async function processCorporateOrder() {
     const totalAmount = corporateCart.reduce((sum, item) => sum + item.subtotal, 0);
 
     try {
+        // 1. Create the Main Order
         const { data: order, error: orderErr } = await supa.from("corporate_orders").insert([{
             school_id: schoolId,
             total: totalAmount,
             status: 'pending',
             created_by: window.currentUser.id
         }]).select().single();
-        
-        // ... rest of your existing logic continues here ...
+
+        if (orderErr) throw orderErr;
+
+        // 2. Map items to include the new order ID
+        const finalItems = corporateCart.map(item => ({
+            corporate_order_id: order.id,
+            level: item.level,
+            student_count: item.students,
+            price_per_student: item.price_per_student,
+            subtotal: item.subtotal
+        }));
+
+        // 3. Insert into corporate_order_items
+        const { error: itemErr } = await supa.from("corporate_order_items").insert(finalItems);
+        if (itemErr) throw itemErr;
+
+        alert("Corporate order processed successfully!");
+        corporateCart = []; // Clear cart
+        renderCorporateCart();
+        await sync(); 
     } catch (err) {
         console.error(err);
+        alert("Order failed: " + err.message);
     }
 }
 

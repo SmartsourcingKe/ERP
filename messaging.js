@@ -29,45 +29,31 @@ async function sendInternalMessage() {
 
     if (!content) return;
 
-    try {
-        const { error } = await supa.from("internal_messages").insert([{
-            sender_name: window.currentUser.full_name || "Staff",
-            sender_id: window.currentUser.id,
-            content: content
-        }]);
+    const { error } = await supa.from("internal_messages").insert([{
+        sender_name: window.currentUser.full_name || "Staff",
+        sender_id: window.currentUser.id,
+        content: content
+    }]);
 
-        if (error) throw error;
-        
-        input.value = ""; // Clear input
-        await loadInternalMessages(); // Refresh chat
-    } catch (err) {
-        console.error("Chat error:", err);
-    }
+    if (error) return console.error(error);
+    input.value = "";
+    await loadInternalMessages(); 
 }
 
-// Function to load and display messages
 async function loadInternalMessages() {
     const chatBox = document.getElementById("internalChatBox");
     if (!chatBox) return;
 
-    const { data: messages, error } = await supa
-        .from("internal_messages")
-        .select("*")
-        .order('created_at', { ascending: true });
-
-    if (error) return console.error(error);
+    const { data: messages } = await supa.from("internal_messages").select("*").order('created_at', { ascending: true });
 
     chatBox.innerHTML = messages.map(msg => `
         <div style="align-self: ${msg.sender_id === window.currentUser.id ? 'flex-end' : 'flex-start'}; 
                     background: ${msg.sender_id === window.currentUser.id ? '#dcf8c6' : '#fff'}; 
-                    padding: 8px 12px; border-radius: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); max-width: 70%;">
-            <strong style="font-size: 0.8em; color: #555;">${msg.sender_name}</strong><br>
-            <span>${msg.content}</span>
-            <div style="font-size: 0.6em; color: #999; text-align: right;">${new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                    padding: 8px; border-radius: 8px; max-width: 80%;">
+            <small>${msg.sender_name}</small><br>${msg.content}
         </div>
     `).join("");
-
-    chatBox.scrollTop = chatBox.scrollHeight; // Auto-scroll to bottom
+    chatBox.scrollTop = chatBox.scrollHeight;
 }
 
 /**
