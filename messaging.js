@@ -1,114 +1,85 @@
-/**
- * MESSAGING LOGIC
- * Handles internal team chat, notification badges, and real-time feel.
- */
+let lastCount = 0;
 
-let lastMessageCount = 0;
+// This ensures the chat starts as soon as the file loads
+async function initChat() {
+    console.log("Chat system initializing...");
+    await loadInternalMessages();
+    // Refresh every 3 seconds
+    setInterval(loadInternalMessages, 3000);
+}
 
-// 1. SEND MESSAGE
 async function sendInternalMessage() {
     const input = document.getElementById("internalMsgInput");
+    if (!input) return;
     const content = input.value.trim();
 
-    if (!content || !window.currentUser) return;
+    // Check if user is logged in
+    if (!window.currentUser) {
+        return alert("You must be logged in to send messages.");
+    }
+
+    if (!content) return;
 
     try {
         const { error } = await supa.from("internal_messages").insert([{
-            sender_name: window.currentUser.full_name || "Staff Member",
             sender_id: window.currentUser.id,
+            sender_name: window.currentUser.full_name || "Staff",
             content: content
         }]);
 
         if (error) throw error;
-        
-        input.value = ""; // Clear input
-        await loadInternalMessages(); // Refresh immediately after sending
+        input.value = ""; // Clear box
+        await loadInternalMessages(); // Refresh immediately
     } catch (err) {
-        console.error("Chat Error:", err.message);
-        alert("Could not send message. Check connection.");
+        console.error("Failed to send:", err.message);
     }
 }
 
-// 2. LOAD & RENDER MESSAGES
 async function loadInternalMessages() {
     const chatBox = document.getElementById("internalChatBox");
     if (!chatBox) return;
 
-    // Fetch from internal_messages (the correct table)
     const { data: messages, error } = await supa
         .from("internal_messages")
         .select("*")
         .order('created_at', { ascending: true });
 
-    if (error) {
-        console.error("Error loading messages:", error.message);
-        return;
-    }
+    if (error) return;
 
-    // 3. NOTIFICATION BADGE LOGIC
-    const activeTabBtn = document.querySelector('.tab-btn.active');
-    const activeTabName = activeTabBtn ? activeTabBtn.innerText.trim() : "";
-
-    // Show red badge if user is on a different tab
-    if (messages.length > lastMessageCount && !activeTabName.includes("Messages")) {
-        const badge = document.getElementById('msgBadge');
+    // Badge Logic
+    const activeTab = document.querySelector('.tab-btn.active')?.innerText || "";
+    if (messages.length > lastCount && !activeTab.includes("Messages")) {
+        const badge = document.getElementById("msgBadge");
         if (badge) {
-            badge.classList.remove('hidden');
-            badge.innerText = messages.length - lastMessageCount;
+            badge.classList.remove("hidden");
+            badge.innerText = messages.length - lastCount;
         }
-    }
-    
-    // Reset badge if we are currently looking at the Messages tab
-    if (activeTabName.includes("Messages")) {
-        const badge = document.getElementById('msgBadge');
-        if (badge) badge.classList.add('hidden');
-        lastMessageCount = messages.length; 
+    } else if (activeTab.includes("Messages")) {
+        // Clear badge if we are looking at the chat
+        const badge = document.getElementById("msgBadge");
+        if (badge) badge.classList.add("hidden");
+        lastCount = messages.length;
     }
 
-    // 4. GENERATE HTML
-    chatBox.innerHTML = messages.map(msg => {
-        const isMe = msg.sender_id === window.currentUser.id;
-        
+    // Render bubbles
+    chatBox.innerHTML = messages.map(m => {
+        const isMe = m.sender_id === window.currentUser.id;
         return `
-            <div style="
-                align-self: ${isMe ? 'flex-end' : 'flex-start'}; 
-                max-width: 75%; 
-                padding: 10px 14px; 
-                border-radius: 12px; 
-                margin-bottom: 8px;
-                background: ${isMe ? 'var(--blue)' : '#e9e9eb'}; 
-                color: ${isMe ? 'white' : 'black'};
-                border-bottom-${isMe ? 'right' : 'left'}-radius: 2px;
-                box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-                position: relative;">
-                
-                <small style="font-size: 0.7em; display: block; margin-bottom: 4px; opacity: 0.8; font-weight: bold;">
-                    ${isMe ? 'You' : msg.sender_name} • ${new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+            <div style="align-self: ${isMe ? 'flex-end' : 'flex-start'}; 
+                        background: ${isMe ? 'var(--blue)' : 'white'}; 
+                        color: ${isMe ? 'white' : '#333'};
+                        padding: 10px 15px; border-radius: 15px; max-width: 80%;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: ${isMe ? 'none' : '1px solid #ddd'};">
+                <small style="display: block; font-size: 0.7em; margin-bottom: 4px; opacity: 0.8;">
+                    ${m.sender_name} • ${new Date(m.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
                 </small>
-                
-                <div style="word-wrap: break-word; font-size: 0.95em;">
-                    ${msg.content}
-                </div>
+                ${m.content}
             </div>
         `;
     }).join("");
 
-    // 5. AUTO-SCROLL
     chatBox.scrollTop = chatBox.scrollHeight;
 }
 
-// 6. INITIALIZATION & REFRESH
-// Automatically check for new messages every 4 seconds
-setInterval(loadInternalMessages, 4000);
-
-// Also check for 'Enter' key press in the input
-document.addEventListener('DOMContentLoaded', () => {
-    const input = document.getElementById("internalMsgInput");
-    if (input) {
-        input.addEventListener("keypress", (e) => {
-            if (e.key === "Enter") {
-                sendInternalMessage();
-            }
-        });
-    }
-});
+// Run the initialization
+initChat();

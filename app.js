@@ -159,3 +159,24 @@ supa.auth.onAuthStateChange(async (event, session) => {
         renderAll();
     }
 });
+
+async function checkUserSession() {
+    const { data: { user } } = await supa.auth.getUser();
+    
+    if (user) {
+        // Find the profile in our 'users' table
+        const { data: profile } = await supa
+            .from('users')
+            .select('*')
+            .eq('auth_user_id', user.id)
+            .single();
+
+        if (profile) {
+            window.currentUser = profile;
+            // Now the "Account Not Set Up" warning will disappear
+            renderUI(); 
+        } else {
+            console.error("Auth exists but no profile found in users table.");
+        }
+    }
+}

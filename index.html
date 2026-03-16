@@ -403,15 +403,18 @@
     </div>
 	
 	<div id="messagesTab" class="tab-content hidden">
-    <div class="card" style="display: flex; flex-direction: column; height: 80vh;">
-        <h3>Internal Team Chat</h3>
-        
-        <div id="internalChatBox" style="flex-grow: 1; overflow-y: auto; border: 1px solid #ddd; padding: 15px; background: #f9f9f9; border-radius: 8px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 10px;">
+    <div class="card" style="height: 80vh; display: flex; flex-direction: column;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 15px;">
+            <h3 style="margin: 0;">Internal Staff Chat</h3>
+            <small id="chatStatus" style="color: green;">● Live</small>
+        </div>
+
+        <div id="internalChatBox" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 15px; background: #fafafa; border-radius: 8px; border: 1px solid #eee;">
             </div>
 
-        <div style="display: flex; gap: 10px; background: white; padding: 10px; border-top: 1px solid #eee;">
-            <input type="text" id="internalMsgInput" placeholder="Type a message to the team..." style="flex-grow: 1; padding: 12px; border-radius: 6px; border: 1px solid #ccc;">
-            <button class="btn btn-blue" onclick="sendInternalMessage()">Send Message</button>
+        <div style="display: flex; gap: 10px; padding-top: 15px; border-top: 1px solid #eee; margin-top: 10px;">
+            <input type="text" id="internalMsgInput" placeholder="Type your message here..." style="flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 5px;">
+            <button class="btn btn-blue" onclick="sendInternalMessage()" style="padding: 0 25px;">Send</button>
         </div>
     </div>
 </div>

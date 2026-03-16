@@ -395,3 +395,56 @@ function renderSchools() {
         select.innerHTML = schools.map(s => `<option value="${s.id}">${s.name}</option>`).join("");
     }
 }
+
+async function completeCorporateOrder() {
+    const schoolId = document.getElementById("corpSchoolSelect")?.value;
+    if (!schoolId) return alert("Please select a school first.");
+    if (!window.cart || window.cart.length === 0) return alert("Cart is empty.");
+
+    // Calculate total including the Selling Price + Company Fee
+    const total = window.cart.reduce((sum, item) => sum + (item.qty * item.price), 0);
+
+    try {
+        // 1. Create the Master Corporate Order
+        const { data: order, error: orderErr } = await supa.from("corporate_orders").insert([{
+            school_id: schoolId,
+            total: total,
+            status: 'completed',
+            created_by: window.currentUser.id
+        }]).select().single();
+
+        if (orderErr) throw orderErr;
+
+        // 2. Loop through items to save them and deduct stock
+        for (const item of window.cart) {
+            // Save item detail
+            await supa.from("corporate_order_items").insert([{
+                order_id: order.id,
+                product_id: item.productId,
+                quantity: item.qty,
+                price_at_sale: item.price // This is (Base + Fee)
+            }]);
+
+            // Deduct Stock from Products Table
+            const product = window.db.products.find(p => p.id === item.productId);
+            if (product) {
+                const newStock = (product.stock || 0) - item.qty;
+                await supa.from("products").update({ stock: newStock }).eq("id", item.productId);
+            }
+        }
+
+        alert("Corporate Order Completed Successfully!");
+        
+        // 3. Clear Cart and Refresh UI
+        window.cart = [];
+        renderCart(); // Clear the table
+        await sync(); // Refresh global data from Supabase
+        
+        // Show the branded receipt
+        showOnScreenReceipt(order.id, 'corporate');
+
+    } catch (err) {
+        console.error("Corporate Order Error:", err);
+        alert("Failed to complete corporate order: " + err.message);
+    }
+}

@@ -5,42 +5,36 @@
  * 3. Creates Public.Users Profile
  */
 async function addEmployee() {
-    const email = document.getElementById("empEmail").value.trim();
-    const password = document.getElementById("empPassword").value.trim();
-    const fullName = document.getElementById("empFullName").value.trim();
+    const email = document.getElementById("empEmail").value;
+    const password = document.getElementById("empPassword").value;
+    const fullName = document.getElementById("empFullName").value;
     const role = document.getElementById("empRole").value;
     const photoFile = document.getElementById("empPhotoFile").files[0];
 
-    if (!email || !password || !fullName || !photoFile) {
-        return alert("Please provide Email, Password, Full Name, and ID Photo.");
-    }
+    if (!email || !password || !photoFile) return alert("Email, Password, and Photo are required!");
 
     try {
-        // STEP 1: Create the actual Login Account in Supabase Auth
-        const { data: authData, error: authError } = await supa.auth.signUp({
-            email: email,
-            password: password,
+        // 1. Create the Login Account (Auth)
+        const { data: authData, error: authError } = await supa.auth.signUp({ 
+            email, 
+            password 
         });
-
-        if (authError) throw authError;
-        const newUserAuthId = authData.user.id;
-
-        // STEP 2: Upload the Staff ID Photo to Storage
-        const fileExt = photoFile.name.split('.').pop();
-        const fileName = `${newUserAuthId}-photo.${fileExt}`;
         
+        if (authError) throw authError;
+
+        // 2. Upload the ID Photo
+        const fileName = `${authData.user.id}-id`;
         const { error: uploadError } = await supa.storage
             .from('id-photos')
             .upload(fileName, photoFile);
-
+        
         if (uploadError) throw uploadError;
-
         const { data: urlData } = supa.storage.from('id-photos').getPublicUrl(fileName);
 
-        // STEP 3: Create the Profile in your 'users' table 
-        // We link it using 'auth_user_id' so the system knows who is logged in
+        // 3. Create the Database Profile
+        // We link authData.user.id to auth_user_id so they can log in!
         const { error: profileError } = await supa.from('users').insert([{
-            auth_user_id: newUserAuthId,
+            auth_user_id: authData.user.id,
             full_name: fullName,
             email: email,
             role: role,
@@ -49,15 +43,11 @@ async function addEmployee() {
 
         if (profileError) throw profileError;
 
-        alert(`Success! ${fullName} can now log in with their email.`);
-        
-        // Clear form and refresh list
-        await sync();
-        renderEmployees();
-
+        alert("Staff registered and can now login!");
+        await sync(); // Refreshes global data
+        renderEmployees(); // Updates the list on screen
     } catch (err) {
-        console.error(err);
-        alert("Registration failed: " + err.message);
+        alert("Registration Failed: " + err.message);
     }
 }
 
