@@ -180,3 +180,29 @@ async function checkUserSession() {
         }
     }
 }
+
+function openTab(tabId, btn) {
+    // 1. Hide all tab contents
+    const contents = document.querySelectorAll('.tab-content');
+    contents.forEach(content => {
+        content.style.display = 'none';
+    });
+
+    // 2. Show the requested tab
+    const target = document.getElementById(tabId);
+    if (target) {
+        target.style.display = 'block'; // Force it to show
+    }
+
+    // 3. Update button colors
+    const buttons = document.querySelectorAll('.tab-btn');
+    buttons.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    
+    // 4. If opening messages, load them and clear the badge
+    if (tabId === 'messagesTab') {
+        loadInternalMessages();
+        const badge = document.getElementById('msgBadge');
+        if (badge) badge.classList.add('hidden');
+    }
+}
