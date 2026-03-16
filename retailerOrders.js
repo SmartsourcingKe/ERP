@@ -3,83 +3,51 @@
  * Handles inventory checks and local cart state.
  */
 function addToCart() {
-    // 1. Correct IDs from index.html
-    const productId = document.getElementById("orderProductSelect")?.value;
-    const qtyInput = document.getElementById("orderQty");
-    const qty = Number(qtyInput.value);
+    const productId = document.getElementById("orderProductSelect").value;
+    const qty = parseInt(document.getElementById("orderQty").value);
+    
+    if (!productId || qty <= 0) return alert("Select a product and quantity");
 
-    if (!productId) return alert("Please select a product.");
-    if (qty <= 0) return alert("Please enter a valid quantity.");
-
-    // 2. Use global window.db
-    const product = (window.db.products || []).find(p => p.id === productId);
-    if (!product) return;
-
-    // Initialize window.cart if it doesn't exist
-    if (!window.cart) window.cart = [];
-
-    const existing = window.cart.find(c => c.product_id === productId);
-    const currentCartQty = existing ? existing.qty : 0;
-
-    // 3. Check inventory
-    if ((product.stock || 0) < (qty + currentCartQty)) {
-        return alert(`Insufficient stock. Available: ${product.stock}`);
-    }
-
+    const product = window.db.products.find(p => p.id === productId);
+    
+    // Check if item already in cart
+    const existing = window.cart.find(item => item.productId === productId);
     if (existing) {
         existing.qty += qty;
     } else {
         window.cart.push({
-            product_id: product.id,
-            name: product.name, 
-            price: Number(product.price), 
+            productId: product.id,
+            name: product.name,
+            price: product.base_price,
             qty: qty
         });
     }
 
-    qtyInput.value = "";
+    // THIS IS THE MISSING STEP: Update the UI
     renderCart();
 }
 
-/**
- * RENDER CART TABLE
- */
 function renderCart() {
-    const view = document.getElementById("cartView");
-    if (!view) return;
-
-    if (!window.cart || window.cart.length === 0) {
-        view.innerHTML = "<p style='color:gray; padding:10px;'>Cart is empty</p>";
-        return;
-    }
-
+    const tbody = document.getElementById("cartTableBody");
     let grandTotal = 0;
-    const rows = window.cart.map((item, index) => {
+
+    tbody.innerHTML = window.cart.map((item, index) => {
         const rowTotal = item.qty * item.price;
         grandTotal += rowTotal;
         return `
             <tr>
-                <td><strong>${item.name}</strong></td>
+                <td>${item.name}</td>
                 <td>${item.qty}</td>
-                <td>${item.price.toLocaleString()}</td>
+                <td>${item.price}</td>
                 <td>${rowTotal.toLocaleString()}</td>
-                <td><button class="btn btn-red" style="padding:2px 8px;" onclick="window.cart.splice(${index},1);renderCart()">X</button></td>
-            </tr>`;
+                <td><button onclick="window.cart.splice(${index},1); renderCart();" style="color:red;">Remove</button></td>
+            </tr>
+        `;
     }).join("");
 
-    view.innerHTML = `
-        <table class="card">
-            <thead><tr><th>Product</th><th>Qty</th><th>Price</th><th>Total</th><th></th></tr></thead>
-            <tbody>${rows}</tbody>
-        </table>
-        <div style="text-align:right; margin-top:10px; font-size:1.2em;">
-            <strong>Grand Total: KES ${grandTotal.toLocaleString()}</strong>
-        </div>`;
+    document.getElementById("cartGrandTotal").innerText = `Total: KES ${grandTotal.toLocaleString()}`;
 }
 
-/**
- * CREATE RETAILER ORDER
- */
 async function createOrder() {
     const retailerId = document.getElementById("retailerSelect")?.value;
     if (!retailerId) return alert("Select a retailer.");
