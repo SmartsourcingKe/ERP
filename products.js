@@ -67,13 +67,8 @@ async function editProduct(id) {
 
         alert("Product updated successfully!");
         await sync(); // Refresh the data on the page
-    } const { error } = await supa
-    .from("products")
-    .update({ 
-        base_price: parseFloat(newPrice), // Use lowercase/snake_case
-        company_fee: parseFloat(newFee),
-        stock: parseInt(newStock)
-    })
-    .eq("id", id);
-
+    } catch (err) {
+        console.error("Update Error:", err);
+        alert("Failed to update: " + err.message);
+    }
 }

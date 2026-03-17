@@ -342,29 +342,42 @@ async function processCorporateOrder() {
 }
 
 function renderSchools() {
-    // Your index.html uses "schoolTableBody" for the list 
-    const tbody = document.getElementById("schoolTableBody"); 
-    // Your index.html uses "corpSchoolSelect" for the dropdown
-    const select = document.getElementById("corpSchoolSelect");
-    
+    const tbody = document.getElementById("schoolTableBody"); // ID from index.html
+    const select = document.getElementById("corpSchoolSelect"); // ID from index.html
     const schools = window.db.schools || [];
 
     if (tbody) {
         tbody.innerHTML = schools.length === 0 
             ? '<tr><td colspan="3" style="text-align:center;">No schools registered.</td></tr>'
-            : schools.map(s => `
-                <tr>
-                    <td>${s.name}</td>
-                    <td>${s.phone}</td>
-                    <td>${s.location || 'N/A'}</td>
-                </tr>
-            `).join("");
+            : schools.map(s => `<tr><td>${s.name}</td><td>${s.phone}</td><td>${s.location || 'N/A'}</td></tr>`).join("");
     }
 
     if (select) {
         select.innerHTML = '<option value="">-- Select School --</option>' + 
             schools.map(s => `<option value="${s.id}">${s.name}</option>`).join("");
     }
+}
+
+function renderCorpHistory() {
+    const tbody = document.getElementById("corpOrdersBody"); // ID from index.html
+    if (!tbody) return;
+
+    const orders = window.db.corporate_orders || [];
+    tbody.innerHTML = orders.map(order => {
+        const school = window.db.schools?.find(s => s.id === order.school_id);
+        const status = order.status || 'pending';
+        return `
+            <tr>
+                <td>${new Date(order.created_at).toLocaleDateString()}</td>
+                <td>${school ? school.name : 'Unknown'}</td>
+                <td>KES ${Number(order.total).toLocaleString()}</td>
+                <td><span class="badge ${status}">${status}</span></td>
+                <td>
+                    <button class="btn btn-blue" onclick="viewReceipt('${order.id}', 'corporate')">Receipt</button>
+                    ${status === 'pending' ? `<button class="btn btn-green" onclick="disburseOrder('${order.id}', 'corporate_orders')">Disburse</button>` : ''}
+                </td>
+            </tr>`;
+    }).join("");
 }
 
 async function completeCorporateOrder() {
@@ -406,32 +419,3 @@ async function completeCorporateOrder() {
     }
 }
 
-function renderCorpHistory() {
-    const tbody = document.getElementById("corpOrdersBody");
-    if (!tbody) return;
-
-    const orders = window.db.corporate_orders || [];
-
-    tbody.innerHTML = orders.length === 0 
-        ? '<tr><td colspan="5" style="text-align:center;">No corporate orders found.</td></tr>'
-        : orders.map(order => {
-            const school = window.db.schools?.find(s => s.id === order.school_id);
-            const status = order.status || 'pending';
-            
-            return `
-                <tr>
-                    <td>${new Date(order.created_at).toLocaleDateString()}</td>
-                    <td>${school ? school.name : 'Unknown School'}</td>
-                    <td>KES ${Number(order.total).toLocaleString()}</td>
-                    <td><span class="badge ${status}">${status.toUpperCase()}</span></td>
-                    <td>
-                        <button class="btn btn-blue" onclick="viewReceipt('${order.id}', 'corporate')">Receipt</button>
-                        ${status === 'pending' ? 
-                            `<button class="btn btn-green" onclick="disburseOrder('${order.id}', 'corporate_orders')">Disburse</button>` : 
-                            `<span style="color:green; font-weight:bold;">✓ Disbursed</span>`
-                        }
-                    </td>
-                </tr>
-            `;
-        }).join("");
-}
