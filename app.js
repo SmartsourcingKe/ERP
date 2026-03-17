@@ -148,15 +148,16 @@ function showScreen(sectionId) {
 
 window.onload = initApp;
 
-supa.auth.onAuthStateChange(async (event, session) => {
-    if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
-        window.currentUser = session.user;
-        console.log("Auth Success. Starting Sync...");
-        
-        await sync(); // <--- THIS IS THE CRITICAL LINE
-        
-        showDashboard();
-        renderAll();
+supa.auth.onAuthStateChange((event, session) => {
+    console.log("AUTH EVENT:", event);
+    
+    // FIX: Check if session exists before reading .user
+    if (session && session.user) {
+        window.currentUser = session.user; // Or your profile logic
+        handleAuthSuccess(session.user);
+    } else {
+        console.log("No session found, redirecting to login.");
+        showLogin(); 
     }
 });
 

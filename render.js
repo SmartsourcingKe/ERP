@@ -6,21 +6,22 @@
 function renderAll() {
     console.log("Master Render started...");
     try {
-        // Use this pattern for every single render call
+        // Standard sections
         if (typeof renderPermissions === "function") renderPermissions();
         if (typeof renderOrders === "function") renderOrders();
         if (typeof renderRetailers === "function") renderRetailers();
         if (typeof renderProducts === "function") renderProducts();
-        if (typeof renderCorporate === "function") renderCorporate();
         if (typeof renderEmployees === "function") renderEmployees();
         if (typeof renderPayroll === "function") renderPayroll();
         if (typeof renderMessages === "function") renderMessages();
-        if (typeof renderAdmin === "function") renderAdmin(); 
         
+        // CORPORATE SECTION - Matching functions in corporateOrders.js
+        if (typeof renderSchools === "function") renderSchools(); 
+        if (typeof renderCorpHistory === "function") renderCorpHistory();
+
         // Dropdowns
         if (typeof renderProductDropdowns === "function") renderProductDropdowns();
         if (typeof renderRetailerDropdown === "function") renderRetailerDropdown();
-        if (typeof renderSchoolDropdown === "function") renderSchoolDropdown(); // Added check
         
         console.log("Master Render complete.");
     } catch (err) {
