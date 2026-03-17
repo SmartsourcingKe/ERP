@@ -101,26 +101,27 @@ function renderRetailers() {
 /**
  * RENDER CORPORATE (CBC)
  */
-function renderCorporate() {
-    const tbody = document.getElementById("corporateBody");
-    if (!tbody) return;
-
-    const data = window.db.corporate_orders || [];
-    const search = document.getElementById("schoolSearch")?.value.toLowerCase() || "";
-
-    const filtered = data.filter(o => {
-        const school = (window.db.schools || []).find(s => s.id === o.school_id);
-        return school?.name.toLowerCase().includes(search);
-    });
-
-    tbody.innerHTML = filtered.map(o => {
-        const school = (window.db.schools || []).find(s => s.id === o.school_id);
+function renderCorpOrders() {
+    const tbody = document.getElementById("corpOrdersBody");
+    tbody.innerHTML = window.db.corporate_orders.map(order => {
+        const isPending = order.status === 'pending';
+        
         return `
             <tr>
-                <td>${school?.name || 'Unknown'}</td>
-                <td><span class="status-${o.status}">${o.status}</span></td>
-                <td>KES ${Number(o.total_amount).toLocaleString()}</td>
-                <td><button class="btn btn-blue" onclick="printCorpReceipt('${o.id}')">Receipt</button></td>
+                <td>${new Date(order.created_at).toLocaleDateString()}</td>
+                <td>${order.schools?.name || 'N/A'}</td>
+                <td>KES ${order.total.toLocaleString()}</td>
+                <td>
+                    <span class="badge ${isPending ? 'btn-red' : 'btn-green'}">
+                        ${order.status.toUpperCase()}
+                    </span>
+                </td>
+                <td>
+                    ${isPending ? 
+                        `<button class="btn btn-blue" onclick="disburseOrder('${order.id}', 'corporate_orders')">Disburse</button>` : 
+                        `<button class="btn btn-green" onclick="printReceipt('${order.id}', 'corporate')">Print Receipt</button>`
+                    }
+                </td>
             </tr>
         `;
     }).join("");
@@ -203,20 +204,67 @@ function renderProducts() {
     }
 
     grid.innerHTML = products.map(p => `
-        <div class="product-card">
+        <div class="card" style="border-left: 5px solid var(--blue);">
             <div class="product-info">
-                <h4>${p.name}</h4>
-                <p class="price">Price: KES ${p.base_price.toLocaleString()}</p>
-                <p class="stock ${p.stock <= 5 ? 'text-red' : ''}">
-                    Stock: ${p.stock}
-                </p>
-                <p class="sku">Profit/Fee: KES ${p.company_fee}</p>
+                <h4 style="margin-bottom: 10px;">${p.productName || p.name}</h4>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div>
+                        <label style="font-size: 10px; font-weight: bold; color: #666;">SELLING PRICE</label>
+                        <input type="number" id="price-${p.id}" value="${p.productBasePrice || p.base_price}" style="margin-bottom: 8px;">
+                    </div>
+                    <div>
+                        <label style="font-size: 10px; font-weight: bold; color: #666;">COMPANY FEE</label>
+                        <input type="number" id="fee-${p.id}" value="${p.productCompanyFee || p.company_fee}">
+                    </div>
+                </div>
+
+                <div style="margin-top: 5px;">
+                    <label style="font-size: 10px; font-weight: bold; color: #666;">CURRENT STOCK</label>
+                    <input type="number" id="stock-${p.id}" value="${p.productStock || p.stock}" 
+                           style="border: 1px solid ${ (p.productStock || p.stock) <= 5 ? 'var(--red)' : '#ccc' };">
+                </div>
             </div>
-            <div class="product-actions">
-                <button class="btn-edit" onclick="editProduct('${p.id}')">Edit</button>
+            
+            <div class="product-actions" style="margin-top: 15px;">
+                <button class="btn btn-blue" style="width: 100%;" onclick="saveProductUpdate('${p.id}')">
+                    Update Product
+                </button>
             </div>
         </div>
     `).join("");
+}
+
+async function saveProductUpdate(productId) {
+    const newPrice = document.getElementById(`price-${productId}`).value;
+    const newFee = document.getElementById(`fee-${productId}`).value;
+    const newStock = document.getElementById(`stock-${productId}`).value;
+
+    try {
+        const { error } = await supa
+            .from('products')
+            .update({ 
+                productBasePrice: parseFloat(newPrice),
+                productCompanyFee: parseFloat(newFee),
+                productStock: parseInt(newStock)
+            })
+            .eq('id', productId);
+
+        if (error) throw error;
+
+        alert("Product updated successfully!");
+        
+        // Refresh the database and UI
+        if (typeof sync === 'function') {
+            await sync(); 
+        } else {
+            location.reload(); // Fallback if sync isn't global
+        }
+        
+    } catch (err) {
+        console.error("Update error:", err);
+        alert("Failed to update: " + err.message);
+    }
 }
 
 function renderEmployees() {

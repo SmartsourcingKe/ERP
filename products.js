@@ -67,25 +67,36 @@ async function deleteProduct(id) {
 }
 
 async function editProduct(id) {
-    const product = window.db.products.find(p => p.id === id);
-    if (!product) return;
+    // Get the new values from the input fields in the card
+    const newPrice = document.getElementById(`price-${id}`).value;
+    const newFee = document.getElementById(`fee-${id}`).value;
+    const newStock = document.getElementById(`stock-${id}`).value;
 
-    const newStock = prompt(`Update stock for ${product.name}:`, product.stock);
-    
-    if (newStock !== null && !isNaN(newStock)) {
-        try {
-            const { error } = await supa
-                .from("products")
-                .update({ stock: parseInt(newStock) })
-                .eq("id", id);
+    // Basic validation
+    if (newPrice === "" || newFee === "" || newStock === "") {
+        return alert("Please ensure all fields are filled out.");
+    }
 
-            if (error) throw error;
+    try {
+        const { error } = await supa
+            .from("products")
+            .update({ 
+                base_price: parseFloat(newPrice),
+                company_fee: parseFloat(newFee),
+                stock: parseInt(newStock)
+            })
+            .eq("id", id);
 
-            alert("Stock updated successfully!");
-            await sync(); // Refresh data and UI
-        } catch (err) {
-            console.error("Update Error:", err);
-            alert("Failed to update: " + err.message);
+        if (error) throw error;
+
+        alert("Product updated successfully!");
+        
+        // This refreshes your data so the rest of the app sees the new price
+        if (typeof sync === 'function') {
+            await sync(); 
         }
+    } catch (err) {
+        console.error("Update Error:", err);
+        alert("Failed to update: " + err.message);
     }
 }

@@ -124,3 +124,21 @@ async function processOrder() {
         alert("Failed to complete order: " + err.message);
     }
 }
+
+async function disburseOrder(orderId, tableName) {
+    if (!confirm("Confirm disbursement? This will mark the order as completed and allow printing.")) return;
+
+    try {
+        const { error } = await supa
+            .from(tableName)
+            .update({ status: 'completed' })
+            .eq('id', orderId);
+
+        if (error) throw error;
+
+        alert("Order Disbursed Successfully!");
+        await sync(); // This will refresh the table and show the "Print" button
+    } catch (err) {
+        alert("Disbursement failed: " + err.message);
+    }
+}

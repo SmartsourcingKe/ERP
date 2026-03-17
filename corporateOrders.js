@@ -332,40 +332,55 @@ function updateSchoolDropdown() {
 
 // Inside corporateOrders.js -> processCorporateOrder()
 async function processCorporateOrder() {
-    const schoolId = document.getElementById("corpSchoolSelect").value;
-    if (!schoolId || corporateCart.length === 0) return alert("Select a school and add items.");
+    console.log("Starting Corporate Order Process...");
 
-    const totalAmount = corporateCart.reduce((sum, item) => sum + item.subtotal, 0);
+    const schoolId = document.getElementById("corpSchoolSelect").value;
+    // window.corporateCart is where we store the added grades/students
+    if (!schoolId || !window.corporateCart || window.corporateCart.length === 0) {
+        return alert("Please select a school and add items to the cart.");
+    }
 
     try {
-        // Insert Main Order
-        const { data: order, error: oErr } = await supa.from("corporate_orders").insert([{
-            school_id: schoolId,
-            total: totalAmount,
-            status: 'pending',
-            created_by: window.currentUser.id
-        }]).select().single();
+        // 1. Calculate Grand Total
+        const grandTotal = window.corporateCart.reduce((sum, item) => sum + item.subtotal, 0);
+        console.log("Total calculated:", grandTotal);
 
-        if (oErr) throw oErr;
+        // 2. Insert into corporate_orders
+        const { data: order, error: orderErr } = await supa.from("corporate_orders").insert([{
+    school_id: schoolId,
+    total: grandTotal,
+    status: 'pending', // <--- Change this from 'completed'
+    created_by: window.currentUser.id
+}]).select().single();
 
-        // Insert Line Items
-        const items = corporateCart.map(item => ({
-            corporate_order_id: order.id,
-            level: item.level,
-            student_count: item.students,
-            price_per_student: item.price_per_student,
-            subtotal: item.subtotal
-        }));
+        if (orderErr) throw orderErr;
+        console.log("Order Header created:", order.id);
 
-        const { error: iErr } = await supa.from("corporate_order_items").insert(items);
-        if (iErr) throw iErr;
+        // 3. Insert Items into corporate_order_items
+        for (const item of window.corporateCart) {
+            const { error: itemErr } = await supa.from("corporate_order_items").insert([{
+                order_id: order.id,
+                grade: item.grade,
+                student_count: item.students,
+                // Ensure this column exists in Supabase!
+                price_per_student: item.pricePerStudent, 
+                subtotal: item.subtotal
+            }]);
 
-        alert("Corporate order saved!");
-        corporateCart = []; // Clear local cart
+            if (itemErr) throw itemErr;
+        }
+
+        console.log("All items saved. Finalizing...");
+        alert("Corporate Order Finalized Successfully!");
+        
+        // 4. Cleanup
+        window.corporateCart = [];
         renderCorporateCart();
-        await sync(); // Refresh database view
+        await sync(); // Refresh history
+        
     } catch (err) {
-        alert("Error: " + err.message);
+        console.error("CORPORATE ORDER ERROR:", err);
+        alert("Error completing order: " + err.message);
     }
 }
 

@@ -100,7 +100,6 @@
 
 <div id="loginPage" class="container login-container">
     <img id="loginLogo" src="" class="brand-logo hidden" style="max-height: 80px; margin-bottom: 15px;">
-    
     <h2 id="loginCompanyName">SmartsourcingKe ERP</h2>
     <p id="loginTagline" style="font-style: italic; color: #666; margin-bottom: 20px;"></p>
     
@@ -129,6 +128,9 @@
         <button id="payrollBtn" class="tab-btn hidden" onclick="openTab('payrollTab',this)">Payroll</button>
         <button id="adminBtn" class="tab-btn hidden" onclick="openTab('adminTab',this)">Admin</button>
         <button id="profitBtn" class="tab-btn hidden" onclick="openTab('profitTab',this)">Profit</button>
+		<button class="tab-btn" onclick="openTab('messagesTab',this)">
+    Messages <span id="msgBadge" class="hidden" style="background:red; color:white; border-radius:50%; padding:2px 6px; font-size:10px;">0</span>
+</button>
     </div>
 
     <div id="ordersTab" class="tab-content">
@@ -386,12 +388,15 @@
             </div>
 
             <div id="receiptMeta"></div>
-            <table>
+            <table style="width:100%; border-collapse:collapse; margin-top:10px;">
     <thead>
         <tr style="border-bottom:1px solid #000;">
             <th style="text-align:left;">ITEM</th>
             <th style="text-align:center;">QTY</th>
-            <th style="text-align:center;">PRICE</th> <th style="text-align:center;">FEE</th>   <th style="text-align:right;">SUBTOTAL</th> </tr>
+            <th style="text-align:center;">PRICE</th>
+            <th style="text-align:center;">FEE</th>
+            <th style="text-align:right;">TOTAL</th>
+        </tr>
     </thead>
     <tbody id="receiptItemsBody"></tbody>
 </table>
@@ -407,7 +412,7 @@
         </div>
     </div>
 </div>
-	<div id="messagesTab" class="tab-content" style="display: none; padding: 20px;">
+	<div id="messagesTab" class="tab-content" class="tab-content hidden" padding: 20px;">
     <div class="card" style="height: 600px; display: flex; flex-direction: column; background: white; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
         
         <div style="padding: 15px; border-bottom: 1px solid #eee; background: #f8f9fa;">
@@ -451,12 +456,10 @@
 <script src="render.js"></script>
 
 <script>
-    document.addEventListener("DOMContentLoaded", async () => {
-    // Only initialize once!
-    if (!window.appInitialized) {
-        window.appInitialized = true;
-        await initApp(); 
-    }
+    document.addEventListener("DOMContentLoaded", () => {
+    // If initApp is already called inside app.js, 
+    // you don't need to call it again here.
+    console.log("DOM fully loaded and parsed");
 });
 
     function openTab(tabId, btn) {
