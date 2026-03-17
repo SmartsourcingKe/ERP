@@ -14,7 +14,7 @@ function addCorporateToCart() {
     }
 
     const item = {
-        level: grade, // Use 'level' to match your render function
+        grade: grade, 
         students: students,
         pricePerStudent: price,
         subtotal: students * price
@@ -30,12 +30,11 @@ function renderCorporateCart() {
     if (!tbody) return;
 
     let grandTotal = 0;
-    // CRITICAL: Ensure we use window.corporateCart consistently
     tbody.innerHTML = window.corporateCart.map((item, index) => {
         grandTotal += item.subtotal;
         return `
             <tr>
-                <td>${item.level}</td>
+                <td>${item.grade}</td>
                 <td>${item.students}</td>
                 <td>KES ${item.subtotal.toLocaleString()}</td>
                 <td><button onclick="window.corporateCart.splice(${index},1); renderCorporateCart();" style="color:red; cursor:pointer;">Remove</button></td>
@@ -343,16 +342,14 @@ async function processCorporateOrder() {
 }
 
 function renderSchools() {
-    const tbody = document.getElementById("schoolBody"); 
+    const tbody = document.getElementById("schoolTableBody"); // Matching index.html
     const select = document.getElementById("corpSchoolSelect");
     
-    // Check if the data exists in our local database
     const schools = window.db.schools || [];
 
-    // 1. Update the Table List (The visual list of schools)
     if (tbody) {
         tbody.innerHTML = schools.length === 0 
-            ? '<tr><td colspan="3" style="text-align:center;">No schools registered.</td></tr>'
+            ? '<tr><td colspan="3" style="text-align:center;">No schools registered yet.</td></tr>'
             : schools.map(s => `
                 <tr>
                     <td>${s.name}</td>
@@ -362,7 +359,6 @@ function renderSchools() {
             `).join("");
     }
 
-    // 2. Update the Dropdown (So you can select them for a new order)
     if (select) {
         select.innerHTML = '<option value="">-- Select School --</option>' + 
             schools.map(s => `<option value="${s.id}">${s.name}</option>`).join("");
@@ -370,35 +366,80 @@ function renderSchools() {
 }
 
 async function completeCorporateOrder() {
-    // ... existing validation code ...
+    // 1. Validation Logic
+    const schoolSelect = document.getElementById("corpSchoolSelect");
+    const selectedSchoolId = schoolSelect ? schoolSelect.value : null;
+
+    if (!selectedSchoolId) {
+        return alert("Please select a school first.");
+    }
+
+    if (!window.corporateCart || window.corporateCart.length === 0) {
+        return alert("Your cart is empty. Add items before completing the order.");
+    }
+
+    // 2. Calculate Grand Total
+    const grandTotal = window.corporateCart.reduce((sum, item) => sum + item.subtotal, 0);
 
     try {
-        // 1. Create the Main Order
+        // 3. Create the Main Order (The Header)
         const { data: order, error: orderErr } = await supa.from("corporate_orders").insert([{
             school_id: selectedSchoolId,
             total: grandTotal,
+            status: 'pending', // Set initial status for disbursement tracking
             created_by: window.currentUser.id
         }]).select().single();
 
         if (orderErr) throw orderErr;
 
-        // 2. Save Items
+        // 4. Save Line Items (The Details)
         for (const item of window.corporateCart) {
-    const { error: itemErr } = await supa.from("corporate_order_items").insert([{
-        order_id: order.id, // This is the column the error mentioned
-        grade: item.grade,
-        student_count: item.students,
-        price_per_student: item.pricePerStudent,
-        subtotal: item.subtotal
-    }]);
+            const { error: itemErr } = await supa.from("corporate_order_items").insert([{
+                corporate_order_id: order.id, // Ensure this matches your DB column name
+                grade: item.level || item.grade, // Accommodates both naming styles
+                student_count: item.students,
+                price_per_student: item.pricePerStudent,
+                subtotal: item.subtotal
+            }]);
 
-    if (itemErr) throw itemErr;
-}
-        
+            if (itemErr) throw itemErr;
+        }
+
         alert("Corporate Order Finalized!");
-        await sync();
+
+        // 5. Cleanup & UI Refresh
+        window.corporateCart = []; // Clear the cart
+        renderCorporateCart();      // Update the cart table (shows 0)
+        await sync();               // Refresh global data from Supabase
+        
+        // If you have a history renderer, call it here
+        if (typeof renderCorpHistory === 'function') renderCorpHistory();
         
     } catch (err) {
+        console.error("Order Completion Error:", err);
         alert("Error: " + err.message);
     }
+}
+
+function renderCorpHistory() {
+    const tbody = document.getElementById("corpOrdersBody"); // Matching index.html
+    if (!tbody) return;
+
+    const orders = window.db.corporate_orders || [];
+
+    tbody.innerHTML = orders.map(order => {
+        const school = window.db.schools.find(s => s.id === order.school_id);
+        return `
+            <tr>
+                <td>${new Date(order.created_at).toLocaleDateString()}</td>
+                <td>${school ? school.name : 'Unknown School'}</td>
+                <td>KES ${Number(order.total).toLocaleString()}</td>
+                <td><span class="badge">${order.status || 'pending'}</span></td>
+                <td>
+                    <button class="btn btn-blue" onclick="generateCorporateReceipt('${order.id}')">Receipt</button>
+                    <button class="btn btn-green" onclick="updateCorpOrderStatus('${order.id}', 'disbursed')">Disburse</button>
+                </td>
+            </tr>
+        `;
+    }).join("");
 }
