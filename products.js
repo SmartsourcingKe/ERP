@@ -4,42 +4,25 @@
  */
 async function addProduct() {
     const name = document.getElementById("productName").value;
-    const stock = Number(document.getElementById("productStock").value);
-    const price = Number(document.getElementById("productBasePrice").value);
-    const fee = Number(document.getElementById("productCompanyFee").value);
-
-    if (!name || stock < 0 || price <= 0) {
-        return alert("Please fill in all product details correctly.");
-    }
+    const stock = document.getElementById("productStock").value;
+    const price = document.getElementById("productBasePrice").value;
+    const fee = document.getElementById("productCompanyFee").value;
 
     try {
         const { error } = await supa.from("products").insert([{
             name: name,
-            stock: stock,
-            base_price: price,
-            company_fee: fee
+            stock: parseInt(stock),
+            base_price: parseFloat(price),
+            company_fee: parseFloat(fee)
         }]);
 
         if (error) throw error;
 
-        alert("Product added successfully!");
-
-        // Clear inputs
-        document.getElementById("productName").value = "";
-        document.getElementById("productStock").value = "";
-        document.getElementById("productBasePrice").value = "";
-        document.getElementById("productCompanyFee").value = "";
-
-        // REFRESH DATA & LIST
-        await sync(); 
-        if (typeof renderProducts === "function") {
-            renderProducts(); 
-        } else {
-            // Fallback if function is in render.js
-            await renderInventory(); 
-        }
+        alert("Product Added!");
+        clearInputs(['productName', 'productStock', 'productBasePrice', 'productCompanyFee']);
+        await sync();
     } catch (err) {
-        alert("Error adding product: " + err.message);
+        alert("Error: " + err.message);
     }
 }
 
@@ -67,34 +50,25 @@ async function deleteProduct(id) {
 }
 
 async function editProduct(id) {
-    // Get the new values from the input fields in the card
     const newPrice = document.getElementById(`price-${id}`).value;
     const newFee = document.getElementById(`fee-${id}`).value;
     const newStock = document.getElementById(`stock-${id}`).value;
-
-    // Basic validation
-    if (newPrice === "" || newFee === "" || newStock === "") {
-        return alert("Please ensure all fields are filled out.");
-    }
 
     try {
         const { error } = await supa
             .from("products")
             .update({ 
-                base_price: parseFloat(newPrice),
-                company_fee: parseFloat(newFee),
-                stock: parseInt(newStock)
+                // Change these to match your actual Supabase columns:
+                base_price: parseFloat(newPrice), // NOT productBasePrice
+                company_fee: parseFloat(newFee),  // NOT productCompanyFee
+                stock: parseInt(newStock)         // NOT productStock
             })
             .eq("id", id);
 
         if (error) throw error;
 
         alert("Product updated successfully!");
-        
-        // This refreshes your data so the rest of the app sees the new price
-        if (typeof sync === 'function') {
-            await sync(); 
-        }
+        await sync(); 
     } catch (err) {
         console.error("Update Error:", err);
         alert("Failed to update: " + err.message);

@@ -92,7 +92,39 @@
         display: none !important; 
     }
 }
+.modal {
+    position: fixed;
+    z-index: 9999; /* Ensure it stays on top of the dashboard */
+    left: 0; top: 0;
+    width: 100%; height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    display: flex; /* Helps center the content */
+    align-items: center;
+    justify-content: center;
+}
 
+.modal.hidden {
+    display: none !important;
+}
+
+@media print {
+    body * {
+        visibility: hidden; /* Hide everything else */
+    }
+    #receiptModal, #receiptModal * {
+        visibility: visible; /* Only show the modal */
+    }
+    #receiptModal {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        background: white;
+    }
+    .btn, .modal-footer {
+        display: none !important; /* Hide "Print Now" and "Close" buttons on paper */
+    }
+}
 
     </style>
 </head>
@@ -360,17 +392,6 @@
     </div>
 </div>
 
-    <div id="messagingTab" class="tab-content hidden">
-        <div class="card">
-            <h3>Staff Chat</h3>
-            <div id="internalChatBox" style="height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 15px; background: #f9f9f9; border-radius: 8px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 10px;"></div>
-            <div style="display: flex; gap: 10px;">
-                <input type="text" id="internalMsgInput" style="flex-grow: 1;" placeholder="Type message...">
-                <button class="btn btn-blue" onclick="sendInternalMessage()">Send</button>
-            </div>
-        </div>
-    </div>
-
     <div id="profitTab" class="tab-content hidden">
         <div class="card"><canvas id="monthlyTrendChart"></canvas></div>
         <div class="card"><table><thead><tr><th>Month</th><th>Net Profit</th></tr></thead><tbody id="monthlyFinanceBody"></tbody></table></div>
@@ -412,24 +433,21 @@
         </div>
     </div>
 </div>
-	<div id="messagesTab" class="tab-content" class="tab-content hidden" padding: 20px;">
-    <div class="card" style="height: 600px; display: flex; flex-direction: column; background: white; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
-        
-        <div style="padding: 15px; border-bottom: 1px solid #eee; background: #f8f9fa;">
-            <h3 style="margin:0;">Internal Staff Chat</h3>
-        </div>
-
-        <div id="internalChatBox" style="flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; background: #fdfdfd;">
-            <p style="color: #999; text-align: center;">Loading messages...</p>
-        </div>
-
-        <div style="padding: 15px; border-top: 1px solid #eee; display: flex; gap: 10px; background: white;">
-            <input type="text" id="internalMsgInput" placeholder="Type a message..." style="flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 4px;">
-            <button class="btn btn-blue" onclick="sendInternalMessage()" style="background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">
-                Send
-            </button>
+	<div id="messagesTab" class="tab-content hidden">
+        <div class="card" style="height: 600px; display: flex; flex-direction: column;">
+            <div style="padding: 15px; border-bottom: 1px solid #eee;">
+                <h3 style="margin:0;">Internal Staff Chat</h3>
+            </div>
+            <div id="internalChatBox" style="flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px;">
+                <p style="color: #999; text-align: center;">Loading messages...</p>
+            </div>
+            <div style="padding: 15px; border-top: 1px solid #eee; display: flex; gap: 10px;">
+                <input type="text" id="internalMsgInput" placeholder="Type a message..." style="flex: 1;">
+                <button class="btn btn-blue" onclick="sendInternalMessage()">Send</button>
+            </div>
         </div>
     </div>
+
 </div>
 	
 </div>

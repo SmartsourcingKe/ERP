@@ -101,33 +101,50 @@ async function createOrder() {
     }
 }
 
+
+
 /**
  * PRINT RETAIL RECEIPT (PDF)
  */
-function showOnScreenReceipt(orderId, type = 'retailer') {
-    // 1. Fetch Branding Data
-    const brand = window.db.branding || { 
-        company_name: "SmartsourcingKe ERP", 
-        tagline: "Quality Service", 
-        logo_url: "", 
-        bg_url: "" 
-    };
-
+async function showOnScreenReceipt(orderId, type = 'retailer') {
+    // 1. Get the Order and Branding
+    const brand = window.db.branding || { company_name: "SmartsourcingKe ERP", tagline: "Quality Service" };
     const order = type === 'retailer' 
         ? window.db.orders.find(o => o.id === orderId)
         : window.db.corporate_orders.find(o => o.id === orderId);
 
     if (!order) return alert("Order not found");
 
+    // 2. Fetch the Items FIRST (Asynchronous)
+    const table = type === 'retailer' ? 'order_items' : 'corporate_order_items';
+    const { data: items, error } = await supa
+        .from(table)
+        .select('*, products(name)')
+        .eq('order_id', orderId);
+
+    if (error) return alert("Error loading items: " + error.message);
+
+    // 3. Map the items into HTML rows
+    const itemsHtml = items.map(item => {
+        // Use price_at_sale (Retail) or subtotal (Corporate)
+        const total = item.subtotal || (item.quantity * (item.price_at_sale || 0));
+        const name = item.products?.name || item.grade || "Item";
+        const qty = item.quantity || item.student_count || 0;
+
+        return `
+            <tr>
+                <td>${name}</td>
+                <td>${qty}</td>
+                <td style="text-align: right;">KES ${Number(total).toLocaleString()}</td>
+            </tr>
+        `;
+    }).join("");
+
+    // 4. Build the Final Branded HTML
     const receiptDiv = document.getElementById("receiptContent");
-    
-    // 2. Build the Branded HTML
     receiptDiv.innerHTML = `
         <div style="position: relative; padding: 20px; border: 1px solid #eee; background: white; font-family: 'Courier New', Courier, monospace; color: #333;">
-            
-            ${brand.bg_url ? `
-                <img src="${brand.bg_url}" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 300px; opacity: 0.08; z-index: 0; pointer-events: none;">
-            ` : ''}
+            ${brand.bg_url ? `<img src="${brand.bg_url}" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 300px; opacity: 0.08; z-index: 0; pointer-events: none;">` : ''}
 
             <div style="text-align: center; position: relative; z-index: 1; border-bottom: 2px dashed #333; padding-bottom: 10px; margin-bottom: 15px;">
                 ${brand.logo_url ? `<img src="${brand.logo_url}" style="max-height: 60px; margin-bottom: 5px;"><br>` : ''}
@@ -140,20 +157,20 @@ function showOnScreenReceipt(orderId, type = 'retailer') {
                 <p><strong>Date:</strong> ${new Date(order.created_at).toLocaleString()}</p>
                 <hr style="border: none; border-top: 1px dashed #333;">
                 
-                <table style="width: 100%; text-align: left;">
+                <table style="width: 100%; text-align: left; font-size: 14px;">
                     <thead>
                         <tr>
-                            <th>Item</th>
-                            <th>Qty</th>
-                            <th>Total</th>
+                            <th style="border-bottom: 1px solid #333;">Item</th>
+                            <th style="border-bottom: 1px solid #333;">Qty</th>
+                            <th style="border-bottom: 1px solid #333; text-align: right;">Total</th>
                         </tr>
                     </thead>
                     <tbody>
-                        ${renderReceiptItems(order.id, type)}
+                        ${itemsHtml}
                     </tbody>
                 </table>
 
-                <hr style="border: none; border-top: 2px solid #333;">
+                <hr style="border: none; border-top: 2px solid #333; margin-top: 15px;">
                 <div style="text-align: right; font-size: 1.2em;">
                     <strong>GRAND TOTAL: KES ${Number(order.total).toLocaleString()}</strong>
                 </div>
@@ -168,6 +185,47 @@ function showOnScreenReceipt(orderId, type = 'retailer') {
     `;
 
     document.getElementById("receiptModal").classList.remove("hidden");
+}
+
+async function viewReceipt(orderId, type) {
+    // 1. Get order details from your local database
+    const order = window.db.orders.find(o => o.id === orderId);
+    if (!order) return alert("Order data not found locally.");
+
+    try {
+        // 2. Fetch the specific items for this order
+        const { data: items, error } = await supa
+            .from('order_items')
+            .select('*, products(name)')
+            .eq('order_id', orderId);
+
+        if (error) throw error;
+
+        // 3. Fill the Modal
+        const itemsBody = document.getElementById("receiptItemsBody");
+        itemsBody.innerHTML = items.map(item => {
+            // Use price_at_sale if it exists, otherwise fallback to the current product price
+            const unitPrice = item.price_at_sale || (item.products?.base_price || 0);
+            return `
+                <tr>
+                    <td style="text-align:left; padding: 5px;">${item.products?.name || 'Item'}</td>
+                    <td style="text-align:center;">${item.quantity}</td>
+                    <td style="text-align:right;">${unitPrice.toLocaleString()}</td>
+                    <td style="text-align:right;">${(item.quantity * unitPrice).toLocaleString()}</td>
+                </tr>
+            `;
+        }).join("");
+
+        // 4. Update Header and Totals
+        document.getElementById("receiptGrandTotal").textContent = `TOTAL: KES ${order.total.toLocaleString()}`;
+        document.getElementById("receiptCompanyName").textContent = window.db.branding?.company_name || "SmartsourcingKe";
+        
+        // 5. Show and Print
+        document.getElementById("receiptModal").classList.remove("hidden");
+    } catch (err) {
+        console.error("Receipt Error:", err);
+        alert("Failed to generate receipt: " + err.message);
+    }
 }
 
 /**

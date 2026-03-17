@@ -14,13 +14,12 @@ function addCorporateToCart() {
     }
 
     const item = {
-        grade: grade,
+        level: grade, // Use 'level' to match your render function
         students: students,
         pricePerStudent: price,
         subtotal: students * price
     };
 
-    // Push to the GLOBAL cart so processCorporateOrder can see it
     window.corporateCart.push(item);
     renderCorporateCart(); 
 }
@@ -31,66 +30,22 @@ function renderCorporateCart() {
     if (!tbody) return;
 
     let grandTotal = 0;
-    tbody.innerHTML = corporateCart.map((item, index) => {
+    // CRITICAL: Ensure we use window.corporateCart consistently
+    tbody.innerHTML = window.corporateCart.map((item, index) => {
         grandTotal += item.subtotal;
         return `
             <tr>
                 <td>${item.level}</td>
                 <td>${item.students}</td>
-                <td>${item.subtotal.toLocaleString()}</td>
-                <td><button onclick="corporateCart.splice(${index},1); renderCorporateCart();" style="color:red;">Remove</button></td>
+                <td>KES ${item.subtotal.toLocaleString()}</td>
+                <td><button onclick="window.corporateCart.splice(${index},1); renderCorporateCart();" style="color:red; cursor:pointer;">Remove</button></td>
             </tr>
         `;
     }).join("");
 
-    totalDisplay.innerText = `Total: KES ${grandTotal.toLocaleString()}`;
+    if (totalDisplay) totalDisplay.innerText = `Total: KES ${grandTotal.toLocaleString()}`;
 }
 
-/**
- * RENDER CORPORATE SECTION
- * Lists schools and corporate order history
- */
-function renderCorporate() {
-    // 1. Render School List
-    const schoolBody = document.getElementById("schoolBody");
-    const schoolSearch = document.getElementById("schoolSearch")?.value.toLowerCase() || "";
-    const schools = (window.db.schools || []).filter(s => s.name.toLowerCase().includes(schoolSearch));
-    
-    if (schoolBody) {
-        schoolBody.innerHTML = schools.map(s => `
-            <tr>
-                <td>${s.name}</td>
-                <td>${s.phone}</td>
-                <td>${s.location}</td>
-            </tr>
-        `).join("");
-    }
-
-    // 2. Render Corporate Order History
-    const orderBody = document.getElementById("corpOrdersBody");
-    if (!orderBody) return;
-
-    const orders = window.db.corporate_orders || [];
-    orderBody.innerHTML = orders.map(o => {
-        const school = (window.db.schools || []).find(s => s.id === o.school_id);
-        const isPending = o.status === 'pending';
-        
-        return `
-            <tr>
-                <td>${new Date(o.created_at).toLocaleDateString()}</td>
-                <td>${school ? school.name : 'Unknown'}</td>
-                <td>KES ${Number(o.total).toLocaleString()}</td>
-                <td><span class="badge ${o.status}">${o.status.toUpperCase()}</span></td>
-                <td>
-                    ${isPending 
-                        ? `<button class="btn btn-green" onclick="updateCorpOrderStatus('${o.id}', 'disbursed')">Mark Disbursed</button>` 
-                        : `<button class="btn btn-blue" onclick="showOnScreenReceipt('${o.id}', 'corporate')">Print Receipt</button>`
-                    }
-                </td>
-            </tr>
-        `;
-    }).join("");
-}
 
 /**
  * UPDATE STATUS
@@ -363,17 +318,15 @@ async function processCorporateOrder() {
 
         // 3. Insert Items into corporate_order_items
         for (const item of window.corporateCart) {
-            const { error: itemErr } = await supa.from("corporate_order_items").insert([{
-                order_id: order.id,
-                grade: item.grade,
-                student_count: item.students,
-                // Ensure this column exists in Supabase!
-                price_per_student: item.pricePerStudent, 
-                subtotal: item.subtotal
-            }]);
-
-            if (itemErr) throw itemErr;
-        }
+    const { error: itemErr } = await supa.from("corporate_order_items").insert([{
+        order_id: order.id,
+        grade: item.level,           // Changed from item.grade to match our cart
+        student_count: item.students,
+        price_per_student: item.pricePerStudent, 
+        subtotal: item.subtotal
+    }]);
+    if (itemErr) throw itemErr;
+}
 
         console.log("All items saved. Finalizing...");
         alert("Corporate Order Finalized Successfully!");
@@ -390,10 +343,10 @@ async function processCorporateOrder() {
 }
 
 function renderSchools() {
-    const tbody = document.getElementById("schoolTableBody");
+    // Ensure this ID matches the <tbody> in your Corporate Tab
+    const tbody = document.getElementById("schoolBody"); 
     if (!tbody) return;
 
-    // Pulls from your global database object
     const schools = window.db.schools || [];
     
     if (schools.length === 0) {
@@ -405,15 +358,9 @@ function renderSchools() {
         <tr>
             <td>${school.name}</td>
             <td>${school.phone}</td>
-            <td>${school.location}</td>
+            <td>${school.location || 'N/A'}</td>
         </tr>
     `).join("");
-    
-    // Also update the dropdown for Corporate Orders
-    const select = document.getElementById("corpSchoolSelect");
-    if (select) {
-        select.innerHTML = schools.map(s => `<option value="${s.id}">${s.name}</option>`).join("");
-    }
 }
 
 async function completeCorporateOrder() {
