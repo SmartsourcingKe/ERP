@@ -333,3 +333,63 @@ function renderReceipt(orderId) {
 
     document.getElementById("receiptGrandTotal").innerText = `TOTAL KES: ${order.total.toLocaleString()}`;
 }
+
+function renderOrders() {
+    const tbody = document.getElementById("ordersBody");
+    if (!tbody) return;
+
+    // Sort by date (newest first) so your new orders appear at the top
+    const orders = [...(window.db.orders || [])].sort((a, b) => 
+        new Date(b.created_at) - new Date(a.created_at)
+    );
+
+    tbody.innerHTML = orders.map(order => {
+        const isPending = order.status === 'pending';
+        const dateStr = new Date(order.created_at).toLocaleDateString();
+
+        return `
+            <tr>
+                <td>${dateStr}</td>
+                <td>${order.retailers?.name || 'Unknown'}</td>
+                <td>KES ${order.total || 0}</td>
+                <td>
+                    <span class="badge ${isPending ? 'btn-red' : 'btn-green'}" style="padding:4px 8px; border-radius:4px; color:white;">
+                        ${order.status.toUpperCase()}
+                    </span>
+                </td>
+                <td>
+                    <div style="display:flex; gap:5px;">
+                        ${isPending ? 
+                            `<button class="btn btn-blue" onclick="disburseOrder('${order.id}', 'orders')">Disburse</button>` : 
+                            `<button class="btn btn-green" onclick="viewReceipt('${order.id}', 'retailer')">Print Receipt</button>`
+                        }
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join("");
+}
+
+async function renderCorporateReceipt(orderId) {
+    const { data: order } = await supa.from('corporate_orders').select('*, schools(*)').eq('id', orderId).single();
+    const { data: items } = await supa.from('corporate_order_items').select('*').eq('order_id', orderId);
+
+    const itemsBody = document.getElementById("receiptItemsBody");
+    let calculatedTotal = 0;
+
+    itemsBody.innerHTML = items.map(item => {
+        const itemTotal = item.subtotal || (item.student_count * item.price_per_student);
+        calculatedTotal += itemTotal; // Sum the items correctly
+        
+        return `
+            <tr>
+                <td>${item.grade} (${item.student_count} Students)</td>
+                <td style="text-align:center;">1</td>
+                <td style="text-align:right;">KES ${itemTotal.toLocaleString()}</td>
+            </tr>
+        `;
+    }).join("");
+
+    // Use the sum of items for the display to ensure accuracy
+    document.getElementById("receiptGrandTotal").textContent = `TOTAL: KES ${calculatedTotal.toLocaleString()}`;
+}

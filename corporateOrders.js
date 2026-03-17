@@ -1,28 +1,28 @@
 // Add this at the top of corporateOrders.js
 let corporateCart = []; 
 
-function addCorporateToCart() {
-    const schoolId = document.getElementById("corpSchoolSelect").value;
-    const level = document.getElementById("cbcLevel").value;
-    const students = Number(document.getElementById("cbcStudents").value);
-    const price = Number(document.getElementById("cbcPrice").value);
+// Initialize the cart as an empty array at the top of corporateOrders.js
+window.corporateCart = [];
 
-    if (!schoolId || !level || students <= 0 || price <= 0) {
-        return alert("Please fill in school, level, students, and price.");
+function addCorporateToCart() {
+    const grade = document.getElementById("cbcLevel").value;
+    const students = parseInt(document.getElementById("cbcStudents").value);
+    const price = parseFloat(document.getElementById("cbcPrice").value);
+
+    if (!grade || !students || !price) {
+        return alert("Please fill in Grade, Students, and Price.");
     }
 
-    corporateCart.push({
-        level: level,
+    const item = {
+        grade: grade,
         students: students,
-        price_per_student: price,
+        pricePerStudent: price,
         subtotal: students * price
-    });
-    
-    document.getElementById("cbcLevel").value = "";
-    document.getElementById("cbcStudents").value = "";
-    document.getElementById("cbcPrice").value = "";
-    
-    renderCorporateCart();
+    };
+
+    // Push to the GLOBAL cart so processCorporateOrder can see it
+    window.corporateCart.push(item);
+    renderCorporateCart(); 
 }
 
 function renderCorporateCart() {
@@ -332,12 +332,17 @@ function updateSchoolDropdown() {
 
 // Inside corporateOrders.js -> processCorporateOrder()
 async function processCorporateOrder() {
-    console.log("Starting Corporate Order Process...");
-
-    const schoolId = document.getElementById("corpSchoolSelect").value;
-    // window.corporateCart is where we store the added grades/students
-    if (!schoolId || !window.corporateCart || window.corporateCart.length === 0) {
-        return alert("Please select a school and add items to the cart.");
+    // 1. Get the school ID from the dropdown
+    const schoolSelect = document.getElementById("corpSchoolSelect");
+    const schoolId = schoolSelect.value;
+    
+    // 2. Check if the cart has items (we use window.corporateCart to keep it global)
+    if (!schoolId) {
+        return alert("Please select a school first.");
+    }
+    
+    if (!window.corporateCart || window.corporateCart.length === 0) {
+        return alert("Your cart is empty. Add items before completing the order.");
     }
 
     try {
