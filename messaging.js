@@ -8,30 +8,33 @@ async function initChat() {
     setInterval(loadInternalMessages, 3000);
 }
 
-async function sendInternalMessage() {
-    const input = document.getElementById("internalMsgInput");
-    if (!input) return;
-    const content = input.value.trim();
+async function sendMessage() {
+    const input = document.getElementById("chatInput");
+    const message = input.value.trim();
 
-    // Check if user is logged in
-    if (!window.currentUser) {
-        return alert("You must be logged in to send messages.");
-    }
-
-    if (!content) return;
+    if (!message) return;
 
     try {
-        const { error } = await supa.from("internal_messages").insert([{
-            sender_id: window.currentUser.id,
-            sender_name: window.currentUser.full_name || "Staff",
-            content: content
+        // 1. Insert into Supabase 'messages' table
+        const { error } = await supa.from("messages").insert([{
+            content: message,
+            sender_id: window.currentUser.id, // Ensure user is logged in
+            sender_name: window.currentUser.full_name || window.currentUser.email,
+            created_at: new Date().toISOString()
         }]);
 
         if (error) throw error;
-        input.value = ""; // Clear box
-        await loadInternalMessages(); // Refresh immediately
+
+        // 2. Clear input and focus back
+        input.value = "";
+        input.focus();
+
+        // 3. Refresh the chat window immediately
+        await loadMessages(); 
+        
     } catch (err) {
-        console.error("Failed to send:", err.message);
+        console.error("Chat Error:", err.message);
+        alert("Failed to send message: " + err.message);
     }
 }
 

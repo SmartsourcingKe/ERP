@@ -343,24 +343,32 @@ async function processCorporateOrder() {
 }
 
 function renderSchools() {
-    // Ensure this ID matches the <tbody> in your Corporate Tab
     const tbody = document.getElementById("schoolBody"); 
-    if (!tbody) return;
-
-    const schools = window.db.schools || [];
+    const select = document.getElementById("corpSchoolSelect");
     
-    if (schools.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">No schools registered yet.</td></tr>';
-        return;
+    // Check if the data exists in our local database
+    const schools = window.db.schools || [];
+
+    // Update the Table List
+    if (tbody) {
+        if (schools.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">No schools registered.</td></tr>';
+        } else {
+            tbody.innerHTML = schools.map(s => `
+                <tr>
+                    <td>${s.name}</td>
+                    <td>${s.phone}</td>
+                    <td>${s.location || 'N/A'}</td>
+                </tr>
+            `).join("");
+        }
     }
 
-    tbody.innerHTML = schools.map(school => `
-        <tr>
-            <td>${school.name}</td>
-            <td>${school.phone}</td>
-            <td>${school.location || 'N/A'}</td>
-        </tr>
-    `).join("");
+    // Update the Dropdown in the "New Order" section
+    if (select) {
+        select.innerHTML = '<option value="">-- Select School --</option>' + 
+            schools.map(s => `<option value="${s.id}">${s.name}</option>`).join("");
+    }
 }
 
 async function completeCorporateOrder() {
@@ -377,15 +385,17 @@ async function completeCorporateOrder() {
         if (orderErr) throw orderErr;
 
         // 2. Save Items
-        for (const item of window.cart) {
-            await supa.from("corporate_order_items").insert([{
-                order_id: order.id,
-                product_id: item.productId,
-                quantity: item.qty,
-                // Make sure this name matches the SQL above
-                price_per_student: item.price 
-            }]);
-        }
+        for (const item of window.corporateCart) {
+    const { error: itemErr } = await supa.from("corporate_order_items").insert([{
+        order_id: order.id, // This is the column the error mentioned
+        grade: item.grade,
+        student_count: item.students,
+        price_per_student: item.pricePerStudent,
+        subtotal: item.subtotal
+    }]);
+
+    if (itemErr) throw itemErr;
+}
         
         alert("Corporate Order Finalized!");
         await sync();

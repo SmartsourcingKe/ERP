@@ -5,7 +5,7 @@
 async function addProduct() {
     const name = document.getElementById("productName").value;
     const stock = document.getElementById("productStock").value;
-    const price = document.getElementById("productBasePrice").value;
+    const price = document.getElementById("base_price").value;
     const fee = document.getElementById("productCompanyFee").value;
 
     try {
@@ -19,7 +19,7 @@ async function addProduct() {
         if (error) throw error;
 
         alert("Product Added!");
-        clearInputs(['productName', 'productStock', 'productBasePrice', 'productCompanyFee']);
+        clearInputs(['productName', 'productStock', 'base_price', 'productCompanyFee']);
         await sync();
     } catch (err) {
         alert("Error: " + err.message);
@@ -50,6 +50,7 @@ async function deleteProduct(id) {
 }
 
 async function editProduct(id) {
+    // Get values from the input fields
     const newPrice = document.getElementById(`price-${id}`).value;
     const newFee = document.getElementById(`fee-${id}`).value;
     const newStock = document.getElementById(`stock-${id}`).value;
@@ -58,17 +59,17 @@ async function editProduct(id) {
         const { error } = await supa
             .from("products")
             .update({ 
-                // Change these to match your actual Supabase columns:
-                base_price: parseFloat(newPrice), // NOT productBasePrice
-                company_fee: parseFloat(newFee),  // NOT productCompanyFee
-                stock: parseInt(newStock)         // NOT productStock
+                // CRITICAL: These names must match your Supabase columns exactly
+                base_price: parseFloat(newPrice), 
+                company_fee: parseFloat(newFee),
+                stock: parseInt(newStock)
             })
             .eq("id", id);
 
         if (error) throw error;
 
         alert("Product updated successfully!");
-        await sync(); 
+        await sync(); // Refresh the UI
     } catch (err) {
         console.error("Update Error:", err);
         alert("Failed to update: " + err.message);

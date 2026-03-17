@@ -23,7 +23,7 @@ async function addEmployee() {
         if (authError) throw authError;
 
         // 2. Upload the ID Photo
-        const fileName = `${authData.user.id}-id`;
+        const fileName = `${authData.user.id}-${Date.now()}`; // Added timestamp to avoid cache issues
         const { error: uploadError } = await supa.storage
             .from('id-photos')
             .upload(fileName, photoFile);
@@ -32,21 +32,29 @@ async function addEmployee() {
         const { data: urlData } = supa.storage.from('id-photos').getPublicUrl(fileName);
 
         // 3. Create the Database Profile
-        // We link authData.user.id to auth_user_id so they can log in!
+        // CHANGE: Use 'id' instead of 'auth_user_id' if that is your table's primary key
         const { error: profileError } = await supa.from('users').insert([{
-            auth_user_id: authData.user.id,
+            id: authData.user.id, // This links the Auth user to the Public record
             full_name: fullName,
             email: email,
             role: role,
-            photo_url: urlData.publicUrl
+            photo_url: urlData.publicUrl,
+            status: 'active'
         }]);
 
         if (profileError) throw profileError;
 
         alert("Staff registered and can now login!");
-        await sync(); // Refreshes global data
-        renderEmployees(); // Updates the list on screen
+        
+        // Clear inputs
+        document.getElementById("empEmail").value = "";
+        document.getElementById("empPassword").value = "";
+        document.getElementById("empFullName").value = "";
+        
+        await sync(); 
+        renderEmployees(); 
     } catch (err) {
+        console.error("Registration Error:", err);
         alert("Registration Failed: " + err.message);
     }
 }
