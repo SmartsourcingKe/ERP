@@ -342,16 +342,16 @@ async function processCorporateOrder() {
 }
 
 function renderSchools() {
-    const tbody = document.getElementById("schoolTableBody"); // ID from index.html
-    const select = document.getElementById("corpSchoolSelect"); // ID from index.html
+    const tbody = document.getElementById("schoolTableBody"); // Match index.html
+    const select = document.getElementById("corpSchoolSelect"); // Match index.html
     const schools = window.db.schools || [];
 
     if (tbody) {
         tbody.innerHTML = schools.length === 0 
-            ? '<tr><td colspan="3" style="text-align:center;">No schools registered.</td></tr>'
-            : schools.map(s => `<tr><td>${s.name}</td><td>${s.phone}</td><td>${s.location || 'N/A'}</td></tr>`).join("");
+            ? '<tr><td colspan="3">No schools registered.</td></tr>'
+            : schools.map(s => `<tr><td>${s.name}</td><td>${s.phone}</td><td>${s.location}</td></tr>`).join("");
     }
-
+    
     if (select) {
         select.innerHTML = '<option value="">-- Select School --</option>' + 
             schools.map(s => `<option value="${s.id}">${s.name}</option>`).join("");

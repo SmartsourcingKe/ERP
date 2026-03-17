@@ -151,13 +151,15 @@ window.onload = initApp;
 supa.auth.onAuthStateChange((event, session) => {
     console.log("AUTH EVENT:", event);
     
-    // FIX: Check if session exists before reading .user
     if (session && session.user) {
-        window.currentUser = session.user; // Or your profile logic
+        window.currentUser = session.user;
         handleAuthSuccess(session.user);
     } else {
-        console.log("No session found, redirecting to login.");
-        showLogin(); 
+        console.log("No session found. Please sign in.");
+        // FIX: Remove 'showLogin()' if it doesn't exist, 
+        // or ensure your login modal is unhidden here:
+        const loginModal = document.getElementById("loginModal");
+        if (loginModal) loginModal.classList.remove("hidden");
     }
 });
 
