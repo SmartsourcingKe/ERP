@@ -148,18 +148,22 @@ function showScreen(sectionId) {
 
 window.onload = initApp;
 
-supa.auth.onAuthStateChange((event, session) => {
+supa.auth.onAuthStateChange(async (event, session) => {
     console.log("AUTH EVENT:", event);
     
     if (session && session.user) {
         window.currentUser = session.user;
-        handleAuthSuccess(session.user);
+        // Check if handleAuthSuccess exists before calling
+        if (typeof handleAuthSuccess === "function") {
+            await handleAuthSuccess(session.user);
+        }
     } else {
-        console.log("No session found. Please sign in.");
-        // FIX: Remove 'showLogin()' if it doesn't exist, 
-        // or ensure your login modal is unhidden here:
+        console.log("No session found, redirecting to login.");
+        // FIX: Instead of calling a missing function, just show the login UI
         const loginModal = document.getElementById("loginModal");
-        if (loginModal) loginModal.classList.remove("hidden");
+        if (loginModal) {
+            loginModal.classList.remove("hidden");
+        }
     }
 });
 
