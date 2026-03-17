@@ -57,45 +57,53 @@ async function updateBranding() {
  * RENDER BRANDING
  * Displays the branding data across the login and dashboard screens.
  */
+/**
+ * RENDER BRANDING
+ * Synchronizes all branding elements (Login, Dashboard, Receipts, IDs).
+ */
 function renderBranding() {
+    // Ensure we handle both array and single object data from Supabase
     const brand = Array.isArray(window.db.branding) ? window.db.branding[0] : window.db.branding;
     if (!brand) return;
 
-    // Mapping to your index.html IDs
-    const elements = {
-        companyName: document.getElementById("companyName"),
-        loginCompanyName: document.getElementById("loginCompanyName"),
-        companyTagline: document.getElementById("companyTagline"),
-        loginTagline: document.getElementById("loginTagline"),
-        companyLogo: document.getElementById("companyLogo"),
-        loginLogo: document.getElementById("loginLogo")
-    };
+    // 1. Text Branding (Names & Taglines)
+    const nameElements = ["companyName", "loginCompanyName", "receiptCompanyName", "idHeaderName"];
+    const taglineElements = ["companyTagline", "loginTagline", "receiptTagline"];
 
-    // Apply Company Name
-    if (elements.companyName) elements.companyName.textContent = brand.company_name || "SmartsourcingKe ERP";
-    if (elements.loginCompanyName) elements.loginCompanyName.textContent = brand.company_name || "SmartsourcingKe ERP";
-    
-    // Apply Tagline
-    if (elements.companyTagline) elements.companyTagline.textContent = brand.tagline || "";
-    if (elements.loginTagline) elements.loginTagline.textContent = brand.tagline || "";
+    nameElements.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = brand.company_name || "SmartsourcingKe ERP";
+    });
 
-    // Apply Logo URLs
+    taglineElements.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = brand.tagline || "";
+    });
+
+    // 2. Logo Branding
+    const logoElements = ["companyLogo", "loginLogo", "receiptLogo", "idLogo"];
     if (brand.logo_url) {
-        if (elements.companyLogo) {
-            elements.companyLogo.src = brand.logo_url;
-            elements.companyLogo.classList.remove("hidden");
-        }
-        if (elements.loginLogo) {
-            elements.loginLogo.src = brand.logo_url;
-            elements.loginLogo.classList.remove("hidden");
-        }
+        logoElements.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.src = brand.logo_url;
+                el.classList.remove("hidden");
+                el.style.display = "block"; // Force display if hidden by CSS
+            }
+        });
+
+        // Apply to Receipt Watermark & ID Watermark
+        const watermarkImg = document.getElementById("watermarkImg");
+        const idWatermark = document.getElementById("idWatermark");
+        if (watermarkImg) watermarkImg.src = brand.logo_url;
+        if (idWatermark) idWatermark.src = brand.logo_url;
     }
 
-    // Apply Background Image to Body
+    // 3. Background / Page Styling
     if (brand.background_url) {
-        document.body.style.backgroundImage = `linear-gradient(rgba(244, 246, 249, 0.85), rgba(244, 246, 249, 0.85)), url('${brand.background_url}')`;
+        // Apply a light overlay so text stays readable on the dashboard
+        document.body.style.backgroundImage = `linear-gradient(rgba(244, 246, 249, 0.9), rgba(244, 246, 249, 0.9)), url('${brand.background_url}')`;
         document.body.style.backgroundSize = "cover";
-        document.body.style.backgroundPosition = "center";
         document.body.style.backgroundAttachment = "fixed";
     }
 }

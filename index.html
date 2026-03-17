@@ -29,13 +29,8 @@
         .modal { position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; }
         .modal-content { background-color: white; padding: 20px; border-radius: 8px; max-width: 500px; width: 90%; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
 
-        @media print {
-            body * { visibility: hidden; }
-            #receiptModal, #receiptModal * { visibility: visible; }
-            #receiptModal { position: absolute; left: 0; top: 0; background: white; width: 100%; }
-            .no-print { display: none !important; }
-        }
-		.id-card-container {
+		/* --- 1. General ID Card Styling (Screen & Print) --- */
+.id-card-container {
     width: 320px;
     height: 480px;
     background: #fff;
@@ -45,12 +40,14 @@
     overflow: hidden;
     box-shadow: 0 0 10px rgba(0,0,0,0.2);
 }
+
 .id-header {
     background: var(--primary);
     color: #fff;
     padding: 10px;
     text-align: center;
 }
+
 .id-photo-frame {
     width: 120px;
     height: 120px;
@@ -59,53 +56,54 @@
     border-radius: 5px;
     overflow: hidden;
 }
-.id-signature-area {
-    margin-top: 30px;
-    text-align: center;
-}
-.signature-line {
-    width: 150px;
-    border-bottom: 1px solid #000;
-    margin: 0 auto 5px;
-}
 
+/* --- 2. Master Print Logic (Unified) --- */
 @media print {
-    /* Hide the entire ERP interface, sidebars, and buttons */
-    body * {
-        visibility: hidden;
+    /* Hide everything on the ERP by default */
+    body * { 
+        visibility: hidden !important; 
     }
 
-    /* Only show the receipt content and its children */
-    #receiptModal, #receiptModal *, #receiptContent, #receiptContent * {
-        visibility: visible;
+    /* ONLY show the Receipt or the ID Card */
+    #receiptModal, #receiptModal *, 
+    #idCardModal, #idCardModal *,
+    #printableIdCard, #printableIdCard * { 
+        visibility: visible !important; 
     }
 
-    /* Position the receipt at the very top-left of the paper */
-    #receiptModal {
+    /* Position the active modal at the very top of the paper */
+    #receiptModal, #idCardModal {
         position: absolute;
         left: 0;
         top: 0;
         width: 100%;
+        height: auto;
         background: white !important;
     }
 
-    /* Hide the "Print" and "Close" buttons on the physical paper */
-    .no-print {
-        display: none !important;
-    }
-
-    /* Ensure the watermark and background colors print */
+    /* Ensure the Logo Watermark and colors actually print */
     * {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
     }
+
+    /* Hide the 'Print' and 'Close' buttons on the paper */
+    .no-print { 
+        display: none !important; 
+    }
 }
+
+
     </style>
 </head>
 <body>
 
 <div id="loginPage" class="container login-container">
+    <img id="loginLogo" src="" class="brand-logo hidden" style="max-height: 80px; margin-bottom: 15px;">
+    
     <h2 id="loginCompanyName">SmartsourcingKe ERP</h2>
+    <p id="loginTagline" style="font-style: italic; color: #666; margin-bottom: 20px;"></p>
+    
     <input id="loginEmail" placeholder="Email">
     <input id="loginPassword" type="password" placeholder="Password">
     <button class="btn btn-blue" onclick="login()">Login</button>
@@ -131,9 +129,6 @@
         <button id="payrollBtn" class="tab-btn hidden" onclick="openTab('payrollTab',this)">Payroll</button>
         <button id="adminBtn" class="tab-btn hidden" onclick="openTab('adminTab',this)">Admin</button>
         <button id="profitBtn" class="tab-btn hidden" onclick="openTab('profitTab',this)">Profit</button>
-        <button class="tab-btn" onclick="openTab('messagesTab', this)">
-    Messages <span id="msgBadge" class="badge-count hidden">0</span>
-</button>
     </div>
 
     <div id="ordersTab" class="tab-content">
@@ -378,30 +373,40 @@
         <div class="card"><canvas id="monthlyTrendChart"></canvas></div>
         <div class="card"><table><thead><tr><th>Month</th><th>Net Profit</th></tr></thead><tbody id="monthlyFinanceBody"></tbody></table></div>
     </div>
-</div> <div id="receiptModal" class="modal hidden">
-    <div class="modal-content" style="position:relative; width:400px; padding:20px; font-family:monospace;">
-        <div id="receiptWatermark" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); opacity:0.1; z-index:-1;">
-            <img id="watermarkImg" src="" style="width:250px;">
+</div> 
+<div id="receiptModal" class="modal hidden">
+    <div class="modal-content" style="position:relative; width:400px; padding:20px; background: white;">
+        <img id="watermarkImg" src="" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); width:250px; opacity:0.1; z-index:0; pointer-events:none;">
+        
+        <div style="position:relative; z-index:1;">
+            <div style="text-align:center; border-bottom:2px solid #333; padding-bottom:10px; margin-bottom:15px;">
+                <img id="receiptLogo" src="" style="max-height:70px; margin-bottom:5px;"><br>
+                <strong id="receiptCompanyName" style="font-size:1.2em; text-transform:uppercase;"></strong><br>
+                <span id="receiptTagline" style="font-style:italic; font-size:0.8em;"></span>
+            </div>
+
+            <div id="receiptMeta"></div>
+            <table>
+    <thead>
+        <tr style="border-bottom:1px solid #000;">
+            <th style="text-align:left;">ITEM</th>
+            <th style="text-align:center;">QTY</th>
+            <th style="text-align:center;">PRICE</th> <th style="text-align:center;">FEE</th>   <th style="text-align:right;">SUBTOTAL</th> </tr>
+    </thead>
+    <tbody id="receiptItemsBody"></tbody>
+</table>
+            
+            <div style="text-align:right; border-top:2px solid #000; margin-top:10px; padding-top:5px;">
+                <strong id="receiptGrandTotal" style="font-size:1.1em;"></strong>
+            </div>
         </div>
-        <div style="text-align:center; border-bottom:1px solid #000; padding-bottom:10px;">
-            <img id="receiptLogo" src="" style="max-height:60px;"><br>
-            <strong id="receiptCompanyName"></strong><br>
-            <span id="receiptTagline"></span>
-        </div>
-        <div id="receiptMeta" style="margin:10px 0; font-size:0.9em;"></div>
-        <table>
-            <thead><tr><th>ITEM</th><th>QTY</th><th style="text-align:right;">TOTAL</th></tr></thead>
-            <tbody id="receiptItemsBody"></tbody>
-        </table>
-        <div style="text-align:right; border-top:1px solid #000; margin-top:10px; padding-top:5px;">
-            <strong id="receiptGrandTotal"></strong>
-        </div>
+
         <div class="no-print" style="margin-top:20px; text-align:center;">
-            <button class="btn btn-blue" onclick="window.print()">Print Now</button>
+            <button class="btn btn-blue" onclick="window.print()">Print Receipt</button>
             <button class="btn btn-red" onclick="document.getElementById('receiptModal').classList.add('hidden')">Close</button>
         </div>
     </div>
-	
+</div>
 	<div id="messagesTab" class="tab-content" style="display: none; padding: 20px;">
     <div class="card" style="height: 600px; display: flex; flex-direction: column; background: white; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
         
@@ -455,20 +460,26 @@
 });
 
     function openTab(tabId, btn) {
-    document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+    // Hide all contents using the 'hidden' class
+    document.querySelectorAll('.tab-content').forEach(t => {
+        t.classList.add('hidden');
+        t.style.display = 'none'; // Extra safety
+    });
+    
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     
     const target = document.getElementById(tabId);
     if (target) {
         target.classList.remove('hidden');
+        target.style.display = 'block'; // Ensure it's not set to 'none' inline
         btn.classList.add('active');
     }
 
-    // Clear notification badge when the messages tab is opened
     if (tabId === 'messagesTab') {
         const badge = document.getElementById('msgBadge');
         if (badge) badge.classList.add('hidden');
-        window.lastReadTimestamp = new Date().toISOString();
+        // Trigger the load function from messaging.js
+        if(typeof loadInternalMessages === 'function') loadInternalMessages();
     }
 }
 

@@ -256,3 +256,32 @@ function previewIDCard(userId) {
     // Show the modal
     document.getElementById("idCardModal").classList.remove("hidden");
 }
+
+function renderReceipt(orderId) {
+    const order = window.db.orders.find(o => o.id === orderId);
+    const items = window.db.order_items.filter(oi => oi.order_id === orderId);
+    const tbody = document.getElementById("receiptItemsBody");
+    tbody.innerHTML = "";
+
+    items.forEach(item => {
+        // Retrieve the product to get the fee breakdown
+        const product = window.db.products.find(p => p.id === item.product_id);
+        const fee = parseFloat(product?.productCompanyFee || 0);
+        const unitPriceAtSale = parseFloat(item.price_at_sale || 0);
+        const basePrice = unitPriceAtSale - fee;
+        const itemSubtotal = unitPriceAtSale * item.quantity;
+
+        const row = `
+            <tr>
+                <td style="padding: 5px 0;">${item.product_name}</td>
+                <td style="text-align:center;">${item.quantity}</td>
+                <td style="text-align:center;">${basePrice.toLocaleString()}</td>
+                <td style="text-align:center;">${fee.toLocaleString()}</td>
+                <td style="text-align:right;">${itemSubtotal.toLocaleString()}</td>
+            </tr>
+        `;
+        tbody.innerHTML += row;
+    });
+
+    document.getElementById("receiptGrandTotal").innerText = `TOTAL KES: ${order.total.toLocaleString()}`;
+}
