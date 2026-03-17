@@ -50,7 +50,6 @@ async function deleteProduct(id) {
 }
 
 async function editProduct(id) {
-    // Get values from the input fields
     const newPrice = document.getElementById(`price-${id}`).value;
     const newFee = document.getElementById(`fee-${id}`).value;
     const newStock = document.getElementById(`stock-${id}`).value;
@@ -59,7 +58,7 @@ async function editProduct(id) {
         const { error } = await supa
             .from("products")
             .update({ 
-                // CRITICAL: These names must match your Supabase columns exactly
+                // These MUST match your Supabase column names exactly
                 base_price: parseFloat(newPrice), 
                 company_fee: parseFloat(newFee),
                 stock: parseInt(newStock)
@@ -69,7 +68,7 @@ async function editProduct(id) {
         if (error) throw error;
 
         alert("Product updated successfully!");
-        await sync(); // Refresh the UI
+        await sync(); // Refresh the data on the page
     } catch (err) {
         console.error("Update Error:", err);
         alert("Failed to update: " + err.message);

@@ -12,76 +12,57 @@ async function sendMessage() {
     const input = document.getElementById("chatInput");
     const message = input.value.trim();
 
-    if (!message) return;
+    if (!message || !window.currentUser) return;
 
     try {
-        // 1. Insert into Supabase 'messages' table
         const { error } = await supa.from("messages").insert([{
             content: message,
-            sender_id: window.currentUser.id, // Ensure user is logged in
-            sender_name: window.currentUser.full_name || window.currentUser.email,
-            created_at: new Date().toISOString()
+            sender_id: window.currentUser.id,
+            sender_name: window.currentUser.full_name || window.currentUser.email
         }]);
 
         if (error) throw error;
 
-        // 2. Clear input and focus back
-        input.value = "";
-        input.focus();
-
-        // 3. Refresh the chat window immediately
-        await loadMessages(); 
+        input.value = ""; // Clear input field
+        await loadMessages(); // This will now work because we defined it above!
         
     } catch (err) {
-        console.error("Chat Error:", err.message);
         alert("Failed to send message: " + err.message);
     }
 }
 
-async function loadInternalMessages() {
-    const chatBox = document.getElementById("internalChatBox");
+async function loadMessages() {
+    const chatBox = document.getElementById("chatMessages"); // Ensure this ID exists in your HTML
     if (!chatBox) return;
 
-    const { data: messages, error } = await supa
-        .from("internal_messages")
-        .select("*")
-        .order('created_at', { ascending: true });
+    try {
+        // 1. Fetch the last 50 messages from Supabase
+        const { data: messages, error } = await supa
+            .from("messages")
+            .select("*")
+            .order("created_at", { ascending: true })
+            .limit(50);
 
-    if (error) return;
+        if (error) throw error;
 
-    // Badge Logic
-    const activeTab = document.querySelector('.tab-btn.active')?.innerText || "";
-    if (messages.length > lastCount && !activeTab.includes("Messages")) {
-        const badge = document.getElementById("msgBadge");
-        if (badge) {
-            badge.classList.remove("hidden");
-            badge.innerText = messages.length - lastCount;
-        }
-    } else if (activeTab.includes("Messages")) {
-        // Clear badge if we are looking at the chat
-        const badge = document.getElementById("msgBadge");
-        if (badge) badge.classList.add("hidden");
-        lastCount = messages.length;
+        // 2. Render messages to the UI
+        chatBox.innerHTML = messages.map(msg => {
+            const isMe = msg.sender_id === window.currentUser.id;
+            return `
+                <div class="message ${isMe ? 'sent' : 'received'}">
+                    <small><strong>${msg.sender_name}</strong></small>
+                    <p>${msg.content}</p>
+                    <span class="time">${new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                </div>
+            `;
+        }).join("");
+
+        // 3. Auto-scroll to the bottom
+        chatBox.scrollTop = chatBox.scrollHeight;
+
+    } catch (err) {
+        console.error("Error loading messages:", err);
     }
-
-    // Render bubbles
-    chatBox.innerHTML = messages.map(m => {
-        const isMe = m.sender_id === window.currentUser.id;
-        return `
-            <div style="align-self: ${isMe ? 'flex-end' : 'flex-start'}; 
-                        background: ${isMe ? 'var(--blue)' : 'white'}; 
-                        color: ${isMe ? 'white' : '#333'};
-                        padding: 10px 15px; border-radius: 15px; max-width: 80%;
-                        box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: ${isMe ? 'none' : '1px solid #ddd'};">
-                <small style="display: block; font-size: 0.7em; margin-bottom: 4px; opacity: 0.8;">
-                    ${m.sender_name} • ${new Date(m.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
-                </small>
-                ${m.content}
-            </div>
-        `;
-    }).join("");
-
-    chatBox.scrollTop = chatBox.scrollHeight;
 }
 
 // Run the initialization

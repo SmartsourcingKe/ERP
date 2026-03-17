@@ -317,10 +317,10 @@ async function processCorporateOrder() {
         console.log("Order Header created:", order.id);
 
         // 3. Insert Items into corporate_order_items
-        for (const item of window.corporateCart) {
+    for (const item of window.corporateCart) {
     const { error: itemErr } = await supa.from("corporate_order_items").insert([{
-        order_id: order.id,
-        grade: item.level,           // Changed from item.grade to match our cart
+        corporate_order_id: order.id, // Ensure this matches your DB column exactly
+        level: item.level,           // Using 'level' to match your addCorporateToCart object
         student_count: item.students,
         price_per_student: item.pricePerStudent, 
         subtotal: item.subtotal
@@ -349,22 +349,20 @@ function renderSchools() {
     // Check if the data exists in our local database
     const schools = window.db.schools || [];
 
-    // Update the Table List
+    // 1. Update the Table List (The visual list of schools)
     if (tbody) {
-        if (schools.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">No schools registered.</td></tr>';
-        } else {
-            tbody.innerHTML = schools.map(s => `
+        tbody.innerHTML = schools.length === 0 
+            ? '<tr><td colspan="3" style="text-align:center;">No schools registered.</td></tr>'
+            : schools.map(s => `
                 <tr>
                     <td>${s.name}</td>
                     <td>${s.phone}</td>
                     <td>${s.location || 'N/A'}</td>
                 </tr>
             `).join("");
-        }
     }
 
-    // Update the Dropdown in the "New Order" section
+    // 2. Update the Dropdown (So you can select them for a new order)
     if (select) {
         select.innerHTML = '<option value="">-- Select School --</option>' + 
             schools.map(s => `<option value="${s.id}">${s.name}</option>`).join("");
