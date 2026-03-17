@@ -11,34 +11,25 @@ async function addEmployee() {
     const role = document.getElementById("empRole").value;
 
     try {
-        // 1. Create the Auth account
-        const { data: authData, error: authError } = await supa.auth.signUp({ 
-            email, 
-            password 
-        });
-        
+        // 1. Create Auth Account
+        const { data: authData, error: authError } = await supa.auth.signUp({ email, password });
         if (authError) throw authError;
-        if (!authData.user) throw new Error("User creation failed.");
 
-        // 2. Create the Database Profile using the SAME ID
+        // 2. Create Public Profile
         const { error: profileError } = await supa.from('users').insert([{
-            id: authData.user.id, // CRITICAL: This links Auth to your Table
+            id: authData.user.id,        // The standard ID
+            auth_user_id: authData.user.id, // The ID your app.js is searching for
             full_name: fullName,
             email: email,
             role: role,
             status: 'active'
         }]);
 
-        if (profileError) {
-            console.error("Database Insert Error:", profileError);
-            throw new Error("Auth succeeded, but profile creation failed: " + profileError.message);
-        }
-
-        alert("Employee registered successfully!");
-        await sync(); 
-        renderEmployees(); 
+        if (profileError) throw profileError;
+        alert("Employee Saved!");
+        await sync();
     } catch (err) {
-        alert(err.message);
+        alert("Error: " + err.message);
     }
 }
 

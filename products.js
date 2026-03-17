@@ -75,14 +75,5 @@ async function editProduct(id) {
         stock: parseInt(newStock)
     })
     .eq("id", id);
-	try {
-        const { error } = await supa.from("products").update({ ... }).eq("id", id);
-        if (error) throw error;
-        alert("Product updated!");
-        await sync();
-    } catch (err) { // Ensure this catch block exists
-        console.error("Update error:", err);
-        alert("Update failed: " + err.message);
-    }
 
 }
