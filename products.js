@@ -6,14 +6,14 @@ async function addProduct() {
     const name = document.getElementById("productName").value;
     const stock = document.getElementById("productStock").value;
     const price = document.getElementById("productBasePrice").value;
-    const fee = document.getElementById("productCompanyFee").value; // The HTML Input ID
+    const fee = document.getElementById("productCompanyFee").value;
 
     try {
         const { error } = await supa.from("products").insert([{
             name: name,
-            stock: parseInt(stock),
-            base_price: parseFloat(price),
-            company_fee: parseFloat(fee) // Use 'company_fee' to match standard SQL
+            stock: parseInt(stock),        // Use 'stock' instead of 'productStock'
+            base_price: parseFloat(price), // Use 'base_price' 
+            company_fee: parseFloat(fee)   // Use 'company_fee'
         }]);
 
         if (error) throw error;
@@ -75,4 +75,14 @@ async function editProduct(id) {
         stock: parseInt(newStock)
     })
     .eq("id", id);
+	try {
+        const { error } = await supa.from("products").update({ ... }).eq("id", id);
+        if (error) throw error;
+        alert("Product updated!");
+        await sync();
+    } catch (err) { // Ensure this catch block exists
+        console.error("Update error:", err);
+        alert("Update failed: " + err.message);
+    }
+
 }

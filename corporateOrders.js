@@ -342,8 +342,9 @@ async function processCorporateOrder() {
 }
 
 function renderSchools() {
-    // Corrected IDs to match your index.html exactly
+    // Your index.html uses "schoolTableBody" for the list 
     const tbody = document.getElementById("schoolTableBody"); 
+    // Your index.html uses "corpSchoolSelect" for the dropdown
     const select = document.getElementById("corpSchoolSelect");
     
     const schools = window.db.schools || [];
@@ -405,7 +406,7 @@ async function completeCorporateOrder() {
     }
 }
 
-function renderCorporateHistory() {
+function renderCorpHistory() {
     const tbody = document.getElementById("corpOrdersBody");
     if (!tbody) return;
 
@@ -414,7 +415,7 @@ function renderCorporateHistory() {
     tbody.innerHTML = orders.length === 0 
         ? '<tr><td colspan="5" style="text-align:center;">No corporate orders found.</td></tr>'
         : orders.map(order => {
-            const school = window.db.schools.find(s => s.id === order.school_id);
+            const school = window.db.schools?.find(s => s.id === order.school_id);
             const status = order.status || 'pending';
             
             return `
@@ -422,11 +423,11 @@ function renderCorporateHistory() {
                     <td>${new Date(order.created_at).toLocaleDateString()}</td>
                     <td>${school ? school.name : 'Unknown School'}</td>
                     <td>KES ${Number(order.total).toLocaleString()}</td>
-                    <td><span class="status-badge ${status}">${status.toUpperCase()}</span></td>
+                    <td><span class="badge ${status}">${status.toUpperCase()}</span></td>
                     <td>
-                        <button class="btn btn-blue" onclick="showOnScreenReceipt('${order.id}', 'corporate')">Print</button>
+                        <button class="btn btn-blue" onclick="viewReceipt('${order.id}', 'corporate')">Receipt</button>
                         ${status === 'pending' ? 
-                            `<button class="btn btn-green" onclick="updateCorpOrderStatus('${order.id}', 'disbursed')">Disburse</button>` : 
+                            `<button class="btn btn-green" onclick="disburseOrder('${order.id}', 'corporate_orders')">Disburse</button>` : 
                             `<span style="color:green; font-weight:bold;">✓ Disbursed</span>`
                         }
                     </td>

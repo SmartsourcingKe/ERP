@@ -9,53 +9,36 @@ async function addEmployee() {
     const password = document.getElementById("empPassword").value;
     const fullName = document.getElementById("empFullName").value;
     const role = document.getElementById("empRole").value;
-    const photoFile = document.getElementById("empPhotoFile").files[0];
-
-    if (!email || !password || !photoFile) return alert("Email, Password, and Photo are required!");
 
     try {
-        // 1. Create the Login Account (Auth)
+        // 1. Create the Auth account
         const { data: authData, error: authError } = await supa.auth.signUp({ 
             email, 
             password 
         });
         
         if (authError) throw authError;
+        if (!authData.user) throw new Error("User creation failed.");
 
-        // 2. Upload the ID Photo
-        const fileName = `${authData.user.id}-${Date.now()}`; // Added timestamp to avoid cache issues
-        const { error: uploadError } = await supa.storage
-            .from('id-photos')
-            .upload(fileName, photoFile);
-        
-        if (uploadError) throw uploadError;
-        const { data: urlData } = supa.storage.from('id-photos').getPublicUrl(fileName);
-
-        // 3. Create the Database Profile
-        // CHANGE: Use 'id' instead of 'auth_user_id' if that is your table's primary key
+        // 2. Create the Database Profile using the SAME ID
         const { error: profileError } = await supa.from('users').insert([{
-            id: authData.user.id, // This links the Auth user to the Public record
+            id: authData.user.id, // CRITICAL: This links Auth to your Table
             full_name: fullName,
             email: email,
             role: role,
-            photo_url: urlData.publicUrl,
             status: 'active'
         }]);
 
-        if (profileError) throw profileError;
+        if (profileError) {
+            console.error("Database Insert Error:", profileError);
+            throw new Error("Auth succeeded, but profile creation failed: " + profileError.message);
+        }
 
-        alert("Staff registered and can now login!");
-        
-        // Clear inputs
-        document.getElementById("empEmail").value = "";
-        document.getElementById("empPassword").value = "";
-        document.getElementById("empFullName").value = "";
-        
+        alert("Employee registered successfully!");
         await sync(); 
         renderEmployees(); 
     } catch (err) {
-        console.error("Registration Error:", err);
-        alert("Registration Failed: " + err.message);
+        alert(err.message);
     }
 }
 
