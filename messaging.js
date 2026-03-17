@@ -31,6 +31,30 @@ async function sendMessage() {
     }
 }
 
+async function loadInternalMessages() {
+    const chatBox = document.getElementById("internalChatBox"); // Matches index.html
+    if (!chatBox) return;
+
+    try {
+        const { data: messages, error } = await supa
+            .from("messages")
+            .select("*")
+            .order("created_at", { ascending: true });
+
+        if (error) throw error;
+
+        chatBox.innerHTML = messages.map(msg => `
+            <div class="message">
+                <strong>${msg.sender_name}:</strong> ${msg.content}
+            </div>
+        `).join("");
+        
+        chatBox.scrollTop = chatBox.scrollHeight;
+    } catch (err) {
+        console.error("Chat load error:", err.message);
+    }
+}
+
 async function loadMessages() {
     const chatBox = document.getElementById("chatMessages"); // Ensure this ID exists in your HTML
     if (!chatBox) return;
@@ -67,3 +91,4 @@ async function loadMessages() {
 
 // Run the initialization
 initChat();
+

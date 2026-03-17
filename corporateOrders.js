@@ -342,14 +342,15 @@ async function processCorporateOrder() {
 }
 
 function renderSchools() {
-    const tbody = document.getElementById("schoolTableBody"); // Matching index.html
+    // Corrected IDs to match your index.html exactly
+    const tbody = document.getElementById("schoolTableBody"); 
     const select = document.getElementById("corpSchoolSelect");
     
     const schools = window.db.schools || [];
 
     if (tbody) {
         tbody.innerHTML = schools.length === 0 
-            ? '<tr><td colspan="3" style="text-align:center;">No schools registered yet.</td></tr>'
+            ? '<tr><td colspan="3" style="text-align:center;">No schools registered.</td></tr>'
             : schools.map(s => `
                 <tr>
                     <td>${s.name}</td>
@@ -366,80 +367,70 @@ function renderSchools() {
 }
 
 async function completeCorporateOrder() {
-    // 1. Validation Logic
-    const schoolSelect = document.getElementById("corpSchoolSelect");
-    const selectedSchoolId = schoolSelect ? schoolSelect.value : null;
-
-    if (!selectedSchoolId) {
-        return alert("Please select a school first.");
-    }
-
-    if (!window.corporateCart || window.corporateCart.length === 0) {
-        return alert("Your cart is empty. Add items before completing the order.");
-    }
-
-    // 2. Calculate Grand Total
-    const grandTotal = window.corporateCart.reduce((sum, item) => sum + item.subtotal, 0);
+    const schoolId = document.getElementById("corpSchoolSelect").value;
+    if (!schoolId) return alert("Select a school.");
+    if (window.corporateCart.length === 0) return alert("Cart is empty.");
 
     try {
-        // 3. Create the Main Order (The Header)
+        const grandTotal = window.corporateCart.reduce((sum, item) => sum + item.subtotal, 0);
+
+        // 1. Save Header
         const { data: order, error: orderErr } = await supa.from("corporate_orders").insert([{
-            school_id: selectedSchoolId,
+            school_id: schoolId,
             total: grandTotal,
-            status: 'pending', // Set initial status for disbursement tracking
+            status: 'pending',
             created_by: window.currentUser.id
         }]).select().single();
 
         if (orderErr) throw orderErr;
 
-        // 4. Save Line Items (The Details)
+        // 2. Save Items
         for (const item of window.corporateCart) {
-            const { error: itemErr } = await supa.from("corporate_order_items").insert([{
-                corporate_order_id: order.id, // Ensure this matches your DB column name
-                grade: item.level || item.grade, // Accommodates both naming styles
+            await supa.from("corporate_order_items").insert([{
+                corporate_order_id: order.id,
+                grade: item.level, 
                 student_count: item.students,
                 price_per_student: item.pricePerStudent,
                 subtotal: item.subtotal
             }]);
-
-            if (itemErr) throw itemErr;
         }
 
-        alert("Corporate Order Finalized!");
-
-        // 5. Cleanup & UI Refresh
-        window.corporateCart = []; // Clear the cart
-        renderCorporateCart();      // Update the cart table (shows 0)
-        await sync();               // Refresh global data from Supabase
-        
-        // If you have a history renderer, call it here
-        if (typeof renderCorpHistory === 'function') renderCorpHistory();
-        
+        alert("Order Saved!");
+        window.corporateCart = []; // Clear local cart
+        renderCorporateCart();      // Clear UI cart
+        await sync();               // Pull fresh data
+        renderCorporateHistory();   // Show the new order in the list
     } catch (err) {
-        console.error("Order Completion Error:", err);
         alert("Error: " + err.message);
     }
 }
 
-function renderCorpHistory() {
-    const tbody = document.getElementById("corpOrdersBody"); // Matching index.html
+function renderCorporateHistory() {
+    const tbody = document.getElementById("corpOrdersBody");
     if (!tbody) return;
 
     const orders = window.db.corporate_orders || [];
 
-    tbody.innerHTML = orders.map(order => {
-        const school = window.db.schools.find(s => s.id === order.school_id);
-        return `
-            <tr>
-                <td>${new Date(order.created_at).toLocaleDateString()}</td>
-                <td>${school ? school.name : 'Unknown School'}</td>
-                <td>KES ${Number(order.total).toLocaleString()}</td>
-                <td><span class="badge">${order.status || 'pending'}</span></td>
-                <td>
-                    <button class="btn btn-blue" onclick="generateCorporateReceipt('${order.id}')">Receipt</button>
-                    <button class="btn btn-green" onclick="updateCorpOrderStatus('${order.id}', 'disbursed')">Disburse</button>
-                </td>
-            </tr>
-        `;
-    }).join("");
+    tbody.innerHTML = orders.length === 0 
+        ? '<tr><td colspan="5" style="text-align:center;">No corporate orders found.</td></tr>'
+        : orders.map(order => {
+            const school = window.db.schools.find(s => s.id === order.school_id);
+            const status = order.status || 'pending';
+            
+            return `
+                <tr>
+                    <td>${new Date(order.created_at).toLocaleDateString()}</td>
+                    <td>${school ? school.name : 'Unknown School'}</td>
+                    <td>KES ${Number(order.total).toLocaleString()}</td>
+                    <td><span class="status-badge ${status}">${status.toUpperCase()}</span></td>
+                    <td>
+                        <button class="btn btn-blue" onclick="showOnScreenReceipt('${order.id}', 'corporate')">Print</button>
+                        ${status === 'pending' ? 
+                            `<button class="btn btn-green" onclick="updateCorpOrderStatus('${order.id}', 'disbursed')">Disburse</button>` : 
+                            `<span style="color:green; font-weight:bold;">✓ Disbursed</span>`
+                        }
+                    </td>
+                </tr>
+            `;
+        }).join("");
 }

@@ -5,24 +5,22 @@
 async function addProduct() {
     const name = document.getElementById("productName").value;
     const stock = document.getElementById("productStock").value;
-    const price = document.getElementById("base_price").value;
-    const fee = document.getElementById("productCompanyFee").value;
+    const price = document.getElementById("productBasePrice").value;
+    const fee = document.getElementById("productCompanyFee").value; // The HTML Input ID
 
     try {
         const { error } = await supa.from("products").insert([{
             name: name,
             stock: parseInt(stock),
             base_price: parseFloat(price),
-            company_fee: parseFloat(fee)
+            company_fee: parseFloat(fee) // Use 'company_fee' to match standard SQL
         }]);
 
         if (error) throw error;
-
-        alert("Product Added!");
-        clearInputs(['productName', 'productStock', 'base_price', 'productCompanyFee']);
+        alert("Product saved!");
         await sync();
     } catch (err) {
-        alert("Error: " + err.message);
+        alert("Failed to update: " + err.message);
     }
 }
 
