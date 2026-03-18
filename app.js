@@ -36,39 +36,37 @@ async function initApp() {
 let isAuthProcessing = false;
 
 async function handleAuthSuccess(authUser) {
-    // If we are already processing a login, stop this duplicate request
-    if (isAuthProcessing || !authUser) return;
-    isAuthProcessing = true;
-
-    console.log("Processing Auth for:", authUser.id);
+    if (!authUser) return;
 
     try {
+        // We use .eq('id', ...) because we manually synced them in the SQL above
         const { data: profile, error } = await supa
             .from('users')
             .select('*')
-            .eq('id', authUser.id)
+            .eq('id', authUser.id) 
             .single();
 
         if (error || !profile) {
-            console.error("Profile not found:", error);
-            isAuthProcessing = false; // Reset so they can try again
+            console.error("Profile Link Failed:", error);
+            alert("Account found in Auth, but Profile missing in Database.");
             return;
         }
 
+        // Save user to memory
         window.currentUser = profile;
+
+        // Load the ERP data
         await sync();
         renderAll();
 
-        // UI Transition
+        // Show the Dashboard, Hide Login
         document.getElementById("loginModal").classList.add("hidden");
         document.getElementById("mainApp").classList.remove("hidden");
         
-        console.log("Login successful!");
+        console.log("Welcome,", profile.full_name);
 
     } catch (err) {
-        console.error("Auth Exception:", err);
-    } finally {
-        isAuthProcessing = false;
+        console.error("Critical System Error:", err);
     }
 }
 
