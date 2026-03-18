@@ -39,30 +39,36 @@ async function initApp() {
 async function handleAuthSuccess(authUser) {
     try {
         const { data: profile, error } = await supa
-    .from('users')
-    .select('*')
-    .eq('id', authUser.id) // Use 'id' instead of 'auth_user_id'
-    .single();
+            .from('users')
+            .select('*')
+            .eq('id', authUser.id) 
+            .single();
 
         if (error || !profile) {
-            console.error("Access Denied: No profile found.");
-            // Optional: supa.auth.signOut(); 
-            return;
+            console.error("Profile not found:", error);
+            return; 
         }
 
-        // If profile is found, continue to the app
+        // 1. Set the global user
         window.currentUser = profile;
-        await sync(); 
+
+        // 2. Sync and Render
+        await sync();
         renderAll();
-        
-        // Hide login modal
-        document.getElementById("loginModal").classList.add("hidden");
-        
+
+        // 3. THE MISSING PIECE: Hide the login and show the dashboard
+        const loginModal = document.getElementById("loginModal");
+        const mainApp = document.getElementById("mainApp"); // or whatever your main ID is
+
+        if (loginModal) loginModal.classList.add("hidden");
+        if (mainApp) mainApp.classList.remove("hidden");
+
+        console.log("Login sequence complete. Dashboard visible.");
+
     } catch (err) {
-        console.error("Auth Success Error:", err);
+        console.error("Critical Auth Error:", err);
     }
 }
-
 /**
  * GLOBAL SYNC
  * Parallel loading for speed + UI refresh.
