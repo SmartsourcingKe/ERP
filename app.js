@@ -40,10 +40,10 @@ async function handleAuthSuccess(authUser) {
     try {
         // This query was causing the 406 because 'auth_user_id' was missing from the DB
         const { data: profile, error } = await supa
-            .from('users')
-            .select('*')
-            .eq('auth_user_id', authUser.id) 
-            .single();
+    .from('users')
+    .select('*')
+    .eq('id', authUser.id) // Use 'id' instead of 'auth_user_id'
+    .single();
 
         if (error || !profile) {
             console.error("Access Denied: No profile found.");

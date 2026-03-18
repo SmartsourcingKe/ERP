@@ -9,21 +9,19 @@ async function addEmployee() {
     const password = document.getElementById("empPassword").value;
     const fullName = document.getElementById("empFullName").value;
     const role = document.getElementById("empRole").value;
-    const photoFile = document.getElementById("empPhoto").files[0];
+    const photoFile = document.getElementById("empPhoto").files[0]; // Photo logic stays!
 
-    if (!email || !password || !fullName) {
-        return alert("Please fill in Email, Password, and Full Name.");
-    }
+    if (!email || !password || !fullName) return alert("Fill in all fields.");
 
     try {
-        // 1. Create Auth Account
+        // 1. Create Supabase Auth Account
         const { data: authData, error: authError } = await supa.auth.signUp({ email, password });
         if (authError) throw authError;
         const userId = authData.user.id;
 
         let photoUrl = "";
 
-        // 2. Upload Photo if selected
+        // 2. Upload Photo (Keeping your important logic)
         if (photoFile) {
             const fileExt = photoFile.name.split('.').pop();
             const fileName = `${userId}-${Math.random()}.${fileExt}`;
@@ -33,37 +31,34 @@ async function addEmployee() {
 
             if (uploadError) throw uploadError;
 
-            // Get Public URL for the uploaded photo
             const { data: publicData } = supa.storage.from('avatars').getPublicUrl(fileName);
             photoUrl = publicData.publicUrl;
         }
 
-        // 3. Create Public Profile
+        // 3. Create Profile using 'id' (This makes login automatic)
+        // We use 'id' instead of 'auth_user_id' to stop the 406 error
         const { error: profileError } = await supa.from('users').upsert([{
-            id: userId,
-            auth_user_id: userId,
+            id: userId,           // Standard ID column
             full_name: fullName,
             email: email,
             role: role,
-            pic: photoUrl, // Restored the photo URL logic
+            pic: photoUrl,        // Saved for ID printing
             status: 'active'
         }], { onConflict: 'email' });
 
         if (profileError) throw profileError;
 
-        alert("Employee Saved Successfully!");
-        
-        // Reset form and refresh UI
-        document.getElementById("empEmail").value = "";
-        document.getElementById("empPassword").value = "";
+        alert("Employee created! They can log in immediately.");
         if (typeof sync === "function") await sync();
         renderEmployees();
         
     } catch (err) {
-        console.error("Employee Creation Error:", err);
-        alert("Error: " + err.message);
+        console.error("Error:", err);
+        alert(err.message);
     }
 }
+
+// REST OF FILE (renderEmployees, printIDCard, editStaff) remains the same
 
 /**
  * RENDER EMPLOYEES
