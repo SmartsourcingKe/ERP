@@ -36,51 +36,31 @@ async function initApp() {
  * HANDLE AUTH SUCCESS
  * Bridges the gap between Auth and the ERP Database.
  */
-async function handleAuthSuccess(session) {
+async function handleAuthSuccess(authUser) {
     try {
-        // Safe check for ID regardless of how the session object is passed
-        const userId = session?.user?.id || session?.id; 
-        
-        if (!userId) {
-            console.error("Auth Success: No User ID found.");
-            return showScreen("loginPage");
+        // This query was causing the 406 because 'auth_user_id' was missing from the DB
+        const { data: profile, error } = await supa
+            .from('users')
+            .select('*')
+            .eq('auth_user_id', authUser.id) 
+            .single();
+
+        if (error || !profile) {
+            console.error("Access Denied: No profile found.");
+            // Optional: supa.auth.signOut(); 
+            return;
         }
 
-        console.log("Authenticated User ID:", userId);
-
-        // Fetch the profile from our custom 'users' table
-        // Get the database profile so window.currentUser.role is available
-const { data: profile } = await supa
-    .from('users')
-    .select('*')
-    .eq('auth_user_id', userId)
-    .single();
-
-if (profile) {
-    // This merges the database role/name into the current user object
-    window.currentUser = { ...session.user, ...profile };
-}
-        
-        if (!profile) {
-            console.error("Access Denied: No profile found in 'public.users' table.");
-            alert("Your account is not fully set up. Please contact the Admin.");
-            await supa.auth.signOut();
-            return showScreen("loginPage");
-        }
-
-        // Global User Setup
+        // If profile is found, continue to the app
         window.currentUser = profile;
+        await sync(); 
+        renderAll();
         
-        // Load all data
-        await sync();
+        // Hide login modal
+        document.getElementById("loginModal").classList.add("hidden");
         
-        // UI Switch
-        showScreen("dashboard");
-        console.log("Login successful for:", profile.full_name);
-
     } catch (err) {
         console.error("Auth Success Error:", err);
-        showScreen("loginPage");
     }
 }
 
