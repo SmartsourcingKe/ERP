@@ -1,30 +1,28 @@
 /**
- * ADD EMPLOYEE
- * 1. Creates Supabase Auth Account
- * 2. Uploads Profile Photo to 'avatars' bucket
- * 3. Creates Public Profile in 'users' table
+ * ADD EMPLOYEE / ADMIN
+ * Creates Auth account, uploads photo, and creates database profile
  */
 async function addEmployee() {
     const email = document.getElementById("empEmail").value;
     const password = document.getElementById("empPassword").value;
     const fullName = document.getElementById("empFullName").value;
     const role = document.getElementById("empRole").value;
-    const photoFile = document.getElementById("empPhoto").files[0]; // Photo logic stays!
+    const photoFile = document.getElementById("empPhoto").files[0];
 
-    if (!email || !password || !fullName) return alert("Fill in all fields.");
+    if (!email || !password || !fullName) return alert("Please fill in all fields.");
 
     try {
-        // 1. Create Supabase Auth Account
+        // 1. Create the Auth Account
         const { data: authData, error: authError } = await supa.auth.signUp({ email, password });
         if (authError) throw authError;
-        const userId = authData.user.id;
+        const newUserId = authData.user.id;
 
         let photoUrl = "";
 
-        // 2. Upload Photo (Keeping your important logic)
+        // 2. Upload Profile Photo
         if (photoFile) {
             const fileExt = photoFile.name.split('.').pop();
-            const fileName = `${userId}-${Math.random()}.${fileExt}`;
+            const fileName = `${newUserId}-${Date.now()}.${fileExt}`;
             const { error: uploadError } = await supa.storage
                 .from('avatars')
                 .upload(fileName, photoFile);
@@ -35,26 +33,26 @@ async function addEmployee() {
             photoUrl = publicData.publicUrl;
         }
 
-        // 3. Create Profile using 'id' (This makes login automatic)
-        // We use 'id' instead of 'auth_user_id' to stop the 406 error
+        // 3. Create Database Profile
+        // We link 'id' directly to the Auth User ID to ensure instant login.
         const { error: profileError } = await supa.from('users').upsert([{
-            id: userId,           // Standard ID column
-            full_name: fullName,
+            id: newUserId, 
             email: email,
-            role: role,
-            pic: photoUrl,        // Saved for ID printing
+            full_name: fullName,
+            role: role, // Ensure you select 'admin' in the dropdown
+            pic: photoUrl,
             status: 'active'
-        }], { onConflict: 'email' });
+        }]);
 
         if (profileError) throw profileError;
 
-        alert("Employee created! They can log in immediately.");
-        if (typeof sync === "function") await sync();
+        alert(`Success! ${fullName} can now log in immediately.`);
+        await sync();
         renderEmployees();
         
     } catch (err) {
-        console.error("Error:", err);
-        alert(err.message);
+        console.error("Creation Error:", err);
+        alert("Failed: " + err.message);
     }
 }
 
