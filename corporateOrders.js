@@ -57,25 +57,28 @@ function renderCorporateCart() {
 async function completeCorporateOrder() {
     const schoolId = document.getElementById("corpSchoolSelect").value;
     
+    // Check if user is logged in
+    if (!window.currentUser) return alert("Error: No active session. Please log in again.");
     if (!schoolId) return alert("Please select a school.");
-    if (window.corporateCart.length === 0) return alert("Your cart is empty.");
+    if (!window.corporateCart || window.corporateCart.length === 0) return alert("Cart is empty.");
 
     try {
         const grandTotal = window.corporateCart.reduce((sum, item) => sum + item.subtotal, 0);
 
-        // 1. Save Header
+        // 1. Create Order Header
         const { data: order, error: orderErr } = await supa.from("corporate_orders").insert([{
             school_id: schoolId,
             total: grandTotal,
             status: 'pending',
-            created_by: window.currentUser.id
+            created_by: window.currentUser.id // Ensure this matches your 'users' table ID
         }]).select().single();
 
         if (orderErr) throw orderErr;
 
-        // 2. Save Items
+        // 2. Map items correctly (matches your products.js logic)
         const itemsToInsert = window.corporateCart.map(item => ({
             corporate_order_id: order.id,
+            product_id: item.id, // Ensure your cart items store the product UUID
             grade: item.grade, 
             student_count: item.students,
             price_per_student: item.pricePerStudent,
@@ -85,17 +88,17 @@ async function completeCorporateOrder() {
         const { error: itemsErr } = await supa.from("corporate_order_items").insert(itemsToInsert);
         if (itemsErr) throw itemsErr;
 
-        alert("Corporate Order Saved Successfully!");
+        alert("Order #" + order.id.slice(0,8) + " saved!");
         
-        // 3. Cleanup & UI Refresh
-        window.corporateCart = []; 
-        renderCorporateCart();      
-        if (typeof sync === "function") await sync();
-        renderCorpHistory(); 
-        
+        // 3. Reset UI
+        window.corporateCart = [];
+        renderCorporateCart();
+        await sync(); 
+        if (typeof renderCorpHistory === "function") renderCorpHistory();
+
     } catch (err) {
-        console.error("Order Error:", err);
-        alert("Failed to save order: " + err.message);
+        console.error("Corporate Order Failure:", err);
+        alert("Order failed: " + err.message);
     }
 }
 
@@ -156,21 +159,75 @@ function renderCorpHistory() {
  */
 async function addSchool() {
     const name = document.getElementById("schoolName").value;
-    const phone = document.getElementById("schoolPhone").value;
     const location = document.getElementById("schoolLocation").value;
 
-    if (!name || !phone) return alert("Name and Phone are required.");
+    if (!name) return alert("School name is required.");
 
     try {
-        const { error } = await supa.from("schools").insert([{ 
-            name, phone, location 
-        }]);
+        const { data, error } = await supa
+            .from("schools")
+            .insert([{ name, location }])
+            .select();
+
         if (error) throw error;
 
-        alert("School added!");
-        if (typeof sync === "function") await sync();
-        renderSchools();
+        alert("School added successfully!");
+        
+        // Refresh data so the dropdown updates immediately
+        await sync(); 
+        if (typeof renderSchoolDropdown === "function") renderSchoolDropdown();
+        
+        // Clear the form
+        document.getElementById("schoolName").value = "";
     } catch (err) {
-        alert("Error: " + err.message);
+        console.error("Error adding school:", err);
+        alert("Save failed: " + err.message);
     }
+}
+
+function printCorporateReceipt(orderId) {
+    const order = window.db.corporate_orders.find(o => o.id === orderId);
+    const school = window.schools.find(s => s.id === order.school_id);
+    const items = window.db.corporate_order_items.filter(i => i.corporate_order_id === orderId);
+
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+        <html>
+            <head>
+                <title>Receipt - ${school ? school.name : 'Corporate'}</title>
+                <style>
+                    body { font-family: sans-serif; padding: 20px; }
+                    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                    .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h2>SmartsourcingKe ERP</h2>
+                    <p>Corporate Order Receipt</p>
+                </div>
+                <p><strong>School:</strong> ${school ? school.name : 'N/A'}</p>
+                <p><strong>Date:</strong> ${new Date(order.created_at).toLocaleDateString()}</p>
+                <table>
+                    <thead>
+                        <tr><th>Grade</th><th>Students</th><th>Price</th><th>Subtotal</th></tr>
+                    </thead>
+                    <tbody>
+                        ${items.map(i => `
+                            <tr>
+                                <td>${i.grade}</td>
+                                <td>${i.student_count}</td>
+                                <td>${i.price_per_student}</td>
+                                <td>${i.subtotal}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+                <h3>Total: Sh ${order.total}</h3>
+                <script>window.print(); window.close();</script>
+            </body>
+        </html>
+    `);
+    printWindow.document.close();
 }
