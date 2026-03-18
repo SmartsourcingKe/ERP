@@ -47,28 +47,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 });
 
-/**
- * AUTH STATE LISTENER
- * Reacts to Sign In / Sign Out events globally.
- */
-if (window.supa) {
-    supa.auth.onAuthStateChange(async (event, session) => {
-        console.log("AUTH EVENT:", event);
-
-        if (event === "SIGNED_IN" && session) {
-            if (typeof handleAuthSuccess === "function") {
-                await handleAuthSuccess(session);
-            }
-        }
-
-        if (event === "SIGNED_OUT") {
-            window.currentUser = null;
-            if (typeof showScreen === "function") {
-                showScreen("loginPage");
-            }
-        }
-    });
-}
 
 /**
  * GLOBAL EVENT LISTENERS

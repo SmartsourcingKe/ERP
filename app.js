@@ -32,43 +32,46 @@ async function initApp() {
     }
 }
 
-/**
- * HANDLE AUTH SUCCESS
- * Bridges the gap between Auth and the ERP Database.
- */
+// 1. Add this at the top of app.js (outside any functions)
+let isAuthProcessing = false;
+
 async function handleAuthSuccess(authUser) {
+    // If we are already processing a login, stop this duplicate request
+    if (isAuthProcessing || !authUser) return;
+    isAuthProcessing = true;
+
+    console.log("Processing Auth for:", authUser.id);
+
     try {
         const { data: profile, error } = await supa
             .from('users')
             .select('*')
-            .eq('id', authUser.id) 
+            .eq('id', authUser.id)
             .single();
 
         if (error || !profile) {
             console.error("Profile not found:", error);
-            return; 
+            isAuthProcessing = false; // Reset so they can try again
+            return;
         }
 
-        // 1. Set the global user
         window.currentUser = profile;
-
-        // 2. Sync and Render
         await sync();
         renderAll();
 
-        // 3. THE MISSING PIECE: Hide the login and show the dashboard
-        const loginModal = document.getElementById("loginModal");
-        const mainApp = document.getElementById("mainApp"); // or whatever your main ID is
-
-        if (loginModal) loginModal.classList.add("hidden");
-        if (mainApp) mainApp.classList.remove("hidden");
-
-        console.log("Login sequence complete. Dashboard visible.");
+        // UI Transition
+        document.getElementById("loginModal").classList.add("hidden");
+        document.getElementById("mainApp").classList.remove("hidden");
+        
+        console.log("Login successful!");
 
     } catch (err) {
-        console.error("Critical Auth Error:", err);
+        console.error("Auth Exception:", err);
+    } finally {
+        isAuthProcessing = false;
     }
 }
+
 /**
  * GLOBAL SYNC
  * Parallel loading for speed + UI refresh.
