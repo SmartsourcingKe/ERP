@@ -38,7 +38,6 @@ async function initApp() {
  */
 async function handleAuthSuccess(authUser) {
     try {
-        // This query was causing the 406 because 'auth_user_id' was missing from the DB
         const { data: profile, error } = await supa
     .from('users')
     .select('*')
