@@ -253,7 +253,7 @@
         Update Product
     </button>
 
-    <div id="corporateTab" class="tab-content hidden">
+<div id="corporateTab" class="tab-content hidden">
     <div class="card">
         <h3>Manage Schools</h3>
         <input type="text" id="schoolName" placeholder="School Name">
@@ -281,10 +281,10 @@
                 <option value="PP1">PP1</option><option value="PP2">PP2</option>
                 <option value="Grade 1">Grade 1</option><option value="Grade 2">Grade 2</option>
                 <option value="Grade 3">Grade 3</option><option value="Grade 4">Grade 4</option>
-				<option value="Grade 5">Grade 5</option><option value="Grade 6">Grade 6</option>
-				<option value="Grade 7">Grade 7</option><option value="Grade 8">Grade 8</option>
-				<option value="Grade 9">Grade 9</option><option value="Grade 10">Grade 10</option>
-				<option value="Grade 11">Grade 11</option><option value="Grade 12">Grade 12</option>
+                <option value="Grade 5">Grade 5</option><option value="Grade 6">Grade 6</option>
+                <option value="Grade 7">Grade 7</option><option value="Grade 8">Grade 8</option>
+                <option value="Grade 9">Grade 9</option><option value="Grade 10">Grade 10</option>
+                <option value="Grade 11">Grade 11</option><option value="Grade 12">Grade 12</option>
             </select>
             <input type="number" id="cbcStudents" placeholder="Students" style="flex:1;">
             <input type="number" id="cbcPrice" placeholder="Price/Student" style="flex:1;">
@@ -305,9 +305,15 @@
         <h3>Corporate Order History</h3>
         <table>
             <thead>
-                <tr><th>Date</th><th>School</th><th>Total</th><th>Status</th><th>Action</th></tr>
+                <tr>
+                    <th>Date</th>
+                    <th>School</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
             </thead>
-            <tbody id="corpOrdersBody"></tbody>
+            <tbody id="corpOrdersBody"></tbody> 
         </table>
     </div>
 </div>

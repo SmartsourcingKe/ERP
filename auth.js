@@ -45,33 +45,28 @@ async function logout() {
 /* ---- Session Handlers ---- */
 
 async function handleSignedIn(session) {
-    if (!session?.user) return;
+    const user = session.user;
+    
+    // 1. FORCED ROLE CHECK: Don't wait for sync, ask Supabase directly
+    const { data: profile, error } = await supa
+        .from('users')
+        .select('role, full_name')
+        .eq('id', user.id)
+        .single();
 
-    try {
-        // Fetch custom user profile from public.users table
-        const { data: userRow, error } = await supa
-            .from("users")
-            .select("*")
-            .eq("auth_user_id", session.user.id)
-            .maybeSingle();
-
-        if (error || !userRow) {
-            alert("User profile not found in database.");
-            return await logout();
-        }
-
-        window.currentUser = userRow;
-        
-        // Set up UI and Data
-        applyPermissions();
-        showDashboard();
-        
-        if (typeof sync === "function") await sync();
-        if (typeof renderAll === "function") renderAll();
-
-    } catch (err) {
-        console.error("Signed-in handler failed:", err);
+    if (profile) {
+        // Attach the real role to the global user object
+        window.currentUser = { ...user, ...profile };
+        console.log("Logged in as:", window.currentUser.role);
+    } else {
+        // Fallback if record doesn't exist in 'users' table yet
+        window.currentUser = { ...user, role: 'employee' };
     }
+
+    // 2. Now run the rest
+    await sync(); 
+    showDashboard(); // This function should hide login and show the main app
+    renderAll();
 }
 
 function handleSignedOut() {
