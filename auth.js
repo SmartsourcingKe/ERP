@@ -26,6 +26,16 @@ async function login() {
         console.error("Login error:", err.message);
         alert("Login failed: " + err.message);
     }
+	window.currentUser = { id: data.user.id, email: data.user.email }; 
+        
+        await sync();
+        // NOW FETCH THE ROLE
+        const userRecord = window.db.users.find(u => u.id === data.user.id);
+        if(userRecord) window.currentUser.role = userRecord.role;
+
+        await loadBranding();
+        showDashboard();
+    } catch (err) { ... }
 }
 
 async function logout() {
