@@ -4,38 +4,26 @@ async function login() {
     const emailInput = document.getElementById("loginEmail");
     const passwordInput = document.getElementById("loginPassword");
 
-    if (!emailInput || !passwordInput) return console.error("Login inputs not found");
+    if (!emailInput || !passwordInput) return;
 
     const email = emailInput.value.trim();
     const password = passwordInput.value;
-
-    if (!email || !password) return alert("Please enter both email and password");
 
     try {
         const { data, error } = await supa.auth.signInWithPassword({ email, password });
         if (error) throw error;
 
-        console.log("Login successful");
-        
-        // Load data immediately upon successful login
-        await sync();
-        await loadBranding();
-        showDashboard();
+        // Force role check immediately
+        const { data: profile } = await supa.from('users').select('role').eq('id', data.user.id).single();
+        window.currentUser = { ...data.user, role: profile?.role || 'employee' };
 
+        await sync();
+        showDashboard();
+        renderAll();
     } catch (err) {
         console.error("Login error:", err.message);
         alert("Login failed: " + err.message);
     }
-	window.currentUser = { id: data.user.id, email: data.user.email }; 
-        
-        await sync();
-        // NOW FETCH THE ROLE
-        const userRecord = window.db.users.find(u => u.id === data.user.id);
-        if(userRecord) window.currentUser.role = userRecord.role;
-
-        await loadBranding();
-        showDashboard();
-    } catch (err) { ... }
 }
 
 async function logout() {
