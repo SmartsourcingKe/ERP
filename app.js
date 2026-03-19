@@ -35,7 +35,7 @@ async function initApp() {
 // 1. Add this at the top of app.js (outside any functions)
 let isAuthProcessing = false;
 
-function handleAuthSuccess(session) {
+async function handleAuthSuccess(session) {
     const loginScreen = document.getElementById('loginScreen');
     const mainApp = document.getElementById('mainApp');
 
