@@ -196,20 +196,19 @@ function renderAdmin() {
 
 function renderProducts() {
     const container = document.getElementById("inventoryList");
-    if (!container) return;
+    // If the user isn't on the inventory tab, or the div isn't found, STOP HERE.
+    if (!container) return; 
 
     const products = window.db.products || [];
     let html = "";
 
     products.forEach(product => {
-        // MUST use the backtick ` here
+        // USE BACKTICKS ` 
         html += `
             <div class="card" style="border:1px solid #ddd; padding:15px; margin-bottom:10px;">
                 <h4>${product.name}</h4>
-                <label>Price (KES):</label>
-                <input type="number" id="price-${product.id}" value="${product.base_price || 0}" class="form-control">
-                <label>Stock:</label>
-                <input type="number" id="stock-${product.id}" value="${product.stock || 0}" class="form-control">
+                <label>Price:</label>
+                <input type="number" id="price-${product.id}" value="${product.base_price || 0}">
                 <button class="btn btn-blue" onclick="editProduct('${product.id}')">Update</button>
             </div>`;
     });

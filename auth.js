@@ -45,27 +45,28 @@ async function logout() {
 /* ---- Session Handlers ---- */
 
 async function handleSignedIn(session) {
+    if (!session) return;
     const user = session.user;
-    
-    // 1. FORCED ROLE CHECK: Don't wait for sync, ask Supabase directly
+
+    // 1. IMMEDIATELY fetch the role from the database
     const { data: profile, error } = await supa
         .from('users')
-        .select('role, full_name')
+        .select('*')
         .eq('id', user.id)
         .single();
 
     if (profile) {
-        // Attach the real role to the global user object
+        // This is the line that makes you an Admin in the app's eyes
         window.currentUser = { ...user, ...profile };
-        console.log("Logged in as:", window.currentUser.role);
+        console.log("Verified Role:", window.currentUser.role);
     } else {
-        // Fallback if record doesn't exist in 'users' table yet
+        // If no profile exists, default to employee so the app doesn't crash
         window.currentUser = { ...user, role: 'employee' };
     }
 
-    // 2. Now run the rest
+    // 2. Now that we know the role, we can show the UI
     await sync(); 
-    showDashboard(); // This function should hide login and show the main app
+    showDashboard(); // Make sure this function handles the tab visibility
     renderAll();
 }
 
