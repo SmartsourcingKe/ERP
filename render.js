@@ -12,7 +12,7 @@ function renderAll() {
         
         // FIX: Match the actual functions in corporateOrders.js
         if (typeof renderSchools === "function") renderSchools();
-        if (typeof renderCorpHistory === "function") renderCorpHistory();
+        if (typeof renderCorpHistory === "function") renderCorporateHistory();
 
         if (typeof renderEmployees === "function") renderEmployees();
         console.log("Master Render complete.");
@@ -202,27 +202,32 @@ function renderProducts() {
     let html = "";
 
     products.forEach(product => {
-        // MUST start with a backtick `
+        // USE BACKTICKS ` BELOW
         html += `
-            <div class="card" style="border:1px solid #ddd; padding:15px; margin-bottom:10px; background:white;">
+            <div class="card" style="border:1px solid #ddd; padding:15px; border-radius:8px; margin-bottom:15px; background:#fff;">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <h4 style="margin:0;">${product.name}</h4>
-                    <button onclick="deleteProduct('${product.id}')" style="background:none; border:none; color:red; cursor:pointer;">🗑️</button>
+                    <button onclick="deleteProduct('${product.id}')" style="background:none; border:none; color:var(--red); cursor:pointer; font-size:1.2rem;">🗑️</button>
                 </div>
+                
                 <div style="margin-top:10px;">
-                    <label>Base Price:</label>
+                    <label style="display:block; font-size:12px;">Base Price (KES):</label>
                     <input type="number" id="price-${product.id}" value="${product.base_price || 0}" class="form-control">
                     
-                    <label>Company Fee:</label>
+                    <label style="display:block; font-size:12px; margin-top:5px;">Company Fee (KES):</label>
                     <input type="number" id="fee-${product.id}" value="${product.company_fee || 0}" class="form-control">
                     
-                    <label>Stock:</label>
+                    <label style="display:block; font-size:12px; margin-top:5px;">Stock:</label>
                     <input type="number" id="stock-${product.id}" value="${product.stock || 0}" class="form-control">
                 </div>
-                <button class="btn btn-blue" style="width:100%; margin-top:10px;" onclick="editProduct('${product.id}')">Update Product</button>
+
+                <button class="btn btn-blue" style="width:100%; margin-top:10px;" onclick="editProduct('${product.id}')">
+                    Update Product
+                </button>
             </div>
-        `; // MUST end with a backtick `
+        `;
     });
+
     container.innerHTML = html;
 }
 

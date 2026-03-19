@@ -118,33 +118,40 @@ function renderSchools() {
 }
 
 
+// RENAME THIS EXACTLY
 function renderCorporateHistory() {
     const tbody = document.getElementById("corpOrdersBody");
     if (!tbody) return;
 
-    const orders = window.db.corporate_orders || [];
+    // Get orders and sort by newest first
+    const orders = (window.db.corporate_orders || []).sort((a, b) => 
+        new Date(b.created_at) - new Date(a.created_at)
+    );
     
-    tbody.innerHTML = orders.length === 0 
-        ? '<tr><td colspan="5" style="text-align:center;">No corporate orders found.</td></tr>'
-        : orders.map(order => {
-            const school = window.db.schools?.find(s => s.id === order.school_id);
-            const status = order.status || 'pending';
-            
-            return `
-                <tr>
-                    <td>${new Date(order.created_at).toLocaleDateString()}</td>
-                    <td>${school ? school.name : 'Unknown'}</td>
-                    <td>KES ${Number(order.total).toLocaleString()}</td>
-                    <td><span class="badge ${status}">${status.toUpperCase()}</span></td>
-                    <td>
-                        <button class="btn btn-blue" onclick="viewReceipt('${order.id}', 'corporate')">Receipt</button>
-                        ${status === 'pending' ? 
-                            `<button class="btn btn-green" onclick="disburseOrder('${order.id}', 'corporate_orders')">Disburse</button>` : 
-                            `<span style="color:green; font-weight:bold;">✓ COMPLETED</span>`
-                        }
-                    </td>
-                </tr>`;
-        }).join("");
+    if (orders.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No corporate orders found.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = orders.map(order => {
+        const school = (window.db.schools || []).find(s => s.id === order.school_id);
+        const status = order.status || 'pending';
+        
+        return `
+            <tr>
+                <td>${new Date(order.created_at).toLocaleDateString()}</td>
+                <td>${school ? school.name : 'Unknown'}</td>
+                <td>KES ${Number(order.total || 0).toLocaleString()}</td>
+                <td><span class="badge ${status}">${status.toUpperCase()}</span></td>
+                <td>
+                    <button class="btn btn-blue" onclick="viewReceipt('${order.id}', 'corporate')">Receipt</button>
+                    ${status === 'pending' ? 
+                        `<button class="btn btn-green" onclick="disburseOrder('${order.id}', 'corporate_orders')">Disburse</button>` : 
+                        `<span style="color:green; font-weight:bold;">✓ DISBURSED</span>`
+                    }
+                </td>
+            </tr>`;
+    }).join("");
 }
 
 /**
