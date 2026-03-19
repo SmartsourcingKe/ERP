@@ -219,9 +219,6 @@
         </table>
     </div>
 </div>
-
-    // Locate the loop that generates your product cards and update the template:
-card.innerHTML = `
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
         <h3 style="margin:0;">${product.name}</h3>
         <button onclick="deleteProduct('${product.id}')" style="background:none; border:none; color:var(--red); cursor:pointer; font-size:1.2rem;">🗑️</button>
@@ -241,7 +238,6 @@ card.innerHTML = `
     <button class="btn btn-blue" style="width:100%; margin-top:10px;" onclick="editProduct('${product.id}')">
         Update Product
     </button>
-`;
 
     <div id="corporateTab" class="tab-content hidden">
     <div class="card">
