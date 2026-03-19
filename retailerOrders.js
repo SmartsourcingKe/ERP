@@ -187,44 +187,40 @@ async function showOnScreenReceipt(orderId, type = 'retailer') {
     document.getElementById("receiptModal").classList.remove("hidden");
 }
 
-async function viewReceipt(orderId, type) {
-    // 1. Get order details from your local database
-    const order = window.db.orders.find(o => o.id === orderId);
-    if (!order) return alert("Order data not found locally.");
-
+async function viewReceipt(orderId) {
     try {
-        // 2. Fetch the specific items for this order
-        const { data: items, error } = await supa
-            .from('order_items')
-            .select('*, products(name)')
-            .eq('order_id', orderId);
+        const order = window.db.orders.find(o => o.id === orderId);
+        if (!order) return;
 
-        if (error) throw error;
+        // Ensure we find the same retailer used in the table
+        const retailer = (window.db.retailers || []).find(r => r.id === order.retailer_id);
+        const items = (window.db.order_items || []).filter(item => item.order_id === orderId);
 
-        // 3. Fill the Modal
-        const itemsBody = document.getElementById("receiptItemsBody");
-        itemsBody.innerHTML = items.map(item => {
-            // Use price_at_sale if it exists, otherwise fallback to the current product price
-            const unitPrice = item.price_at_sale || (item.products?.base_price || 0);
+        // Update Receipt ID to match the table exactly
+        document.getElementById("receiptMeta").innerHTML = `
+            <p><strong>Order ID:</strong> #${order.id.slice(0, 8).toUpperCase()}</p>
+            <p><strong>Retailer:</strong> ${retailer ? retailer.name : 'N/A'}</p>
+            <p><strong>Date:</strong> ${new Date(order.created_at).toLocaleString()}</p>
+        `;
+
+        // Rest of your rendering logic for items...
+        const itemsHtml = items.map(item => {
+            const product = (window.db.products || []).find(p => p.id === item.product_id);
             return `
                 <tr>
-                    <td style="text-align:left; padding: 5px;">${item.products?.name || 'Item'}</td>
+                    <td>${product ? product.name : 'Unknown Product'}</td>
                     <td style="text-align:center;">${item.quantity}</td>
-                    <td style="text-align:right;">${unitPrice.toLocaleString()}</td>
-                    <td style="text-align:right;">${(item.quantity * unitPrice).toLocaleString()}</td>
-                </tr>
-            `;
+                    <td style="text-align:right;">${Number(item.price_at_time).toLocaleString()}</td>
+                    <td style="text-align:right;">${(item.quantity * item.price_at_time).toLocaleString()}</td>
+                </tr>`;
         }).join("");
 
-        // 4. Update Header and Totals
-        document.getElementById("receiptGrandTotal").textContent = `TOTAL: KES ${order.total.toLocaleString()}`;
-        document.getElementById("receiptCompanyName").textContent = window.db.branding?.company_name || "SmartsourcingKe";
+        document.getElementById("receiptItemsBody").innerHTML = itemsHtml;
+        document.getElementById("receiptGrandTotal").textContent = `TOTAL: KES ${Number(order.total).toLocaleString()}`;
         
-        // 5. Show and Print
         document.getElementById("receiptModal").classList.remove("hidden");
     } catch (err) {
         console.error("Receipt Error:", err);
-        alert("Failed to generate receipt: " + err.message);
     }
 }
 

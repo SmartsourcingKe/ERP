@@ -125,19 +125,28 @@ function renderCorpOrders() {
  * Used in the "Create Order" section.
  */
 function renderProductDropdowns() {
-    const selects = ["orderProductSelect"]; // Add other product select IDs here
-    const products = window.db.products || [];
+    // 1. Identify all dropdowns that need product data
+    const selects = ["orderProductSelect", "corpProductSelect"]; 
+    
+    // 2. Use window.products (from your sync function) as the source
+    // If window.db.products is your primary store, keep it, but ensure it's fresh.
+    const products = window.products || window.db?.products || [];
 
     selects.forEach(id => {
         const el = document.getElementById(id);
         if (!el) return;
         
-        el.innerHTML = '<option value="">Select Product</option>' + 
-            products.map(p => `<option value="${p.id}">${p.name} (Stock: ${p.stock})</option>`).join("");
+        // 3. Clear and Rebuild
+        // We filter for p.stock > 0 so staff don't try to sell what you don't have
+        const options = products
+            .filter(p => p.stock > 0) 
+            .map(p => `<option value="${p.id}">${p.name} - Sh${p.base_price} (Stock: ${p.stock})</option>`)
+            .join("");
+
+        el.innerHTML = '<option value="">-- Select Product --</option>' + options;
     });
-	
-	
-	
+    
+    console.log("Order dropdowns refreshed with latest stock.");
 }
 
 /**
@@ -328,38 +337,31 @@ function renderReceipt(orderId) {
 }
 
 function renderOrders() {
-    const tbody = document.getElementById("ordersBody");
+    const tbody = document.getElementById("ordersTableBody");
     if (!tbody) return;
 
-    // Sort by date (newest first) so your new orders appear at the top
-    const orders = [...(window.db.orders || [])].sort((a, b) => 
-        new Date(b.created_at) - new Date(a.created_at)
-    );
-
+    const orders = window.db.orders || [];
+    
     tbody.innerHTML = orders.map(order => {
-        const isPending = order.status === 'pending';
-        const dateStr = new Date(order.created_at).toLocaleDateString();
-
+        // Fix: Ensure we pull from the correct retailers list
+        const retailer = (window.db.retailers || []).find(r => r.id === order.retailer_id);
+        const status = order.status || 'pending';
+        
         return `
             <tr>
-                <td>${dateStr}</td>
-                <td>${order.retailers?.name || 'Unknown'}</td>
-                <td>KES ${order.total || 0}</td>
+                <td>${order.id.slice(0, 8).toUpperCase()}</td> 
+                <td>${new Date(order.created_at).toLocaleDateString()}</td>
+                <td>${retailer ? retailer.name : 'Unknown Retailer'}</td>
+                <td>KES ${Number(order.total).toLocaleString()}</td>
+                <td><span class="badge ${status}">${status.toUpperCase()}</span></td>
                 <td>
-                    <span class="badge ${isPending ? 'btn-red' : 'btn-green'}" style="padding:4px 8px; border-radius:4px; color:white;">
-                        ${order.status.toUpperCase()}
-                    </span>
+                    <button class="btn btn-blue" onclick="viewReceipt('${order.id}')">Receipt</button>
+                    ${status === 'pending' ? 
+                        `<button class="btn btn-green" onclick="updateOrderStatus('${order.id}', 'disbursed')">Disburse</button>` : 
+                        `<span style="color:green; font-weight:bold;">✓ SHIPPED</span>`
+                    }
                 </td>
-                <td>
-                    <div style="display:flex; gap:5px;">
-                        ${isPending ? 
-                            `<button class="btn btn-blue" onclick="disburseOrder('${order.id}', 'orders')">Disburse</button>` : 
-                            `<button class="btn btn-green" onclick="viewReceipt('${order.id}', 'retailer')">Print Receipt</button>`
-                        }
-                    </div>
-                </td>
-            </tr>
-        `;
+            </tr>`;
     }).join("");
 }
 

@@ -66,10 +66,7 @@ async function sync() {
 
     } catch (err) {
         console.error("Global Sync Failure:", err);
-    }
-	const { data: corpOrders } = await supa.from("corporate_orders").select("*");
-    window.db.corporate_orders = corpOrders;
-    
+    }    
     // Call the specific renderers
     renderSchools();
     renderCorporateHistory(); // Create this to show the table in image_20cc22.png

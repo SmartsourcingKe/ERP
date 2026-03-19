@@ -1,32 +1,47 @@
 /**
  * GENERATE PAYROLL
- * Calculates basic salary + commission based on disbursed orders.
+ * Calculates basic salary + commission based on the 'company_fee' of items in disbursed orders.
  */
 async function generatePayroll() {
-    if (!window.db?.users || !window.supa) return;
+    // 1. Safety Check: Ensure all necessary data is loaded
+    if (!window.db?.users || !window.db?.orders || !window.supa) {
+        return alert("Data not fully loaded. Please wait for sync or refresh.");
+    }
 
-    const month = new Date().toISOString().slice(0, 7); 
-    if (!confirm(`Generate payroll for ${month}?`)) return;
+    const month = new Date().toISOString().slice(0, 7); // Format: YYYY-MM
+    if (!confirm(`Generate payroll for ${month}? This will overwrite existing drafts for this month.`)) return;
 
     try {
-        // 1. Clear existing for the month
-        await supa.from("payroll").delete().eq("payroll_month", month);
+        // 2. Clear existing draft payroll for this specific month to avoid duplicates
+        await supa.from("payroll").delete().eq("payroll_month", month).eq("status", "draft");
 
-        const staffMembers = db.users.filter(u => u.role === "staff");
+        const staffMembers = window.db.users.filter(u => u.role === "staff");
+        const allOrders = window.db.orders || [];
+        const allItems = window.db.order_items || [];
+        const allProducts = window.db.products || [];
 
         for (const staff of staffMembers) {
-            const staffOrders = (db.orders || []).filter(o => 
-                o.created_by === staff.id && o.status === "disbursed"
-            );
+            // Filter: Only orders created by this staff, disbursed this month
+            const staffOrders = allOrders.filter(o => {
+                const orderMonth = new Date(o.created_at).toISOString().slice(0, 7);
+                return o.created_by === staff.id && 
+                       o.status === "disbursed" && 
+                       orderMonth === month;
+            });
 
             let totalCommission = 0;
 
             staffOrders.forEach(order => {
-                const items = (db.order_items || []).filter(i => i.order_id === order.id);
+                // Find all items belonging to this specific order
+                const items = allItems.filter(i => i.order_id === order.id);
+                
                 items.forEach(item => {
-                    const product = (db.products || []).find(p => p.id === item.product_id);
+                    // Match the item to a product to find the specific company_fee
+                    const product = allProducts.find(p => p.id === item.product_id);
                     if (product) {
-                        totalCommission += (Number(product.company_fee) || 0) * item.quantity;
+                        const feePerUnit = Number(product.company_fee) || 0;
+                        const quantity = Number(item.quantity) || 0;
+                        totalCommission += (feePerUnit * quantity);
                     }
                 });
             });
@@ -34,21 +49,28 @@ async function generatePayroll() {
             const basicSalary = Number(staff.salary) || 0;
             const netPay = basicSalary + totalCommission;
 
-            await supa.from("payroll").insert([{
+            // 3. Insert into Supabase
+            const { error: insertErr } = await supa.from("payroll").insert([{
                 user_id: staff.id,
                 payroll_month: month,
                 basic_salary: basicSalary,
                 commission: totalCommission,
                 total_pay: netPay,
-                status: "paid"
+                status: 'draft'
             }]);
+
+            if (insertErr) throw insertErr;
         }
 
-        alert("Payroll generated and saved!");
-        await sync(); // Refresh UI
+        alert(`Payroll for ${staffMembers.length} staff members generated!`);
+        
+        // 4. Refresh data and UI
+        await sync(); 
+        if (typeof renderPayrollTable === "function") renderPayrollTable();
+
     } catch (err) {
-        console.error(err);
-        alert("Payroll Error: " + err.message);
+        console.error("Payroll Generation Error:", err);
+        alert("Critical failure during payroll generation: " + err.message);
     }
 }
 

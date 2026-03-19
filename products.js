@@ -25,32 +25,6 @@ async function addProduct() {
 }
 
 /**
- * DELETE PRODUCT
- */
-async function deleteProduct(id) {
-    // Stage 1: Permission Check
-    if (window.currentUser?.role !== 'admin') return alert("Admin access required.");
-    
-    // Stage 2: Integrity Check (Prevents breaking old order records)
-    const inOrders = (window.db?.order_items || []).some(item => item.product_id === id);
-    if (inOrders) {
-        return alert("Cannot delete: This product has sales history. Archive or rename it instead.");
-    }
-
-    if (!confirm("Delete this product permanently?")) return;
-
-    try {
-        const { error } = await supa.from("products").delete().eq("id", id);
-        if (error) throw error;
-        
-        alert("Product deleted.");
-        await refreshProductSystem();
-    } catch (err) {
-        alert("Delete failed: " + err.message);
-    }
-}
-
-/**
  * EDIT PRODUCT
  */
 async function editProduct(id) {
@@ -71,7 +45,12 @@ async function editProduct(id) {
         if (error) throw error;
 
         alert("Product updated successfully!");
-        await refreshProductSystem();
+        
+        // CRITICAL: Refresh the data and the UI
+        await sync(); 
+        if (typeof renderProducts === "function") renderProducts();
+        if (typeof renderPosItems === "function") renderPosItems(); // For the Retailer Order dropdown
+        
     } catch (err) {
         console.error("Update Error:", err);
         alert("Failed to update: " + err.message);
@@ -91,4 +70,37 @@ async function refreshProductSystem() {
     if (typeof renderCorporateOrderForm === "function") renderCorporateOrderForm();
     
     console.log("Product system synchronized.");
+}
+
+async function deleteProduct(id) {
+    // Only admins should see or use this
+    if (window.currentUser?.role !== 'admin') return alert("Admin access required.");
+    
+    // Safety: Check if this product is linked to any existing order items
+    const inOrders = (window.db?.order_items || []).some(item => item.product_id === id);
+    if (inOrders) {
+        return alert("Cannot delete: This product has sales history. Try renaming or archiving it instead.");
+    }
+
+    if (!confirm("Are you sure you want to delete this product permanently?")) return;
+
+    try {
+        const { error } = await supa
+            .from("products")
+            .delete()
+            .eq("id", id);
+
+        if (error) throw error;
+        
+        alert("Product removed from inventory.");
+        
+        // Refresh everything
+        await sync();
+        if (typeof renderProducts === "function") renderProducts();
+        if (typeof renderPosItems === "function") renderPosItems();
+        
+    } catch (err) {
+        console.error("Delete Error:", err);
+        alert("Delete failed: " + err.message);
+    }
 }

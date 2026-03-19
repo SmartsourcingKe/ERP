@@ -7,52 +7,76 @@ async function addEmployee() {
     const password = document.getElementById("empPassword").value;
     const fullName = document.getElementById("empFullName").value;
     const role = document.getElementById("empRole").value;
+    const salary = document.getElementById("empSalary") ? document.getElementById("empSalary").value : 0;
     const photoFile = document.getElementById("empPhoto").files[0];
 
     if (!email || !password || !fullName) return alert("Please fill in all fields.");
 
     try {
-        // 1. Create the Auth Account
-        const { data: authData, error: authError } = await supa.auth.signUp({ email, password });
+        // 1. Create the Auth Account 
+        // Note: We don't 'await' the session to change. 
+        // If your Supabase project has 'Confirm Email' ON, they must click a link before logging in.
+        const { data: authData, error: authError } = await supa.auth.signUp({ 
+            email, 
+            password,
+            options: {
+                data: {
+                    full_name: fullName,
+                    role: role
+                }
+            }
+        });
+
         if (authError) throw authError;
+        
+        // Use the ID from the newly created auth user
         const newUserId = authData.user.id;
 
         let photoUrl = "";
 
-        // 2. Upload Profile Photo
-        if (photoFile) {
+        // 2. Upload Profile Photo (Optional)
+        if (photoFile && newUserId) {
             const fileExt = photoFile.name.split('.').pop();
             const fileName = `${newUserId}-${Date.now()}.${fileExt}`;
             const { error: uploadError } = await supa.storage
                 .from('avatars')
                 .upload(fileName, photoFile);
 
-            if (uploadError) throw uploadError;
-
-            const { data: publicData } = supa.storage.from('avatars').getPublicUrl(fileName);
-            photoUrl = publicData.publicUrl;
+            if (!uploadError) {
+                const { data: publicData } = supa.storage.from('avatars').getPublicUrl(fileName);
+                photoUrl = publicData.publicUrl;
+            }
         }
 
-        // 3. Create Database Profile
-        // We link 'id' directly to the Auth User ID to ensure instant login.
-        const { error: profileError } = await supa.from('users').upsert([{
-            id: newUserId, 
+        // 3. Create Database Profile in 'users' table
+        // This links the Auth ID to your visible Staff list
+        const { error: dbError } = await supa.from("users").insert([{
+            id: newUserId, // CRITICAL: This connects Auth to Database
             email: email,
             full_name: fullName,
-            role: role, // Ensure you select 'admin' in the dropdown
+            role: role,
+            salary: parseFloat(salary),
             pic: photoUrl,
-            status: 'active'
+            status: 'active',
+            created_at: new Date()
         }]);
 
-        if (profileError) throw profileError;
+        if (dbError) throw dbError;
 
-        alert(`Success! ${fullName} can now log in immediately.`);
-        await sync();
-        renderEmployees();
+        alert(`Success! ${fullName} created. They can now login with their email.`);
         
+        // 4. Cleanup and Refresh
+        await sync(); 
+        if (typeof renderAll === "function") renderAll(); 
+        
+        // Clear Form
+        document.getElementById("empEmail").value = "";
+        document.getElementById("empPassword").value = "";
+        document.getElementById("empFullName").value = "";
+
     } catch (err) {
-        console.error("Creation Error:", err);
-        alert("Failed: " + err.message);
+        console.error("Employee Creation Error:", err);
+        alert("Error: " + err.message);
     }
 }
 
