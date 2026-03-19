@@ -35,46 +35,36 @@ async function initApp() {
 // 1. Add this at the top of app.js (outside any functions)
 let isAuthProcessing = false;
 
+// Change the parameter name to 'session' and extract the user correctly
 async function handleAuthSuccess(session) {
-    const loginScreen = document.getElementById('loginScreen');
-    const mainApp = document.getElementById('mainApp');
+    if (!session || !session.user) return;
 
-    // Add this IF check to stop the 'null' error
-    if (loginScreen && mainApp) {
-        loginScreen.classList.add('hidden');
-        mainApp.classList.remove('hidden');
-    }
-    if (!authUser) return;
+    // FIX: Define the user variable that the rest of your code is looking for
+    const user = session.user; 
+    window.currentUser = user; // Set this globally for the rest of the app
 
     try {
-        // We use .eq('id', ...) because we manually synced them in the SQL above
+        console.log("Auth Success for:", user.email);
+        
+        // Hide Login, Show App
+        document.getElementById('loginScreen')?.classList.add('hidden');
+        document.getElementById('mainApp')?.classList.remove('hidden');
+
+        // Fetch user profile from your 'users' table
         const { data: profile, error } = await supa
             .from('users')
             .select('*')
-            .eq('id', authUser.id) 
+            .eq('id', user.id)
             .single();
 
-        if (error || !profile) {
-            console.error("Profile Link Failed:", error);
-            alert("Account found in Auth, but Profile missing in Database.");
-            return;
-        }
+        if (error) console.warn("Profile not found in database yet.");
+        if (profile) window.currentUser = { ...user, ...profile };
 
-        // Save user to memory
-        window.currentUser = profile;
-
-        // Load the ERP data
-        await sync();
-        renderAll();
-
-        // Show the Dashboard, Hide Login
-        document.getElementById("loginModal").classList.add("hidden");
-        document.getElementById("mainApp").classList.remove("hidden");
+        await sync(); // Start data download
+        renderAll(); // Draw the UI
         
-        console.log("Welcome,", profile.full_name);
-
     } catch (err) {
-        console.error("Critical System Error:", err);
+        console.error("Initialization Error:", err);
     }
 }
 

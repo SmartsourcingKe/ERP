@@ -117,10 +117,8 @@ function renderSchools() {
     }
 }
 
-/**
- * RENDER CORPORATE HISTORY
- */
-function renderCorpHistory() {
+
+function renderCorporateHistory() {
     const tbody = document.getElementById("corpOrdersBody");
     if (!tbody) return;
 
@@ -182,49 +180,34 @@ async function addSchool() {
     }
 }
 
-function printCorporateReceipt(orderId) {
+function viewReceipt(orderId, type) {
+    if (type !== 'corporate') return; // Handle other types as needed
+
     const order = window.db.corporate_orders.find(o => o.id === orderId);
-    const school = window.schools.find(s => s.id === order.school_id);
+    const school = window.db.schools.find(s => s.id === order.school_id);
     const items = window.db.corporate_order_items.filter(i => i.corporate_order_id === orderId);
 
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(`
-        <html>
-            <head>
-                <title>Receipt - ${school ? school.name : 'Corporate'}</title>
-                <style>
-                    body { font-family: sans-serif; padding: 20px; }
-                    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                    .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; }
-                </style>
-            </head>
-            <body>
-                <div class="header">
-                    <h2>SmartsourcingKe ERP</h2>
-                    <p>Corporate Order Receipt</p>
-                </div>
-                <p><strong>School:</strong> ${school ? school.name : 'N/A'}</p>
-                <p><strong>Date:</strong> ${new Date(order.created_at).toLocaleDateString()}</p>
-                <table>
-                    <thead>
-                        <tr><th>Grade</th><th>Students</th><th>Price</th><th>Subtotal</th></tr>
-                    </thead>
-                    <tbody>
-                        ${items.map(i => `
-                            <tr>
-                                <td>${i.grade}</td>
-                                <td>${i.student_count}</td>
-                                <td>${i.price_per_student}</td>
-                                <td>${i.subtotal}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-                <h3>Total: Sh ${order.total}</h3>
-                <script>window.print(); window.close();</script>
-            </body>
-        </html>
-    `);
-    printWindow.document.close();
+    // Populate the Modal defined in your index.html
+    document.getElementById("receiptCompanyName").innerText = window.db.branding?.name || "SmartsourcingKe";
+    document.getElementById("receiptTagline").innerText = window.db.branding?.tagline || "";
+    document.getElementById("receiptGrandTotal").innerText = `TOTAL: KES ${Number(order.total).toLocaleString()}`;
+    
+    document.getElementById("receiptMeta").innerHTML = `
+        <p><strong>School:</strong> ${school ? school.name : 'N/A'}</p>
+        <p><strong>Date:</strong> ${new Date(order.created_at).toLocaleDateString()}</p>
+        <p><strong>Order ID:</strong> ${order.id.slice(0,8)}</p>
+    `;
+
+    document.getElementById("receiptItemsBody").innerHTML = items.map(i => `
+        <tr>
+            <td>${i.grade}</td>
+            <td style="text-align:center;">${i.student_count}</td>
+            <td style="text-align:center;">${i.price_per_student}</td>
+            <td style="text-align:center;">-</td>
+            <td style="text-align:right;">${i.subtotal.toLocaleString()}</td>
+        </tr>
+    `).join("");
+
+    // Show the modal
+    document.getElementById("receiptModal").classList.remove("hidden");
 }
