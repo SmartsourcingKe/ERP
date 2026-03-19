@@ -195,28 +195,19 @@ function renderAdmin() {
 }
 
 function renderProducts() {
-    const container = document.getElementById("inventoryList");
-    if (!container) return; 
+    const container = document.getElementById("inventoryList"); 
+    if (!container) return; // This prevents it from appearing in other tabs
 
     const products = window.db.products || [];
     let html = "";
 
     products.forEach(product => {
-        // MUST USE BACKTICKS `
+        // CRITICAL: You MUST use the Backtick (`) key, NOT single or double quotes.
         html += `
-            <div class="card" style="border:1px solid #ddd; padding:15px; margin-bottom:10px;">
+            <div class="card">
                 <h4>${product.name}</h4>
-                <div style="margin-top:10px;">
-                    <label>Base Price:</label>
-                    <input type="number" id="price-${product.id}" value="${product.base_price || 0}">
-                    
-                    <label>Fee:</label>
-                    <input type="number" id="fee-${product.id}" value="${product.company_fee || 0}">
-                    
-                    <label>Stock:</label>
-                    <input type="number" id="stock-${product.id}" value="${product.stock || 0}">
-                </div>
-                <button class="btn btn-blue" onclick="editProduct('${product.id}')">Update</button>
+                <input type="number" id="price-${product.id}" value="${product.base_price || 0}">
+                <button onclick="editProduct('${product.id}')">Update</button>
             </div>`;
     });
     container.innerHTML = html;
