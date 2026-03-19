@@ -48,25 +48,20 @@ async function handleSignedIn(session) {
     if (!session) return;
     const user = session.user;
 
-    // 1. IMMEDIATELY fetch the role from the database
-    const { data: profile, error } = await supa
+    // Force pull the role immediately from Supabase
+    const { data: profile } = await supa
         .from('users')
-        .select('*')
+        .select('role, full_name')
         .eq('id', user.id)
         .single();
 
-    if (profile) {
-        // This is the line that makes you an Admin in the app's eyes
-        window.currentUser = { ...user, ...profile };
-        console.log("Verified Role:", window.currentUser.role);
-    } else {
-        // If no profile exists, default to employee so the app doesn't crash
-        window.currentUser = { ...user, role: 'employee' };
-    }
+    // Set the global user with the correct role
+    window.currentUser = profile ? { ...user, ...profile } : { ...user, role: 'employee' };
+    
+    console.log("Current User Role:", window.currentUser.role);
 
-    // 2. Now that we know the role, we can show the UI
     await sync(); 
-    showDashboard(); // Make sure this function handles the tab visibility
+    showDashboard(); 
     renderAll();
 }
 
