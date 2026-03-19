@@ -195,46 +195,40 @@ function renderAdmin() {
 }
 
 function renderProducts() {
-    const grid = document.getElementById("inventoryGrid");
-    if (!grid) return;
+    const container = document.getElementById("inventoryList");
+    if (!container) return;
 
     const products = window.db.products || [];
-    
-    if (products.length === 0) {
-        grid.innerHTML = "<p>No products in inventory.</p>";
-        return;
-    }
+    let html = "";
 
-    grid.innerHTML = products.map(p => `
-        <div class="card" style="border-left: 5px solid var(--blue);">
-            <div class="product-info">
-                <h4 style="margin-bottom: 10px;">${p.productName || p.name}</h4>
+    products.forEach(product => {
+        // Use BACKTICKS ` here, not single quotes '
+        html += `
+            <div class="card" style="border:1px solid #ddd; padding:15px; border-radius:8px; margin-bottom:15px; background:#fff;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h3 style="margin:0;">${product.name}</h3>
+                    <button onclick="deleteProduct('${product.id}')" style="background:none; border:none; color:var(--red); cursor:pointer; font-size:1.2rem;">🗑️</button>
+                </div>
                 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <div>
-                        <label style="font-size: 10px; font-weight: bold; color: #666;">SELLING PRICE</label>
-                        <input type="number" id="price-${p.id}" value="${p.productBasePrice || p.base_price}" style="margin-bottom: 8px;">
-                    </div>
-                    <div>
-                        <label style="font-size: 10px; font-weight: bold; color: #666;">COMPANY FEE</label>
-                        <input type="number" id="fee-${p.id}" value="${p.productCompanyFee || p.company_fee}">
-                    </div>
+                <div style="margin-top:10px;">
+                    <label>Base Price (KES):</label>
+                    <input type="number" id="price-${product.id}" value="${product.base_price || 0}" class="form-control">
+                    
+                    <label>Company Fee (KES):</label>
+                    <input type="number" id="fee-${product.id}" value="${product.company_fee || 0}" class="form-control">
+                    
+                    <label>Stock:</label>
+                    <input type="number" id="stock-${product.id}" value="${product.stock || 0}" class="form-control">
                 </div>
 
-                <div style="margin-top: 5px;">
-                    <label style="font-size: 10px; font-weight: bold; color: #666;">CURRENT STOCK</label>
-                    <input type="number" id="stock-${p.id}" value="${p.productStock || p.stock}" 
-                           style="border: 1px solid ${ (p.productStock || p.stock) <= 5 ? 'var(--red)' : '#ccc' };">
-                </div>
-            </div>
-            
-            <div class="product-actions" style="margin-top: 15px;">
-                <button class="btn btn-blue" style="width: 100%;" onclick="saveProductUpdate('${p.id}')">
+                <button class="btn btn-blue" style="width:100%; margin-top:10px;" onclick="editProduct('${product.id}')">
                     Update Product
                 </button>
             </div>
-        </div>
-    `).join("");
+        `;
+    });
+
+    container.innerHTML = html;
 }
 
 async function saveProductUpdate(productId) {
