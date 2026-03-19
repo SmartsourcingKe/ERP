@@ -202,23 +202,23 @@ function renderProducts() {
     let html = "";
 
     products.forEach(product => {
-        // Use BACKTICKS ` here, not single quotes '
+        // Look closely: The line below starts with a BACKTICK `, NOT a quote '
         html += `
             <div class="card" style="border:1px solid #ddd; padding:15px; border-radius:8px; margin-bottom:15px; background:#fff;">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <h3 style="margin:0;">${product.name}</h3>
+                    <h4 style="margin:0;">${product.name}</h4>
                     <button onclick="deleteProduct('${product.id}')" style="background:none; border:none; color:var(--red); cursor:pointer; font-size:1.2rem;">🗑️</button>
                 </div>
                 
                 <div style="margin-top:10px;">
-                    <label>Base Price (KES):</label>
-                    <input type="number" id="price-${product.id}" value="${product.base_price || 0}" class="form-control">
+                    <label style="display:block; font-size:12px;">Base Price (KES):</label>
+                    <input type="number" id="price-${product.id}" value="${product.base_price}" class="form-control">
                     
-                    <label>Company Fee (KES):</label>
-                    <input type="number" id="fee-${product.id}" value="${product.company_fee || 0}" class="form-control">
+                    <label style="display:block; font-size:12px; margin-top:5px;">Company Fee (KES):</label>
+                    <input type="number" id="fee-${product.id}" value="${product.company_fee}" class="form-control">
                     
-                    <label>Stock:</label>
-                    <input type="number" id="stock-${product.id}" value="${product.stock || 0}" class="form-control">
+                    <label style="display:block; font-size:12px; margin-top:5px;">Stock:</label>
+                    <input type="number" id="stock-${product.id}" value="${product.stock}" class="form-control">
                 </div>
 
                 <button class="btn btn-blue" style="width:100%; margin-top:10px;" onclick="editProduct('${product.id}')">

@@ -219,10 +219,19 @@
         </table>
     </div>
 </div>
+
+ 
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
         <h3 style="margin:0;">${product.name}</h3>
         <button onclick="deleteProduct('${product.id}')" style="background:none; border:none; color:var(--red); cursor:pointer; font-size:1.2rem;">🗑️</button>
     </div>
+
+<div id="inventoryTab" class="tab-content hidden">
+    <h3>Add New Product</h3>
+    <hr>
+    <h3>Inventory List</h3> <div id="inventoryList" class="grid-container">
+        </div>
+</div>
 
     <div class="product-info">
         <label>Base Price (KES):</label>
