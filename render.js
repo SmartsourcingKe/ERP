@@ -195,19 +195,38 @@ function renderAdmin() {
 }
 
 function renderProducts() {
-    const container = document.getElementById("inventoryList"); 
-    if (!container) return; // This prevents it from appearing in other tabs
+    const container = document.getElementById("inventoryList");
+    if (!container) return;
 
     const products = window.db.products || [];
     let html = "";
 
     products.forEach(product => {
-        // CRITICAL: You MUST use the Backtick (`) key, NOT single or double quotes.
         html += `
-            <div class="card">
-                <h4>${product.name}</h4>
-                <input type="number" id="price-${product.id}" value="${product.base_price || 0}">
-                <button onclick="editProduct('${product.id}')">Update</button>
+            <div class="card" style="border:1px solid #ddd; padding:15px; margin-bottom:10px; position: relative;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h4 style="margin:0;">${product.name}</h4>
+                    <button onclick="deleteProduct('${product.id}')" 
+                            style="background:none; border:none; color:#e74c3c; cursor:pointer; font-size:1.2rem;">
+                        🗑️
+                    </button>
+                </div>
+                
+                <div style="display: grid; gap: 5px; margin-top: 10px;">
+                    <label>Base Price (KES):</label>
+                    <input type="number" id="price-${product.id}" value="${product.base_price || 0}">
+                    
+                    <label>Company Fee (KES):</label>
+                    <input type="number" id="fee-${product.id}" value="${product.company_fee || 0}">
+                    
+                    <label>Current Stock:</label>
+                    <input type="number" id="stock-${product.id}" value="${product.stock || 0}">
+                </div>
+
+                <button class="btn btn-blue" style="width:100%; margin-top:10px;" 
+                        onclick="editProduct('${product.id}')">
+                    Update Product
+                </button>
             </div>`;
     });
     container.innerHTML = html;
