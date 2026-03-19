@@ -35,7 +35,15 @@ async function initApp() {
 // 1. Add this at the top of app.js (outside any functions)
 let isAuthProcessing = false;
 
-async function handleAuthSuccess(authUser) {
+function handleAuthSuccess(session) {
+    const loginScreen = document.getElementById('loginScreen');
+    const mainApp = document.getElementById('mainApp');
+
+    // Add this IF check to stop the 'null' error
+    if (loginScreen && mainApp) {
+        loginScreen.classList.add('hidden');
+        mainApp.classList.remove('hidden');
+    }
     if (!authUser) return;
 
     try {

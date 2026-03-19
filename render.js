@@ -202,30 +202,22 @@ function renderProducts() {
     let html = "";
 
     products.forEach(product => {
-        // Look closely: The line below starts with a BACKTICK `, NOT a quote '
-        html += `
-            <div class="card" style="border:1px solid #ddd; padding:15px; border-radius:8px; margin-bottom:15px; background:#fff;">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <h4 style="margin:0;">${product.name}</h4>
-                    <button onclick="deleteProduct('${product.id}')" style="background:none; border:none; color:var(--red); cursor:pointer; font-size:1.2rem;">🗑️</button>
-                </div>
-                
-                <div style="margin-top:10px;">
-                    <label style="display:block; font-size:12px;">Base Price (KES):</label>
-                    <input type="number" id="price-${product.id}" value="${product.base_price}" class="form-control">
-                    
-                    <label style="display:block; font-size:12px; margin-top:5px;">Company Fee (KES):</label>
-                    <input type="number" id="fee-${product.id}" value="${product.company_fee}" class="form-control">
-                    
-                    <label style="display:block; font-size:12px; margin-top:5px;">Stock:</label>
-                    <input type="number" id="stock-${product.id}" value="${product.stock}" class="form-control">
-                </div>
-
-                <button class="btn btn-blue" style="width:100%; margin-top:10px;" onclick="editProduct('${product.id}')">
-                    Update Product
-                </button>
-            </div>
-        `;
+        // We use standard strings and '+' to force the numbers in
+        html += '<div class="card" style="border:1px solid #ddd; padding:15px; margin-bottom:15px; background:#fff;">';
+        html += '<div style="display:flex; justify-content:space-between; align-items:center;">';
+        html += '<h4 style="margin:0;">' + product.name + '</h4>';
+        html += '<button onclick="deleteProduct(\'' + product.id + '\')" style="background:none; border:none; color:var(--red); cursor:pointer; font-size:1.2rem;">🗑️</button>';
+        html += '</div>';
+        html += '<div style="margin-top:10px;">';
+        html += '<label style="display:block; font-size:12px;">Base Price (KES):</label>';
+        html += '<input type="number" id="price-' + product.id + '" value="' + (product.base_price || 0) + '" class="form-control">';
+        html += '<label style="display:block; font-size:12px; margin-top:5px;">Company Fee (KES):</label>';
+        html += '<input type="number" id="fee-' + product.id + '" value="' + (product.company_fee || 0) + '" class="form-control">';
+        html += '<label style="display:block; font-size:12px; margin-top:5px;">Stock:</label>';
+        html += '<input type="number" id="stock-' + product.id + '" value="' + (product.stock || 0) + '" class="form-control">';
+        html += '</div>';
+        html += '<button class="btn btn-blue" style="width:100%; margin-top:10px;" onclick="editProduct(\'' + product.id + '\')">Update Product</button>';
+        html += '</div>';
     });
 
     container.innerHTML = html;
