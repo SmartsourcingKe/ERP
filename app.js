@@ -73,40 +73,39 @@ async function handleAuthSuccess(session) {
  * Parallel loading for speed + UI refresh.
  */
 async function sync() {
-    console.log("app.js:63 Syncing database...");
-    window.db = window.db || {};
-
-    const tables = [
-        "branding", "products", "retailers", "orders", 
-        "order_items", "schools", "corporate_orders", 
-        "corporate_order_items", "users", "payroll", "messages"
-    ];
-
+    console.log("Syncing database...");
     try {
-        const syncPromises = tables.map(table => 
-            supa.from(table).select("*").then(({ data, error }) => {
-                if (error) {
-                    console.warn(`Sync warning [${table}]:`, error.message);
-                    return { table, data: [] };
-                }
-                return { table, data };
-            })
-        );
+        // Fetch ALL tables at once to fill ALL tabs
+        const [prod, ret, ord, corp, sch, usr, msg, brand] = await Promise.all([
+            supa.from('products').select('*'),
+            supa.from('retailers').select('*'),
+            supa.from('orders').select('*'),
+            supa.from('corporate_orders').select('*'),
+            supa.from('schools').select('*'),
+            supa.from('users').select('*'),
+            supa.from('messages').select('*').order('created_at', { ascending: true }), // For Messages tab
+            supa.from('branding').select('*').single() // For Admin tab settings
+        ]);
 
-        const results = await Promise.all(syncPromises);
-        results.forEach(res => { window.db[res.table] = res.data; });
-
-        // Refresh UI components
-        if (typeof renderBranding === "function") renderBranding();
-        if (typeof renderAll === "function") renderAll();
+        // Mapping data to the global window.db object
+        window.db = {
+            products: prod.data || [],
+            retailers: ret.data || [],
+            orders: ord.data || [],
+            corporate_orders: corp.data || [],
+            schools: sch.data || [],
+            users: usr.data || [],
+            messages: msg.data || [], // Missing this was likely breaking your Chat
+            branding: brand.data || {} // Missing this was likely breaking Admin settings
+        };
         
-        // Form-specific dropdowns
-        if (typeof renderRetailerDropdown === "function") renderRetailerDropdown();
-        if (typeof renderSchoolDropdown === "function") renderSchoolDropdown(); // Fixed name
-        if (typeof renderProductDropdowns === "function") renderProductDropdowns();
-
+        console.log("Sync complete. Data loaded:", window.db);
+        
+        // After data is loaded, you MUST call the renderers
+        if (typeof renderAll === 'function') renderAll(); 
+        
     } catch (err) {
-        console.error("Critical Sync Error:", err);
+        console.error("Sync failed:", err.message);
     }
 }
 

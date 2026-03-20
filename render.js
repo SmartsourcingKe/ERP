@@ -5,20 +5,29 @@
  */
 function renderAll() {
     console.log("Master Render started...");
-    try {
-        if (typeof renderPermissions === "function") renderPermissions();
-        if (typeof renderOrders === "function") renderOrders();
-        if (typeof renderProducts === "function") renderProducts();
-        
-        // FIX: Match the actual functions in corporateOrders.js
-        if (typeof renderSchools === "function") renderSchools();
-        if (typeof renderCorpHistory === "function") renderCorporateHistory();
+    
+    const tasks = [
+        { name: 'Products', func: typeof renderProducts === 'function' ? renderProducts : null },
+        { name: 'Retailers', func: typeof renderRetailers === 'function' ? renderRetailers : null },
+        { name: 'Orders', func: typeof renderOrders === 'function' ? renderOrders : null },
+        { name: 'Corp History', func: typeof renderCorporateHistory === 'function' ? renderCorporateHistory : null },
+        { name: 'Schools', func: typeof renderSchools === 'function' ? renderSchools : null },
+        { name: 'Payroll', func: typeof renderPayroll === 'function' ? renderPayroll : null },
+        { name: 'Profit', func: typeof renderProfit === 'function' ? renderProfit : null },
+        { name: 'Messages', func: typeof renderMessages === 'function' ? renderMessages : null } // Added Messages
+    ];
 
-        if (typeof renderEmployees === "function") renderEmployees();
-        console.log("Master Render complete.");
-    } catch (err) {
-        console.error("Render Error:", err);
-    }
+    tasks.forEach(task => {
+        if (task.func) {
+            try {
+                task.func();
+            } catch (e) {
+                console.error(`Critical error in ${task.name}:`, e);
+            }
+        }
+    });
+
+    console.log("Master Render complete.");
 }
 
 /**

@@ -426,19 +426,16 @@
     </div>
 </div>
 	<div id="messagesTab" class="tab-content hidden">
-        <div class="card" style="height: 600px; display: flex; flex-direction: column;">
-            <div style="padding: 15px; border-bottom: 1px solid #eee;">
-                <h3 style="margin:0;">Internal Staff Chat</h3>
-            </div>
-            <div id="internalChatBox" style="flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px;">
-                <p style="color: #999; text-align: center;">Loading messages...</p>
-            </div>
-            <div class="chat-footer">
-    <input type="text" id="chatInput" placeholder="Type a message..." 
-           onkeypress="if(event.key === 'Enter') sendMessage()">
-    <button class="btn btn-blue" onclick="sendMessage()">Send</button>
-</div>
+    <div class="card">
+        <h3>Internal Communications</h3>
+        <div id="messagesContainer" style="height: 400px; overflow-y: auto; border: 1px solid #eee; padding: 10px; margin-bottom: 10px;"></div>
+        
+        <div style="display: flex; gap: 10px;">
+            <input type="text" id="messageInput" placeholder="Type a message..." style="flex: 1; padding: 10px;">
+            <button class="btn btn-blue" onclick="sendMessage()">Send</button>
         </div>
+    </div>
+</div>
     </div>
 
 </div>
