@@ -120,34 +120,25 @@ function renderSchools() {
 
 // RENAME THIS EXACTLY
 function renderCorporateHistory() {
-    // 1. Point to the NEW unique ID
-    const tbody = document.getElementById("corpOrdersHistoryBody");
+    const tbody = document.getElementById("corpOrdersBody"); // Matched to index.html
     if (!tbody) return;
 
-    // 2. Get the orders
     const orders = window.db.corporate_orders || [];
-    
     if (orders.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5">No corporate orders found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No corporate history found.</td></tr>';
         return;
     }
 
-    // 3. Render the rows with the Disburse button
     tbody.innerHTML = orders.map(order => {
         const school = window.db.schools?.find(s => s.id === order.school_id);
-        const status = order.status || 'pending';
-        
         return `
             <tr>
                 <td>${new Date(order.created_at).toLocaleDateString()}</td>
-                <td>${school ? school.name : 'Unknown'}</td>
+                <td>${school ? school.name : 'N/A'}</td>
                 <td>KES ${Number(order.total).toLocaleString()}</td>
-                <td><span class="badge ${status}">${status.toUpperCase()}</span></td>
+                <td><span class="badge">${order.status.toUpperCase()}</span></td>
                 <td>
-                    ${status === 'pending' ? 
-                        `<button class="btn btn-green" onclick="disburseOrder('${order.id}', 'corporate_orders')">Disburse</button>` : 
-                        `<button class="btn btn-blue" onclick="printReceipt('${order.id}', 'corporate')">Print Receipt</button>`
-                    }
+                    <button class="btn btn-blue" onclick="viewReceipt('${order.id}', 'corporate')">Receipt</button>
                 </td>
             </tr>`;
     }).join("");

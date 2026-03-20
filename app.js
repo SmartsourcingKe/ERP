@@ -196,3 +196,28 @@ function openTab(tabId, btn) {
         if (badge) badge.classList.add('hidden');
     }
 }
+
+function viewReceipt(id, type = 'retailer') {
+    const modal = document.getElementById("receiptModal");
+    if (!modal) return;
+
+    modal.classList.remove("hidden");
+    modal.style.display = 'block';
+
+    if (type === 'corporate') {
+        // Logic from your corporateOrders.js
+        renderCorporateReceipt(id); 
+    } else if (type === 'payroll') {
+        // Logic from your payroll.js
+        viewPayrollReceipt(id);
+    } else {
+        // Standard Retail Receipt from retailerOrders.js
+        renderReceipt(id);
+    }
+}
+
+function closeReceiptModal() {
+    const modal = document.getElementById("receiptModal");
+    modal.classList.add("hidden");
+    modal.style.display = 'none';
+}

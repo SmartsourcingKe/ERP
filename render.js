@@ -8,15 +8,15 @@ function renderAll() {
     
     const tasks = [
         { name: 'Products', func: typeof renderProducts === 'function' ? renderProducts : null },
-        { name: 'Product Dropdowns', func: typeof renderProductDropdowns === 'function' ? renderProductDropdowns : null }, // Add this
-        { name: 'Retailer Dropdowns', func: typeof renderRetailerDropdown === 'function' ? renderRetailerDropdown : null }, // Add this
+        { name: 'Product Dropdowns', func: typeof renderProductDropdowns === 'function' ? renderProductDropdowns : null },
+        { name: 'Retailer Dropdowns', func: typeof renderRetailerDropdown === 'function' ? renderRetailerDropdown : null },
         { name: 'Retailers', func: typeof renderRetailers === 'function' ? renderRetailers : null },
         { name: 'Orders', func: typeof renderOrders === 'function' ? renderOrders : null },        
         { name: 'Corp History', func: typeof renderCorporateHistory === 'function' ? renderCorporateHistory : null },
         { name: 'Schools', func: typeof renderSchools === 'function' ? renderSchools : null },
         { name: 'Payroll', func: typeof renderPayroll === 'function' ? renderPayroll : null },
         { name: 'Profit', func: typeof renderProfit === 'function' ? renderProfit : null },
-        { name: 'Messages', func: typeof renderMessages === 'function' ? renderMessages : null } // Added Messages
+        { name: 'Messages', func: typeof renderMessages === 'function' ? renderMessages : null }
     ];
 
     tasks.forEach(task => {
@@ -28,6 +28,11 @@ function renderAll() {
             }
         }
     });
+
+    // CRITICAL: This was missing. It handles the Admin/Staff tab visibility.
+    if (typeof renderPermissions === 'function') {
+        renderPermissions();
+    }
 
     console.log("Master Render complete.");
 }
@@ -420,4 +425,59 @@ function renderMessages() {
     
     // Auto-scroll to bottom
     container.scrollTop = container.scrollHeight;
+}
+
+
+function viewReceipt(id, type = 'retailer') {
+    const modal = document.getElementById("receiptModal");
+    if (!modal) return;
+
+    // Show the modal
+    modal.classList.remove("hidden");
+    modal.style.display = 'block';
+
+    // Route to the correct drawing logic
+    if (type === 'corporate') {
+        if (typeof renderCorporateReceipt === 'function') renderCorporateReceipt(id);
+    } else if (type === 'payroll') {
+        if (typeof viewPayrollReceipt === 'function') viewPayrollReceipt(id);
+    } else {
+        // Default to Retailer receipt from retailerOrders.js
+        if (typeof renderReceipt === 'function') renderReceipt(id);
+    }
+}
+
+function closeReceiptModal() {
+    document.getElementById("receiptModal").classList.add("hidden");
+    document.getElementById("receiptModal").style.display = "none";
+}
+
+function renderProfit() {
+    const container = document.getElementById("profitReport");
+    if (!container) return;
+
+    const retailTotal = (window.db.orders || []).reduce((sum, o) => sum + Number(o.total || 0), 0);
+    const corpTotal = (window.db.corporate_orders || []).reduce((sum, o) => sum + Number(o.total || 0), 0);
+
+    container.innerHTML = `
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+            <div class="card"><h4>Retail</h4><h2>KES ${retailTotal.toLocaleString()}</h2></div>
+            <div class="card"><h4>Corporate</h4><h2>KES ${corpTotal.toLocaleString()}</h2></div>
+            <div class="card" style="grid-column: span 2; background:#1f2d3d; color:white;">
+                <h4>Total Revenue</h4><h1>KES ${(retailTotal + corpTotal).toLocaleString()}</h1>
+            </div>
+        </div>`;
+}
+
+function renderPayroll() {
+    const tbody = document.getElementById("payrollBody");
+    if (!tbody) return;
+    
+    tbody.innerHTML = (window.db.payroll || []).map(p => `
+        <tr>
+            <td>${p.payroll_month}</td>
+            <td>KES ${Number(p.total_pay).toLocaleString()}</td>
+            <td>${p.status}</td>
+            <td><button class="btn btn-green" onclick="viewReceipt('${p.id}', 'payroll')">Slip</button></td>
+        </tr>`).join("");
 }
