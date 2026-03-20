@@ -107,6 +107,10 @@ async function sync() {
     } catch (err) {
         console.error("Sync failed:", err.message);
     }
+	
+	const { data: users } = await supa.from('users').select('*');
+window.db.users = users;
+
 }
 
 /**

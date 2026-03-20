@@ -87,18 +87,30 @@ async function addEmployee() {
  */
 function renderEmployees() {
     const tbody = document.getElementById("employeeTableBody");
-    if (!tbody) return;
+    if (!tbody) {
+        console.warn("Table body 'employeeTableBody' not found in HTML.");
+        return;
+    }
 
-    const staff = window.db.users || [];
+    // CRITICAL: Your data is stored in window.db.users, not window.db.employees
+    const staff = (window.db.users || []).filter(u => u.role === 'staff' || u.role === 'admin');
     
+    if (staff.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No active employees found.</td></tr>';
+        return;
+    }
+
     tbody.innerHTML = staff.map(user => `
         <tr>
-            <td><img src="${user.photo_url || 'default-avatar.png'}" style="width:40px; height:40px; border-radius:50%;"></td>
             <td>${user.full_name || 'N/A'}</td>
-            <td><span class="badge">${user.role}</span></td>
-            <td>Active</td>
+            <td>${user.email}</td>
+            <td><span class="badge" style="background:${user.role === 'admin' ? '#e74c3c' : '#3498db'}">
+                ${user.role.toUpperCase()}
+            </span></td>
+            <td>${user.phone || '-'}</td>
             <td>
-                <button class="btn btn-blue" onclick="previewIDCard('${user.id}')">View ID</button>
+                <button class="btn btn-blue" onclick="editUser('${user.id}')">Edit</button>
+                ${user.role !== 'admin' ? `<button class="btn btn-red" onclick="deleteUser('${user.id}')">Remove</button>` : ''}
             </td>
         </tr>
     `).join("");

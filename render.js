@@ -6,6 +6,13 @@ open/**
 function renderAll() {
     console.log("Master Render started...");
     
+    const branding = window.db.branding || {};
+    const mainLogo = document.getElementById("mainAppLogo");
+    if (mainLogo && branding.logo_url) mainLogo.src = branding.logo_url;
+    
+    const companyTitle = document.getElementById("dashboardCompanyName");
+    if (companyTitle) companyTitle.innerText = branding.company_name || "SmartsourcingKe";
+	
     const tasks = [
 	
         { name: 'Employees', func: typeof renderEmployees === 'function' ? renderEmployees : null }, // Added this
@@ -333,58 +340,51 @@ function previewIDCard(userId) {
 }
 
 async function renderReceipt(orderId) {
+    const modal = document.getElementById("receiptModal");
+    if (!modal) return;
+
     try {
         const order = window.db.orders?.find(o => o.id === orderId);
-        if (!order) return;
-
-        const retailer = window.db.retailers?.find(r => r.id === order.retailer_id);
         const branding = window.db.branding || {};
-
-        // 1. Restore Branding (Logo and Watermark)
-        const logoImg = document.getElementById("receiptLogo");
-        const watermarkImg = document.getElementById("watermarkImg");
         
-        if (branding.logo_url) {
-            if (logoImg) logoImg.src = branding.logo_url;
-            if (watermarkImg) {
-                watermarkImg.src = branding.logo_url;
-                watermarkImg.style.display = 'block';
-            }
-        }
-        document.getElementById("receiptCompanyName").innerText = branding.company_name || "SMARTSOURCINGKE";
-        document.getElementById("receiptTagline").innerText = branding.tagline || "Quality Services";
+        // 1. Apply Branding to Modal
+        document.getElementById("receiptLogo").src = branding.logo_url || "";
+        document.getElementById("watermarkImg").src = branding.logo_url || "";
+        document.getElementById("receiptCompanyName").innerText = branding.company_name || "SmartsourcingKe";
+        document.getElementById("receiptTagline").innerText = branding.tagline || "Official Receipt";
 
-        // 2. Fix Metadata (Order Number & Retailer)
-        document.getElementById("receiptMeta").innerHTML = `
-            <div style="font-size:0.9em; margin-bottom:10px;">
-                <strong>Order:</strong> #${order.id.slice(0, 8)}<br>
-                <strong>Date:</strong> ${new Date(order.created_at).toLocaleDateString()}<br>
-                <strong>Retailer:</strong> ${retailer ? retailer.name : 'N/A'}
-            </div>
-        `;
-
-        // 3. Fetch Items and Match 5-Column Table (ITEM, QTY, PRICE, FEE, TOTAL)
+        // 2. Fetch Items
         const { data: items, error } = await supa.from('order_items').select('*').eq('order_id', orderId);
         if (error) throw error;
 
+        // 3. Render 5 Columns: ITEM, QTY, PRICE, FEE, TOTAL
         const itemsBody = document.getElementById("receiptItemsBody");
-        if (itemsBody) {
-            itemsBody.innerHTML = items.map(item => {
-                const product = window.db.products?.find(p => p.id === item.product_id);
-                const basePrice = product ? Number(product.base_price || 0) : 0;
-                const companyFee = product ? Number(product.company_fee || 0) : 0;
-                const totalRow = item.quantity * (basePrice + companyFee);
+        itemsBody.innerHTML = items.map(item => {
+            const product = window.db.products?.find(p => p.id === item.product_id);
+            const price = Number(item.price_at_sale || 0);
+            const fee = product ? Number(product.company_fee || 0) : 0;
+            
+            return `
+                <tr>
+                    <td>${product ? product.name : 'Unknown'}</td>
+                    <td style="text-align:center;">${item.quantity}</td>
+                    <td style="text-align:center;">${(price - fee).toLocaleString()}</td>
+                    <td style="text-align:center;">${fee.toLocaleString()}</td>
+                    <td style="text-align:right;">${(item.quantity * price).toLocaleString()}</td>
+                </tr>`;
+        }).join("");
 
-                return `
-                    <tr style="border-bottom:1px solid #eee;">
-                        <td style="padding:5px 0;">${product ? product.name : 'Unknown'}</td>
-                        <td style="text-align:center;">${item.quantity}</td>
-                        <td style="text-align:center;">${basePrice.toLocaleString()}</td>
-                        <td style="text-align:center;">${companyFee.toLocaleString()}</td>
-                        <td style="text-align:right;">${totalRow.toLocaleString()}</td>
-                    </tr>`;
-            }).join("");
-        }
+        document.getElementById("receiptGrandTotal").innerText = `TOTAL: KES ${Number(order.total).toLocaleString()}`;
+        
+        document.getElementById("receiptMeta").innerHTML = `
+            <p><strong>Order No:</strong> #${order.id.slice(0, 8)}</p>
+            <p><strong>Date:</strong> ${new Date(order.created_at).toLocaleDateString()}</p>
+        `;
+
+    } catch (err) {
+        console.error("Receipt failed:", err);
+    }
+}
 
         // 4. Grand Total
         document.getElementById("receiptGrandTotal").textContent = `TOTAL: KES ${Number(order.total).toLocaleString()}`;
@@ -395,30 +395,22 @@ async function renderReceipt(orderId) {
 }
 
 function renderOrders() {
-    // Change 'ordersTableBody' to 'ordersBody' to match index.html
-    const tbody = document.getElementById("ordersBody"); 
+    const tbody = document.getElementById("ordersBody");
     if (!tbody) return;
 
-    const orders = window.db.orders || [];
-    
+    const orders = (window.db.orders || []).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
     tbody.innerHTML = orders.map(order => {
-        // Fix: Ensure we pull from the correct retailers list
-        const retailer = (window.db.retailers || []).find(r => r.id === order.retailer_id);
+        const retailer = window.db.retailers?.find(r => r.id === order.retailer_id);
+        const date = new Date(order.created_at).toLocaleDateString();
         const status = order.status || 'pending';
         
         return `
             <tr>
-                <td>${order.id.slice(0, 8).toUpperCase()}</td> 
-                <td>${new Date(order.created_at).toLocaleDateString()}</td>
-                <td>${retailer ? retailer.name : 'Unknown Retailer'}</td>
-                <td>KES ${Number(order.total).toLocaleString()}</td>
-                <td><span class="badge ${status}">${status.toUpperCase()}</span></td>
-                <td>
-                    <button class="btn btn-blue" onclick="viewReceipt('${order.id}')">Receipt</button>
+                <td>${date}</td> <td>${order.id.slice(0, 8)}</td> <td>${retailer ? retailer.name : 'Unknown'}</td> <td>KES ${Number(order.total).toLocaleString()}</td> <td><span class="badge">${status.toUpperCase()}</span></td> <td> <button class="btn btn-blue" onclick="viewReceipt('${order.id}', 'retailer')">Receipt</button>
                     ${status === 'pending' ? 
                         `<button class="btn btn-green" onclick="updateOrderStatus('${order.id}', 'disbursed')">Disburse</button>` : 
-                        `<span style="color:green; font-weight:bold;">✓ SHIPPED</span>`
-                    }
+                        `<span style="color:green; margin-left:5px;">✔</span>`}
                 </td>
             </tr>`;
     }).join("");
