@@ -1,4 +1,4 @@
-open/**
+/**
  * MASTER RENDERER
  * This function triggers all sub-renderers. 
  * It is called after every database sync.
@@ -50,43 +50,29 @@ function renderAll() {
  * Shows or hides admin-only buttons based on the user's role.
  */
  
+/**
+ * RENDER PERMISSIONS
+ * Shows or hides admin-only buttons and tabs based on the user's role.
+ */
 function renderPermissions() {
-    // 1. IMPROVED: Check both 'id' and 'auth_user_id' to ensure we find the user
-    const userProfile = (window.db.users || []).find(u => 
-        (u.id === window.currentUser?.id) || (u.auth_user_id === window.currentUser?.id)
-    );
-    
-    const user = userProfile || window.currentUser;
-    
-    if (!user) {
-        console.warn("No user found for permissions check");
-        return;
-    }
+    const role = window.currentUser?.role;
+    console.log("Applying permissions for role:", role);
 
-    const adminElements = [
-        'performanceBtn', 
-        'payrollBtn', 
-        'adminBtn', 
-        'profitBtn'
-    ];
+    // 1. Select the tabs/buttons that only admins should see
+    // Ensure these IDs match the buttons in your index.html sidebar
+    const adminTabBtn = document.querySelector('[onclick*="adminTab"]');
+    const payrollTabBtn = document.querySelector('[onclick*="payrollTab"]');
+    const profitTabBtn = document.querySelector('[onclick*="profitTab"]');
 
-    adminElements.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) {
-            // 2. FIX: Explicitly check the role and force visibility
-            if (user.role === 'admin') {
-                el.classList.remove('hidden');
-                el.style.display = 'block'; // Force display in case 'hidden' isn't the only style
-            } else {
-                el.classList.add('hidden');
-                el.style.display = 'none';
-            }
-        }
-    });
-
-    const welcome = document.getElementById("welcome");
-    if (welcome) {
-        welcome.textContent = `Welcome, ${user.full_name || user.email || 'User'}`;
+    if (role === 'admin') {
+        if (adminTabBtn) adminTabBtn.style.display = 'block';
+        if (payrollTabBtn) payrollTabBtn.style.display = 'block';
+        if (profitTabBtn) profitTabBtn.style.display = 'block';
+    } else {
+        // If they are 'staff' or 'employee', hide these options
+        if (adminTabBtn) adminTabBtn.style.display = 'none';
+        if (payrollTabBtn) payrollTabBtn.style.display = 'none';
+        if (profitTabBtn) profitTabBtn.style.display = 'none';
     }
 }
 
@@ -407,10 +393,16 @@ function renderOrders() {
         
         return `
             <tr>
-                <td>${date}</td> <td>${order.id.slice(0, 8)}</td> <td>${retailer ? retailer.name : 'Unknown'}</td> <td>KES ${Number(order.total).toLocaleString()}</td> <td><span class="badge">${status.toUpperCase()}</span></td> <td> <button class="btn btn-blue" onclick="viewReceipt('${order.id}', 'retailer')">Receipt</button>
+                <td>${date}</td>
+                <td>${order.id.slice(0, 8)}</td>
+                <td>${retailer ? retailer.name : 'Unknown'}</td>
+                <td>KES ${Number(order.total || 0).toLocaleString()}</td>
+                <td><span class="badge">${status.toUpperCase()}</span></td>
+                <td>
+                    <button class="btn btn-blue" onclick="viewReceipt('${order.id}', 'retailer')">Receipt</button>
                     ${status === 'pending' ? 
                         `<button class="btn btn-green" onclick="updateOrderStatus('${order.id}', 'disbursed')">Disburse</button>` : 
-                        `<span style="color:green; margin-left:5px;">✔</span>`}
+                        `<span style="color:green; font-weight:bold;">✓</span>`}
                 </td>
             </tr>`;
     }).join("");
