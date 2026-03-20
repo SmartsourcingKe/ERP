@@ -1,4 +1,4 @@
-/**
+open/**
  * MASTER RENDERER
  * This function triggers all sub-renderers. 
  * It is called after every database sync.
@@ -8,8 +8,10 @@ function renderAll() {
     
     const tasks = [
         { name: 'Products', func: typeof renderProducts === 'function' ? renderProducts : null },
+        { name: 'Product Dropdowns', func: typeof renderProductDropdowns === 'function' ? renderProductDropdowns : null }, // Add this
+        { name: 'Retailer Dropdowns', func: typeof renderRetailerDropdown === 'function' ? renderRetailerDropdown : null }, // Add this
         { name: 'Retailers', func: typeof renderRetailers === 'function' ? renderRetailers : null },
-        { name: 'Orders', func: typeof renderOrders === 'function' ? renderOrders : null },
+        { name: 'Orders', func: typeof renderOrders === 'function' ? renderOrders : null },        
         { name: 'Corp History', func: typeof renderCorporateHistory === 'function' ? renderCorporateHistory : null },
         { name: 'Schools', func: typeof renderSchools === 'function' ? renderSchools : null },
         { name: 'Payroll', func: typeof renderPayroll === 'function' ? renderPayroll : null },
@@ -337,7 +339,8 @@ function renderReceipt(orderId) {
 }
 
 function renderOrders() {
-    const tbody = document.getElementById("ordersTableBody");
+    // Change 'ordersTableBody' to 'ordersBody' to match index.html
+    const tbody = document.getElementById("ordersBody"); 
     if (!tbody) return;
 
     const orders = window.db.orders || [];
