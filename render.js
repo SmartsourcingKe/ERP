@@ -38,15 +38,18 @@ function renderAll() {
  */
  
 function renderPermissions() {
-    // 1. Get the profile from your database table using the logged-in ID
-    const userProfile = (window.db.users || []).find(u => u.auth_user_id === window.currentUser?.id);
+    // 1. IMPROVED: Check both 'id' and 'auth_user_id' to ensure we find the user
+    const userProfile = (window.db.users || []).find(u => 
+        (u.id === window.currentUser?.id) || (u.auth_user_id === window.currentUser?.id)
+    );
     
-    // Fallback: If profile isn't synced yet, use the current user object
     const user = userProfile || window.currentUser;
     
-    if (!user) return;
+    if (!user) {
+        console.warn("No user found for permissions check");
+        return;
+    }
 
-    // YOUR ORIGINAL LIST - I haven't changed a thing here
     const adminElements = [
         'performanceBtn', 
         'payrollBtn', 
@@ -57,11 +60,13 @@ function renderPermissions() {
     adminElements.forEach(id => {
         const el = document.getElementById(id);
         if (el) {
-            // Check the role from the database profile
+            // 2. FIX: Explicitly check the role and force visibility
             if (user.role === 'admin') {
                 el.classList.remove('hidden');
+                el.style.display = 'block'; // Force display in case 'hidden' isn't the only style
             } else {
                 el.classList.add('hidden');
+                el.style.display = 'none';
             }
         }
     });
@@ -106,7 +111,7 @@ function renderRetailers() {
  * RENDER CORPORATE (CBC)
  */
 function renderCorporateOrders() {
-    const tbody = document.getElementById("CorporateOrdersBody");
+    const tbody = document.getElementById("corpOrdersBody");
     tbody.innerHTML = window.db.corporate_orders.map(order => {
         const isPending = order.status === 'pending';
         
@@ -390,4 +395,22 @@ async function renderCorporateReceipt(orderId) {
 
     // Use the sum of items for the display to ensure accuracy
     document.getElementById("receiptGrandTotal").textContent = `TOTAL: KES ${calculatedTotal.toLocaleString()}`;
+}
+
+function renderMessages() {
+    const container = document.getElementById("messagesContainer");
+    if (!container) return;
+
+    // Table name is usually 'messages' or 'team_messages'
+    const msgs = window.db.messages || []; 
+    
+    container.innerHTML = msgs.map(m => `
+        <div style="margin-bottom:10px; padding:8px; background:#f9f9f9; border-radius:5px;">
+            <strong>${m.sender_name || 'System'}:</strong> ${m.content}
+            <div style="font-size:0.7em; color:#999;">${new Date(m.created_at).toLocaleTimeString()}</div>
+        </div>
+    `).join("");
+    
+    // Auto-scroll to bottom
+    container.scrollTop = container.scrollHeight;
 }
