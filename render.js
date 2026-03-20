@@ -7,8 +7,9 @@ function renderAll() {
     console.log("Master Render started...");
     
     const tasks = [
+	
+        { name: 'Employees', func: typeof renderEmployees === 'function' ? renderEmployees : null }, // Added this
         { name: 'Products', func: typeof renderProducts === 'function' ? renderProducts : null },
-        { name: 'Product Dropdowns', func: typeof renderProductDropdowns === 'function' ? renderProductDropdowns : null },
         { name: 'Retailer Dropdowns', func: typeof renderRetailerDropdown === 'function' ? renderRetailerDropdown : null },
         { name: 'Retailers', func: typeof renderRetailers === 'function' ? renderRetailers : null },
         { name: 'Orders', func: typeof renderOrders === 'function' ? renderOrders : null },        
@@ -289,20 +290,25 @@ async function saveProductUpdate(productId) {
 }
 
 function renderEmployees() {
-    const tbody = document.getElementById("employeeTableBody");
+    const tbody = document.getElementById("employeeTableBody"); // Ensure this matches index.html
     if (!tbody) return;
 
-    const staff = window.db.users || [];
+    // Filter for active staff/employees
+    const staff = (window.db.users || []).filter(u => u.role === 'staff' || u.role === 'admin');
     
+    if (staff.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4">No employees found.</td></tr>';
+        return;
+    }
+
     tbody.innerHTML = staff.map(user => `
         <tr>
-            <td><img src="${user.photo_url || 'default-avatar.png'}" style="width:40px; height:40px; border-radius:50%; object-fit:cover;"></td>
-            <td>${user.full_name}</td>
-            <td><span class="badge ${user.role === 'admin' ? 'disbursed' : 'pending'}">${user.role}</span></td>
-            <td>Active</td>
+            <td>${user.full_name || 'N/A'}</td>
+            <td>${user.email}</td>
+            <td><span class="badge">${user.role.toUpperCase()}</span></td>
             <td>
-                <button class="btn btn-blue" onclick="previewIDCard('${user.id}')">View ID</button>
-                <button class="btn btn-red" onclick="editStaff('${user.id}')">Edit</button>
+                <button class="btn btn-blue" onclick="editUser('${user.id}')">Edit</button>
+                ${window.currentUser.role === 'admin' ? `<button class="btn btn-red" onclick="deleteUser('${user.id}')">Remove</button>` : ''}
             </td>
         </tr>
     `).join("");
@@ -326,33 +332,66 @@ function previewIDCard(userId) {
     document.getElementById("idCardModal").classList.remove("hidden");
 }
 
-function renderReceipt(orderId) {
-    const order = window.db.orders.find(o => o.id === orderId);
-    const items = window.db.order_items.filter(oi => oi.order_id === orderId);
-    const tbody = document.getElementById("receiptItemsBody");
-    tbody.innerHTML = "";
+async function renderReceipt(orderId) {
+    try {
+        const order = window.db.orders?.find(o => o.id === orderId);
+        if (!order) return;
 
-    items.forEach(item => {
-        // Retrieve the product to get the fee breakdown
-        const product = window.db.products.find(p => p.id === item.product_id);
-        const fee = parseFloat(product?.productCompanyFee || 0);
-        const unitPriceAtSale = parseFloat(item.price_at_sale || 0);
-        const basePrice = unitPriceAtSale - fee;
-        const itemSubtotal = unitPriceAtSale * item.quantity;
+        const retailer = window.db.retailers?.find(r => r.id === order.retailer_id);
+        const branding = window.db.branding || {};
 
-        const row = `
-            <tr>
-                <td style="padding: 5px 0;">${item.product_name}</td>
-                <td style="text-align:center;">${item.quantity}</td>
-                <td style="text-align:center;">${basePrice.toLocaleString()}</td>
-                <td style="text-align:center;">${fee.toLocaleString()}</td>
-                <td style="text-align:right;">${itemSubtotal.toLocaleString()}</td>
-            </tr>
+        // 1. Restore Branding (Logo and Watermark)
+        const logoImg = document.getElementById("receiptLogo");
+        const watermarkImg = document.getElementById("watermarkImg");
+        
+        if (branding.logo_url) {
+            if (logoImg) logoImg.src = branding.logo_url;
+            if (watermarkImg) {
+                watermarkImg.src = branding.logo_url;
+                watermarkImg.style.display = 'block';
+            }
+        }
+        document.getElementById("receiptCompanyName").innerText = branding.company_name || "SMARTSOURCINGKE";
+        document.getElementById("receiptTagline").innerText = branding.tagline || "Quality Services";
+
+        // 2. Fix Metadata (Order Number & Retailer)
+        document.getElementById("receiptMeta").innerHTML = `
+            <div style="font-size:0.9em; margin-bottom:10px;">
+                <strong>Order:</strong> #${order.id.slice(0, 8)}<br>
+                <strong>Date:</strong> ${new Date(order.created_at).toLocaleDateString()}<br>
+                <strong>Retailer:</strong> ${retailer ? retailer.name : 'N/A'}
+            </div>
         `;
-        tbody.innerHTML += row;
-    });
 
-    document.getElementById("receiptGrandTotal").innerText = `TOTAL KES: ${order.total.toLocaleString()}`;
+        // 3. Fetch Items and Match 5-Column Table (ITEM, QTY, PRICE, FEE, TOTAL)
+        const { data: items, error } = await supa.from('order_items').select('*').eq('order_id', orderId);
+        if (error) throw error;
+
+        const itemsBody = document.getElementById("receiptItemsBody");
+        if (itemsBody) {
+            itemsBody.innerHTML = items.map(item => {
+                const product = window.db.products?.find(p => p.id === item.product_id);
+                const basePrice = product ? Number(product.base_price || 0) : 0;
+                const companyFee = product ? Number(product.company_fee || 0) : 0;
+                const totalRow = item.quantity * (basePrice + companyFee);
+
+                return `
+                    <tr style="border-bottom:1px solid #eee;">
+                        <td style="padding:5px 0;">${product ? product.name : 'Unknown'}</td>
+                        <td style="text-align:center;">${item.quantity}</td>
+                        <td style="text-align:center;">${basePrice.toLocaleString()}</td>
+                        <td style="text-align:center;">${companyFee.toLocaleString()}</td>
+                        <td style="text-align:right;">${totalRow.toLocaleString()}</td>
+                    </tr>`;
+            }).join("");
+        }
+
+        // 4. Grand Total
+        document.getElementById("receiptGrandTotal").textContent = `TOTAL: KES ${Number(order.total).toLocaleString()}`;
+
+    } catch (err) {
+        console.error("Retailer Receipt Error:", err);
+    }
 }
 
 function renderOrders() {

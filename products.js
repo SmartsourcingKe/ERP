@@ -73,10 +73,15 @@ async function refreshProductSystem() {
 }
 
 async function deleteProduct(id) {
-    // Only admins should see or use this
-    if (window.currentUser?.role !== 'admin') return alert("Admin access required.");
+    // 1. Improved Role Check: Ensure we check the current local state
+    const userRole = window.currentUser?.role;
+    console.log("Attempting delete. Current role:", userRole);
+
+    if (userRole !== 'admin') {
+        return alert(`Admin access required. Your current role is: ${userRole || 'Unknown'}`);
+    }
     
-    // Safety: Check if this product is linked to any existing order items
+    // 2. Safety: Check if this product is linked to any existing order items
     const inOrders = (window.db?.order_items || []).some(item => item.product_id === id);
     if (inOrders) {
         return alert("Cannot delete: This product has sales history. Try renaming or archiving it instead.");
@@ -85,19 +90,14 @@ async function deleteProduct(id) {
     if (!confirm("Are you sure you want to delete this product permanently?")) return;
 
     try {
-        const { error } = await supa
-            .from("products")
-            .delete()
-            .eq("id", id);
-
+        const { error } = await supa.from("products").delete().eq("id", id);
         if (error) throw error;
         
         alert("Product removed from inventory.");
         
-        // Refresh everything
+        // 3. Refresh the global data and all UI components
         await sync();
-        if (typeof renderProducts === "function") renderProducts();
-        if (typeof renderPosItems === "function") renderPosItems();
+        if (typeof renderAll === "function") renderAll();
         
     } catch (err) {
         console.error("Delete Error:", err);

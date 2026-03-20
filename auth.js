@@ -156,3 +156,13 @@ async function generateUserID(userId) {
 // Global Exports
 window.login = login;
 window.logout = logout;
+
+async function checkUserRole() {
+    const { data: { user } } = await supa.auth.getUser();
+    if (user) {
+        const { data: profile } = await supa.from('users').select('role').eq('id', user.id).single();
+        // Update the global user object with the correct role
+        window.currentUser = { ...user, role: profile?.role || 'staff' };
+        console.log("Current User Role:", window.currentUser.role);
+    }
+}
