@@ -86,20 +86,19 @@ async function addEmployee() {
  * RENDER EMPLOYEES
  */
 function renderEmployees() {
-    const tbody = document.getElementById("employeeBody");
+    const tbody = document.getElementById("employeeTableBody");
     if (!tbody) return;
 
-    const employees = window.db.users || [];
-
-    tbody.innerHTML = employees.map(user => `
+    const staff = window.db.users || [];
+    
+    tbody.innerHTML = staff.map(user => `
         <tr>
-            <td><img src="${user.pic || 'https://via.placeholder.com/40'}" style="width:35px; height:35px; border-radius:50%; object-fit:cover; border: 1px solid #ddd;"></td>
-            <td>${user.full_name}</td>
-            <td>${user.email}</td>
-            <td><span class="badge">${user.role.toUpperCase()}</span></td>
+            <td><img src="${user.photo_url || 'default-avatar.png'}" style="width:40px; height:40px; border-radius:50%;"></td>
+            <td>${user.full_name || 'N/A'}</td>
+            <td><span class="badge">${user.role}</span></td>
+            <td>Active</td>
             <td>
-                <button class="btn btn-blue" onclick="printIDCard('${user.id}')">ID Card</button>
-                <button class="btn btn-red" onclick="editStaff('${user.id}')">Edit</button>
+                <button class="btn btn-blue" onclick="previewIDCard('${user.id}')">View ID</button>
             </td>
         </tr>
     `).join("");

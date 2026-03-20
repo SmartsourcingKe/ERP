@@ -110,30 +110,37 @@ function renderRetailers() {
 /**
  * RENDER CORPORATE (CBC)
  */
+/* ---- render.js Updates ---- */
+
+// 1. Correct the ID for Corporate Orders
 function renderCorporateOrders() {
-    const tbody = document.getElementById("corpOrdersBody");
-    tbody.innerHTML = window.db.corporate_orders.map(order => {
-        const isPending = order.status === 'pending';
-        
-        return `
-            <tr>
-                <td>${new Date(order.created_at).toLocaleDateString()}</td>
-                <td>${order.schools?.name || 'N/A'}</td>
-                <td>KES ${order.total.toLocaleString()}</td>
-                <td>
-                    <span class="badge ${isPending ? 'btn-red' : 'btn-green'}">
-                        ${order.status.toUpperCase()}
-                    </span>
-                </td>
-                <td>
-                    ${isPending ? 
-                        `<button class="btn btn-blue" onclick="disburseOrder('${order.id}', 'corporate_orders')">Disburse</button>` : 
-                        `<button class="btn btn-green" onclick="printReceipt('${order.id}', 'corporate')">Print Receipt</button>`
-                    }
-                </td>
-            </tr>
-        `;
-    }).join("");
+    const tbody = document.getElementById("corpOrdersBody"); // Must match index.html
+    if (!tbody) return;
+
+    const orders = window.db.corporate_orders || [];
+    tbody.innerHTML = orders.map(order => `
+        <tr>
+            <td>${new Date(order.created_at).toLocaleDateString()}</td>
+            <td>${order.schools?.name || 'N/A'}</td>
+            <td>KES ${order.total.toLocaleString()}</td>
+            <td><span class="badge">${order.status.toUpperCase()}</span></td>
+            <td>
+                <button class="btn btn-blue" onclick="viewReceipt('${order.id}', 'corporate')">Receipt</button>
+            </td>
+        </tr>
+    `).join("");
+}
+
+// 2. Add the Print Function
+async function viewCorporateReceipt(orderId) {
+    const modal = document.getElementById("receiptModal");
+    if (!modal) return;
+    
+    // Show modal
+    modal.classList.remove("hidden");
+    
+    // Populate modal data
+    await renderCorporateReceipt(orderId); // This is the function already in your render.js
 }
 
 /**

@@ -74,32 +74,6 @@ async function generatePayroll() {
     }
 }
 
-/**
- * RENDER PAYROLL HISTORY
- */
-function renderPayroll() {
-    const tbody = document.getElementById("payrollBody");
-    if (!tbody) return;
-
-    const payroll = window.db.payroll || [];
-    const users = window.db.users || [];
-
-    tbody.innerHTML = payroll.map(p => {
-        const staff = users.find(u => u.id === p.user_id);
-        return `
-            <tr>
-                <td>${p.payroll_month}</td>
-                <td>${staff ? staff.full_name : 'Unknown'}</td>
-                <td>${Number(p.basic_salary).toLocaleString()}</td>
-                <td>${Number(p.commission).toLocaleString()}</td>
-                <td><strong>${Number(p.total_pay).toLocaleString()}</strong></td>
-                <td>
-                    <button class="btn btn-blue" onclick="viewPayslip('${p.id}')">View Payslip</button>
-                </td>
-            </tr>
-        `;
-    }).join("");
-}
 async function downloadPayslip(staffId, month) {
     const record = db.payroll.find(p => p.staff_id === staffId && p.payroll_month === month);
     const staff = db.users.find(u => u.id === staffId);
