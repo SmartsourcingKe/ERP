@@ -8,8 +8,9 @@ async function initChat() {
     setInterval(loadInternalMessages, 3000);
 }
 
+/* ---- messaging.js Updates ---- */
 async function sendMessage() {
-    const input = document.getElementById("chatInput");
+    const input = document.getElementById("messageInput"); // Matches index.html
     const message = input.value.trim();
 
     if (!message || !window.currentUser) return;
@@ -22,36 +23,26 @@ async function sendMessage() {
         }]);
 
         if (error) throw error;
-
-        input.value = ""; // Clear input field
-        await loadMessages(); // This will now work because we defined it above!
-        
+        input.value = ""; 
+        await loadInternalMessages(); 
     } catch (err) {
-        alert("Failed to send message: " + err.message);
+        console.error("Send error:", err.message);
     }
 }
 
 async function loadInternalMessages() {
-    const chatBox = document.getElementById("internalChatBox"); // Matches index.html
+    const chatBox = document.getElementById("messagesContainer"); // Matches index.html
     if (!chatBox) return;
 
-    try {
-        const { data: messages, error } = await supa
-            .from("messages")
-            .select("*")
-            .order("created_at", { ascending: true });
+    const { data: messages } = await supa.from("messages").select("*").order("created_at", { ascending: true });
 
-        if (error) throw error;
-
+    if (messages) {
         chatBox.innerHTML = messages.map(msg => `
-            <div class="message">
+            <div style="padding: 5px; border-bottom: 1px solid #eee;">
                 <strong>${msg.sender_name}:</strong> ${msg.content}
             </div>
         `).join("");
-        
         chatBox.scrollTop = chatBox.scrollHeight;
-    } catch (err) {
-        console.error("Chat load error:", err.message);
     }
 }
 

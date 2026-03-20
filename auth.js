@@ -1,27 +1,22 @@
 /* ---- Authentication Logic ---- */
 
 async function login() {
-    const emailInput = document.getElementById("loginEmail");
-    const passwordInput = document.getElementById("loginPassword");
-
-    if (!emailInput || !passwordInput) return;
-
-    const email = emailInput.value.trim();
-    const password = passwordInput.value;
+    const email = document.getElementById("loginEmail").value.trim();
+    const password = document.getElementById("loginPassword").value;
 
     try {
         const { data, error } = await supa.auth.signInWithPassword({ email, password });
         if (error) throw error;
 
-        // Force role check immediately
-        const { data: profile } = await supa.from('users').select('role').eq('id', data.user.id).single();
-        window.currentUser = { ...data.user, role: profile?.role || 'employee' };
+        // FETCH ROLE: This ensures the system knows you are an admin
+        const { data: profile } = await supa.from('users').select('role, full_name').eq('id', data.user.id).single();
+        window.currentUser = { ...data.user, ...profile };
 
         await sync();
         showDashboard();
         renderAll();
+        renderPermissions(); // Explicitly call this to show admin tabs
     } catch (err) {
-        console.error("Login error:", err.message);
         alert("Login failed: " + err.message);
     }
 }
