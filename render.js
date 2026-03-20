@@ -386,27 +386,40 @@ function renderOrders() {
 }
 
 async function renderCorporateReceipt(orderId) {
-    const { data: order } = await supa.from('corporate_orders').select('*, schools(*)').eq('id', orderId).single();
-    const { data: items } = await supa.from('corporate_order_items').select('*').eq('order_id', orderId);
+    const order = window.db.corporate_orders?.find(o => o.id === orderId);
+    if (!order) return;
 
+    const school = window.db.schools?.find(s => s.id === order.school_id);
+    
+    // Set Meta Data (Order Number and Date)
+    const meta = document.getElementById("receiptMeta");
+    if (meta) {
+        meta.innerHTML = `
+            <div style="display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding-bottom:5px;">
+                <span><strong>Order No:</strong> #${order.id.slice(0, 8)}</span>
+                <span><strong>Date:</strong> ${new Date(order.created_at).toLocaleDateString()}</span>
+            </div>
+            <div style="margin-top:5px;">
+                <strong>School:</strong> ${school ? school.name : 'N/A'}
+            </div>
+        `;
+    }
+
+    // Fetch Items from corporate_order_items
+    const { data: items } = await supa.from('corporate_order_items').select('*').eq('corporate_order_id', orderId);
     const itemsBody = document.getElementById("receiptItemsBody");
-    let calculatedTotal = 0;
-
-    itemsBody.innerHTML = items.map(item => {
-        const itemTotal = item.subtotal || (item.student_count * item.price_per_student);
-        calculatedTotal += itemTotal; // Sum the items correctly
-        
-        return `
+    
+    if (items && itemsBody) {
+        itemsBody.innerHTML = items.map(item => `
             <tr>
                 <td>${item.grade} (${item.student_count} Students)</td>
                 <td style="text-align:center;">1</td>
-                <td style="text-align:right;">KES ${itemTotal.toLocaleString()}</td>
+                <td style="text-align:right;">KES ${Number(item.subtotal).toLocaleString()}</td>
             </tr>
-        `;
-    }).join("");
+        `).join("");
+    }
 
-    // Use the sum of items for the display to ensure accuracy
-    document.getElementById("receiptGrandTotal").textContent = `TOTAL: KES ${calculatedTotal.toLocaleString()}`;
+    document.getElementById("receiptGrandTotal").textContent = `TOTAL: KES ${Number(order.total).toLocaleString()}`;
 }
 
 function renderMessages() {
@@ -432,18 +445,19 @@ function viewReceipt(id, type = 'retailer') {
     const modal = document.getElementById("receiptModal");
     if (!modal) return;
 
-    // Show the modal
     modal.classList.remove("hidden");
     modal.style.display = 'block';
 
-    // Route to the correct drawing logic
+    // Apply Branding (Logo, Name, Watermark) immediately
+    applyReceiptBranding();
+
+    // Now populate the specific data
     if (type === 'corporate') {
-        if (typeof renderCorporateReceipt === 'function') renderCorporateReceipt(id);
+        renderCorporateReceipt(id);
     } else if (type === 'payroll') {
         if (typeof viewPayrollReceipt === 'function') viewPayrollReceipt(id);
     } else {
-        // Default to Retailer receipt from retailerOrders.js
-        if (typeof renderReceipt === 'function') renderReceipt(id);
+        renderReceipt(id);
     }
 }
 
@@ -480,4 +494,29 @@ function renderPayroll() {
             <td>${p.status}</td>
             <td><button class="btn btn-green" onclick="viewReceipt('${p.id}', 'payroll')">Slip</button></td>
         </tr>`).join("");
+}
+
+function applyReceiptBranding() {
+    const branding = window.db.branding || {};
+    
+    // Set Company Name & Tagline
+    const nameEl = document.getElementById("receiptCompanyName");
+    const tagEl = document.getElementById("receiptTagline");
+    const logoImg = document.getElementById("receiptLogo");
+    const watermark = document.getElementById("watermarkImg");
+
+    if (nameEl) nameEl.innerText = branding.company_name || "SmartsourcingKe";
+    if (tagEl) tagEl.innerText = branding.tagline || "Quality & Excellence";
+
+    // Set Logo and Watermark
+    if (branding.logo_url) {
+        if (logoImg) {
+            logoImg.src = branding.logo_url;
+            logoImg.style.display = 'block';
+        }
+        if (watermark) {
+            watermark.src = branding.logo_url;
+            watermark.style.opacity = '0.1'; // Ensure it looks like a watermark
+        }
+    }
 }
