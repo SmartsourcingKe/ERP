@@ -204,21 +204,19 @@ function renderAdmin() {
 }
 
 function renderProducts() {
-    const container = document.getElementById("inventoryList");
-    if (!container) return;
+    // MATCHING YOUR HTML: change 'inventoryList' to 'productList'
+    const container = document.getElementById("productList"); 
+    if (!container) return; 
 
     const products = window.db.products || [];
     let html = "";
 
     products.forEach(product => {
         html += `
-            <div class="card" style="border:1px solid #ddd; padding:15px; margin-bottom:10px; position: relative;">
+            <div class="card" style="border:1px solid #ddd; padding:15px; margin-bottom:10px;">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <h4 style="margin:0;">${product.name}</h4>
-                    <button onclick="deleteProduct('${product.id}')" 
-                            style="background:none; border:none; color:#e74c3c; cursor:pointer; font-size:1.2rem;">
-                        🗑️
-                    </button>
+                    <button onclick="deleteProduct('${product.id}')" style="color:red; border:none; background:none; cursor:pointer;">🗑️</button>
                 </div>
                 
                 <div style="display: grid; gap: 5px; margin-top: 10px;">
@@ -228,14 +226,12 @@ function renderProducts() {
                     <label>Company Fee (KES):</label>
                     <input type="number" id="fee-${product.id}" value="${product.company_fee || 0}">
                     
-                    <label>Current Stock:</label>
+                    <label>Stock Count:</label>
                     <input type="number" id="stock-${product.id}" value="${product.stock || 0}">
                 </div>
 
                 <button class="btn btn-blue" style="width:100%; margin-top:10px;" 
-                        onclick="editProduct('${product.id}')">
-                    Update Product
-                </button>
+                        onclick="editProduct('${product.id}')">Update Product</button>
             </div>`;
     });
     container.innerHTML = html;
