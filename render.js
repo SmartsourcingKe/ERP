@@ -1,11 +1,11 @@
 /**
  * MASTER RENDERER
- * This function triggers all sub-renderers. 
- * It is called after every database sync.
+ * Triggers all sub-renderers after every database sync.
  */
 function renderAll() {
     console.log("Master Render started...");
     
+    // 1. APPLY GLOBAL BRANDING
     const branding = window.db.branding || {};
     const mainLogo = document.getElementById("mainAppLogo");
     if (mainLogo && branding.logo_url) mainLogo.src = branding.logo_url;
@@ -13,9 +13,9 @@ function renderAll() {
     const companyTitle = document.getElementById("dashboardCompanyName");
     if (companyTitle) companyTitle.innerText = branding.company_name || "SmartsourcingKe";
 	
+    // 2. DEFINE AND RUN TASKS
     const tasks = [
-	
-        { name: 'Employees', func: typeof renderEmployees === 'function' ? renderEmployees : null }, // Added this
+        { name: 'Employees', func: typeof renderEmployees === 'function' ? renderEmployees : null },
         { name: 'Products', func: typeof renderProducts === 'function' ? renderProducts : null },
         { name: 'Retailer Dropdowns', func: typeof renderRetailerDropdown === 'function' ? renderRetailerDropdown : null },
         { name: 'Retailers', func: typeof renderRetailers === 'function' ? renderRetailers : null },
@@ -31,49 +31,68 @@ function renderAll() {
         if (task.func) {
             try {
                 task.func();
+                console.log(`Render Success: ${task.name}`);
             } catch (e) {
-                console.error(`Critical error in ${task.name}:`, e);
+                console.error(`Error in ${task.name}:`, e);
             }
         }
     });
 
-    // CRITICAL: This was missing. It handles the Admin/Staff tab visibility.
+    // 3. APPLY SECURITY PERMISSIONS
     if (typeof renderPermissions === 'function') {
         renderPermissions();
     }
-
-    console.log("Master Render complete.");
 }
 
 /**
  * RENDER PERMISSIONS
- * Shows or hides admin-only buttons based on the user's role.
- */
- 
-/**
- * RENDER PERMISSIONS
- * Shows or hides admin-only buttons and tabs based on the user's role.
+ * Shows or hides admin tabs based on the logged-in user's role.
  */
 function renderPermissions() {
     const role = window.currentUser?.role;
     console.log("Applying permissions for role:", role);
 
-    // 1. Select the tabs/buttons that only admins should see
-    // Ensure these IDs match the buttons in your index.html sidebar
-    const adminTabBtn = document.querySelector('[onclick*="adminTab"]');
-    const payrollTabBtn = document.querySelector('[onclick*="payrollTab"]');
-    const profitTabBtn = document.querySelector('[onclick*="profitTab"]');
+    const adminElements = [
+        document.getElementById("adminTabBtn"),
+        document.getElementById("payrollTabBtn"),
+        document.getElementById("profitTabBtn")
+    ];
 
-    if (role === 'admin') {
-        if (adminTabBtn) adminTabBtn.style.display = 'block';
-        if (payrollTabBtn) payrollTabBtn.style.display = 'block';
-        if (profitTabBtn) profitTabBtn.style.display = 'block';
-    } else {
-        // If they are 'staff' or 'employee', hide these options
-        if (adminTabBtn) adminTabBtn.style.display = 'none';
-        if (payrollTabBtn) payrollTabBtn.style.display = 'none';
-        if (profitTabBtn) profitTabBtn.style.display = 'none';
+    adminElements.forEach(el => {
+        if (el) {
+            el.style.display = (role === 'admin') ? 'block' : 'none';
+        }
+    });
+}
+
+/**
+ * RENDER EMPLOYEES
+ * Fills the admin table with staff data from window.db.users.
+ */
+function renderEmployees() {
+    const tbody = document.getElementById("employeeTableBody");
+    if (!tbody) return;
+
+    const users = window.db.users || [];
+    
+    if (users.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No staff found.</td></tr>';
+        return;
     }
+
+    tbody.innerHTML = users.map(user => `
+        <tr>
+            <td>${user.full_name || 'N/A'}</td>
+            <td>${user.email}</td>
+            <td><span class="badge" style="background:${user.role === 'admin' ? '#e74c3c' : '#3498db'}">
+                ${user.role?.toUpperCase()}
+            </span></td>
+            <td>${user.phone || '-'}</td>
+            <td>
+                <button class="btn btn-blue" onclick="editUser('${user.id}')">Edit</button>
+            </td>
+        </tr>
+    `).join("");
 }
 
 /**
@@ -280,31 +299,6 @@ async function saveProductUpdate(productId) {
         console.error("Update error:", err);
         alert("Failed to update: " + err.message);
     }
-}
-
-function renderEmployees() {
-    const tbody = document.getElementById("employeeTableBody"); // Ensure this matches index.html
-    if (!tbody) return;
-
-    // Filter for active staff/employees
-    const staff = (window.db.users || []).filter(u => u.role === 'staff' || u.role === 'admin');
-    
-    if (staff.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4">No employees found.</td></tr>';
-        return;
-    }
-
-    tbody.innerHTML = staff.map(user => `
-        <tr>
-            <td>${user.full_name || 'N/A'}</td>
-            <td>${user.email}</td>
-            <td><span class="badge">${user.role.toUpperCase()}</span></td>
-            <td>
-                <button class="btn btn-blue" onclick="editUser('${user.id}')">Edit</button>
-                ${window.currentUser.role === 'admin' ? `<button class="btn btn-red" onclick="deleteUser('${user.id}')">Remove</button>` : ''}
-            </td>
-        </tr>
-    `).join("");
 }
 
 function previewIDCard(userId) {
