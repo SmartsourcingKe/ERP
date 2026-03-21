@@ -66,7 +66,10 @@ async function handleAuthSuccess(session) {
  * GLOBAL SYNC
  * Parallel loading for speed + UI refresh.
  */
+let isSyncing = false;
 async function sync() {
+    if (isSyncing) return;
+    isSyncing = true;
     console.log("Syncing database...");
     try {
         // Fetch ALL tables at once to fill ALL tabs
@@ -104,7 +107,7 @@ async function sync() {
 	
 	const { data: users } = await supa.from('users').select('*');
 window.db.users = users;
-
+isSyncing = false;
 }
 
 /**

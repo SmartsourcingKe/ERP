@@ -353,14 +353,15 @@ async function renderReceipt(orderId) {
     } catch (err) {
         console.error("Receipt Error:", err);
     }
-}
+
 
         // 4. Grand Total
         document.getElementById("receiptGrandTotal").textContent = `TOTAL: KES ${Number(order.total).toLocaleString()}`;
 
-    } catch (err) {
+     catch (err) {
         console.error("Retailer Receipt Error:", err);
     }
+}
 
 
 function renderOrders() {
