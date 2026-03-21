@@ -279,7 +279,7 @@ async function saveProductUpdate(productId) {
                 productBasePrice: parseFloat(newPrice),
                 productCompanyFee: parseFloat(newFee),
                 productStock: parseInt(newStock)
-            })
+            });
             .eq('id', productId);
 
         if (error) throw error;

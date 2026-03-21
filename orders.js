@@ -142,3 +142,18 @@ async function disburseOrder(orderId, tableName) {
         alert("Disbursement failed: " + err.message);
     }
 }
+
+function viewOrderDetails(orderId) {
+    console.log("Viewing details for order:", orderId);
+    
+    // 1. Find the order in the database
+    const order = window.db.orders.find(o => o.id === orderId);
+    if (!order) return alert("Order not found");
+
+    // 2. Reuse your existing receipt modal logic
+    if (typeof viewReceipt === 'function') {
+        viewReceipt(orderId, 'retailer');
+    } else {
+        console.error("viewReceipt function is missing!");
+    }
+}

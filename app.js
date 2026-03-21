@@ -4,6 +4,10 @@ window.currentUser = null;
 window.cart = [];
 window.corporateCart = [];
 
+// 1. ONLY ONE DECLARATION HERE
+let isAuthProcessing = false;
+let isSyncing = false; 
+
 /**
  * INITIALIZE APP
  */
