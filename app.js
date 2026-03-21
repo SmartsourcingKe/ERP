@@ -38,34 +38,28 @@ let isAuthProcessing = false;
 // Change the parameter name to 'session' and extract the user correctly
 async function handleAuthSuccess(session) {
     if (!session || !session.user) return;
+    
+    // Set global user
+    window.currentUser = session.user;
 
-    // FIX: Define the user variable that the rest of your code is looking for
-    const user = session.user; 
-    window.currentUser = user; // Set this globally for the rest of the app
+    // Fetch the role from the 'users' table specifically
+    const { data: profile, error } = await supa
+        .from('users')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
 
-    try {
-        console.log("Auth Success for:", user.email);
-        
-        // Hide Login, Show App
-        document.getElementById('loginScreen')?.classList.add('hidden');
-        document.getElementById('mainApp')?.classList.remove('hidden');
-
-        // Fetch user profile from your 'users' table
-        const { data: profile, error } = await supa
-            .from('users')
-            .select('*')
-            .eq('id', user.id)
-            .single();
-
-        if (error) console.warn("Profile not found in database yet.");
-        if (profile) window.currentUser = { ...user, ...profile };
-
-        await sync(); // Start data download
-        renderAll(); // Draw the UI
-        
-    } catch (err) {
-        console.error("Initialization Error:", err);
+    if (error || !profile) {
+        console.error("Profile fetch error:", error);
+        // If profile doesn't exist, we can't be admin
+        window.currentUser.role = 'staff'; 
+    } else {
+        window.currentUser.role = profile.role;
+        console.log("Logged in as:", profile.role);
     }
+
+    await sync(); // Only sync AFTER we have the role
+    showScreen("dashboardPage");
 }
 
 /**

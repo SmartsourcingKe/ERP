@@ -361,7 +361,7 @@ async function renderReceipt(orderId) {
     } catch (err) {
         console.error("Retailer Receipt Error:", err);
     }
-}
+
 
 function renderOrders() {
     const tbody = document.getElementById("ordersBody");
