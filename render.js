@@ -52,17 +52,15 @@ function renderPermissions() {
     const role = window.currentUser?.role;
     console.log("Applying permissions for role:", role);
 
-    const adminElements = [
-        document.getElementById("adminTabBtn"),
-        document.getElementById("payrollTabBtn"),
-        document.getElementById("profitTabBtn")
-    ];
+    const adminTabBtn = document.querySelector('[onclick*="adminTab"]');
+    const payrollTabBtn = document.querySelector('[onclick*="payrollTab"]');
+    const profitTabBtn = document.querySelector('[onclick*="profitTab"]');
 
-    adminElements.forEach(el => {
-        if (el) {
-            el.style.display = (role === 'admin') ? 'block' : 'none';
-        }
-    });
+    const displayStyle = (role === 'admin') ? 'block' : 'none';
+    
+    if (adminTabBtn) adminTabBtn.style.display = displayStyle;
+    if (payrollTabBtn) payrollTabBtn.style.display = displayStyle;
+    if (profitTabBtn) profitTabBtn.style.display = displayStyle;
 }
 
 /**
@@ -73,19 +71,19 @@ function renderEmployees() {
     const tbody = document.getElementById("employeeTableBody");
     if (!tbody) return;
 
-    const users = window.db.users || [];
+    const staff = (window.db.users || []).filter(u => u.role === 'staff' || u.role === 'admin');
     
-    if (users.length === 0) {
+    if (staff.length === 0) {
         tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No staff found.</td></tr>';
         return;
     }
 
-    tbody.innerHTML = users.map(user => `
+    tbody.innerHTML = staff.map(user => `
         <tr>
             <td>${user.full_name || 'N/A'}</td>
             <td>${user.email}</td>
             <td><span class="badge" style="background:${user.role === 'admin' ? '#e74c3c' : '#3498db'}">
-                ${user.role?.toUpperCase()}
+                ${user.role.toUpperCase()}
             </span></td>
             <td>${user.phone || '-'}</td>
             <td>
@@ -320,25 +318,17 @@ function previewIDCard(userId) {
 }
 
 async function renderReceipt(orderId) {
-    const modal = document.getElementById("receiptModal");
-    if (!modal) return;
+    const order = window.db.orders?.find(o => o.id === orderId);
+    if (!order) return;
 
     try {
-        const order = window.db.orders?.find(o => o.id === orderId);
-        const branding = window.db.branding || {};
-        
-        // 1. Apply Branding to Modal
-        document.getElementById("receiptLogo").src = branding.logo_url || "";
-        document.getElementById("watermarkImg").src = branding.logo_url || "";
-        document.getElementById("receiptCompanyName").innerText = branding.company_name || "SmartsourcingKe";
-        document.getElementById("receiptTagline").innerText = branding.tagline || "Official Receipt";
-
-        // 2. Fetch Items
+        // Fetch items specifically for this order
         const { data: items, error } = await supa.from('order_items').select('*').eq('order_id', orderId);
         if (error) throw error;
 
-        // 3. Render 5 Columns: ITEM, QTY, PRICE, FEE, TOTAL
         const itemsBody = document.getElementById("receiptItemsBody");
+        if (!itemsBody) return;
+
         itemsBody.innerHTML = items.map(item => {
             const product = window.db.products?.find(p => p.id === item.product_id);
             const price = Number(item.price_at_sale || 0);
@@ -346,7 +336,7 @@ async function renderReceipt(orderId) {
             
             return `
                 <tr>
-                    <td>${product ? product.name : 'Unknown'}</td>
+                    <td>${product ? product.name : 'Unknown Product'}</td>
                     <td style="text-align:center;">${item.quantity}</td>
                     <td style="text-align:center;">${(price - fee).toLocaleString()}</td>
                     <td style="text-align:center;">${fee.toLocaleString()}</td>
@@ -360,9 +350,8 @@ async function renderReceipt(orderId) {
             <p><strong>Order No:</strong> #${order.id.slice(0, 8)}</p>
             <p><strong>Date:</strong> ${new Date(order.created_at).toLocaleDateString()}</p>
         `;
-
     } catch (err) {
-        console.error("Receipt failed:", err);
+        console.error("Receipt Error:", err);
     }
 }
 
