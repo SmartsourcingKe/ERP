@@ -136,7 +136,7 @@ supa.auth.onAuthStateChange(async (event, session) => {
         window.currentUser = session.user;
         // Check if handleAuthSuccess exists before calling
         if (typeof handleAuthSuccess === "function") {
-            await handleAuthSuccess(session.user);
+            await handleAuthSuccess(session); // Pass the whole session
         }
     } else {
         console.log("No session found, redirecting to login.");

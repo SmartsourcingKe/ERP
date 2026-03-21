@@ -370,25 +370,18 @@ function renderOrders() {
     const orders = (window.db.orders || []).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
     tbody.innerHTML = orders.map(order => {
-        const retailer = window.db.retailers?.find(r => r.id === order.retailer_id);
-        const date = new Date(order.created_at).toLocaleDateString();
-        const status = order.status || 'pending';
-        
-        return `
-            <tr>
-                <td>${date}</td>
-                <td>${order.id.slice(0, 8)}</td>
-                <td>${retailer ? retailer.name : 'Unknown'}</td>
-                <td>KES ${Number(order.total || 0).toLocaleString()}</td>
-                <td><span class="badge">${status.toUpperCase()}</span></td>
-                <td>
-                    <button class="btn btn-blue" onclick="viewReceipt('${order.id}', 'retailer')">Receipt</button>
-                    ${status === 'pending' ? 
-                        `<button class="btn btn-green" onclick="updateOrderStatus('${order.id}', 'disbursed')">Disburse</button>` : 
-                        `<span style="color:green; font-weight:bold;">✓</span>`}
-                </td>
-            </tr>`;
-    }).join("");
+    const retailer = window.db.retailers?.find(r => r.id === order.retailer_id);
+    const date = new Date(order.created_at).toLocaleDateString();
+    
+    return `
+        <tr>
+            <td>${date}</td> <td>${order.id.slice(0, 8)}</td> <td>${retailer ? retailer.name : 'Unknown'}</td> <td>KES ${Number(order.total || 0).toLocaleString()}</td>
+            <td><span class="badge">${(order.status || 'pending').toUpperCase()}</span></td>
+            <td>
+                <button class="btn btn-blue" onclick="viewReceipt('${order.id}', 'retailer')">Receipt</button>
+            </td>
+        </tr>`;
+}).join("");
 }
 
 async function renderCorporateReceipt(orderId) {
