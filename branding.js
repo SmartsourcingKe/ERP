@@ -8,10 +8,10 @@ async function updateBranding() {
     }
 
     // Map these to the IDs in your index.html's Admin Tab
-    const name = document.getElementById("brandCompanyName")?.value;
-    const tagline = document.getElementById("brandTagline")?.value;
-    const logoFile = document.getElementById("brandLogoFile")?.files[0];
-    const bgFile = document.getElementById("brandBgFile")?.files[0];
+    const name = document.getElementById("brandingName")?.value;
+    const tagline = document.getElementById("brandingTagline")?.value;
+    const logoFile = document.getElementById("brandingLogo")?.files[0];
+    const bgFile = document.getElementById("brandingBg")?.files[0];
 
     let logoUrl = window.db.branding?.logo_url || null;
     let bgUrl = window.db.branding?.background_url || null;

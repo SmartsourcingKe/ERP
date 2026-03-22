@@ -2,10 +2,10 @@
  * ADD PRODUCT
  */
 async function addProduct() {
-    const name = document.getElementById("productName").value;
+    const name = document.getElementById("addProductName").value;
     const stock = document.getElementById("productStock").value;
     const price = document.getElementById("productBasePrice").value;
-    const fee = document.getElementById("productCompanyFee").value;
+    const fee = document.getElementById("productFee").value;
 
     try {
         const { error } = await supa.from("products").insert([{

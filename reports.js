@@ -9,6 +9,7 @@ window.salesChart = window.salesChart || null;
  */
 // Update in reports.js
 function renderMonthlyFinance() {
+	if (window.monthlyTrendChart instanceof Chart) window.monthlyTrendChart.destroy();
     const monthlyData = {};
     const track = (dateStr, manufacturer = 0, fee = 0, corporate = 0, payroll = 0) => {
         const date = new Date(dateStr);

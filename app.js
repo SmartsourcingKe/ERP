@@ -2,11 +2,7 @@
 window.db = {};
 window.currentUser = null;
 window.cart = [];
-window.corporateCart = [];
-
-// 1. ONLY ONE DECLARATION HERE
-let isAuthProcessing = false;
-let isSyncing = false; 
+window.corporateCart = []; 
 
 /**
  * INITIALIZE APP
@@ -36,9 +32,6 @@ async function initApp() {
     }
 }
 
-// 1. Add this at the top of app.js (outside any functions)
-let isAuthProcessing = false;
-
 // Change the parameter name to 'session' and extract the user correctly
 async function handleAuthSuccess(session) {
     if (!session || !session.user) return;
@@ -66,11 +59,7 @@ async function handleAuthSuccess(session) {
     showScreen("dashboardPage");
 }
 
-/**
- * GLOBAL SYNC
- * Parallel loading for speed + UI refresh.
- */
-let isSyncing = false;
+
 async function sync() {
     if (isSyncing) return;
     isSyncing = true;
@@ -109,7 +98,6 @@ async function sync() {
         console.error("Sync failed:", err.message);
     }
 	
-	const { data: users } = await supa.from('users').select('*');
 window.db.users = users;
 isSyncing = false;
 }
@@ -134,7 +122,6 @@ function showScreen(sectionId) {
     }
 }
 
-window.onload = initApp;
 
 supa.auth.onAuthStateChange(async (event, session) => {
     console.log("AUTH EVENT:", event);

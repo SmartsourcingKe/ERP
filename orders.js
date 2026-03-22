@@ -157,3 +157,7 @@ function viewOrderDetails(orderId) {
         console.error("viewReceipt function is missing!");
     }
 }
+
+window.viewOrderDetails = function(orderId) {
+    viewReceipt(orderId, 'retailer');
+};

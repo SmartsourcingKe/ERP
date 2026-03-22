@@ -1,12 +1,5 @@
 let lastCount = 0;
 
-// This ensures the chat starts as soon as the file loads
-async function initChat() {
-    console.log("Chat system initializing...");
-    await loadInternalMessages();
-    // Refresh every 3 seconds
-    setInterval(loadInternalMessages, 3000);
-}
 
 /* ---- messaging.js Updates ---- */
 async function sendMessage() {
@@ -80,6 +73,4 @@ async function loadMessages() {
     }
 }
 
-// Run the initialization
-initChat();
 

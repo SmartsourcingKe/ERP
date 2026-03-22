@@ -168,3 +168,5 @@ async function viewPayslip(id) {
     document.getElementById("receiptGrandTotal").innerText = ""; 
     document.getElementById("receiptModal").classList.remove("hidden");
 }
+
+window.viewPayrollReceipt = viewPayrollReceipt;

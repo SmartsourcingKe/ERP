@@ -39,7 +39,7 @@ async function logout() {
 
 async function handleSignedIn(session) {
     if (!session) return;
-    const user = session.user;
+    const user = await handleAuthSuccess(session)
 
     // Force pull the role immediately from Supabase
     const { data: profile } = await supa
@@ -96,7 +96,7 @@ function applyPermissions() {
     }
 }
 
-function showDashboard() {
+function showScreen('dashboard') {
     document.getElementById("loginPage")?.classList.add("hidden");
     document.getElementById("dashboard")?.classList.remove("hidden");
     
