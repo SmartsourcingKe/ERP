@@ -1,503 +1,352 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="icon" href="logo.png">
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SmartsourcingKe ERP</title>
-    <style>
-        :root { --primary:#1f2d3d; --green:#27ae60; --blue:#3498db; --red:#e74c3c; --bg:#f4f6f9; }
-        body { font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin:0; padding:20px; background:var(--bg); }
-        .hidden { display:none !important; }
-        .container { max-width:1200px; margin:auto; background:white; padding:20px; border-radius:12px; box-shadow:0 5px 20px rgba(0,0,0,0.1); }
-        .btn { padding:8px 12px; border:none; border-radius:6px; cursor:pointer; color:white; font-weight:bold; }
-        .btn-green { background:var(--green); }
-        .btn-blue { background:var(--blue); }
-        .btn-red { background:var(--red); }
-        .tab-menu { display:flex; gap:10px; margin-bottom:25px; background:#eee; padding:10px; border-radius:10px; flex-wrap:wrap; }
-        .tab-btn { flex:1; padding:12px; border:none; cursor:pointer; border-radius:6px; font-weight:bold; background:#ddd; }
-        .tab-btn.active { background:white; color:var(--blue); }
-        .card { background:white; padding:15px; border-radius:10px; box-shadow:0 4px 10px rgba(0,0,0,0.1); margin-bottom:20px; }
-        table { width:100%; border-collapse:collapse; margin-top:10px; }
-        th, td { padding:8px; border-bottom:1px solid #eee; text-align:left; }
-        input, select { width:100%; padding:8px; margin-bottom:10px; border-radius:6px; border:1px solid #ccc; }
-        .brand-header { text-align:center; margin-bottom:25px; border-bottom:2px solid #eee; padding-bottom:15px; }
-        .brand-logo { max-height:100px; margin:auto; display:block; margin-bottom:10px; }
-        .brand-name { font-size:2em; font-weight:bold; margin:0; }
-        .brand-motto { font-style:italic; color:#7f8c8d; margin-top:5px; }
-        .login-container { max-width:400px; margin:100px auto; text-align:center; padding:30px; }
-        .modal { position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; }
-        .modal-content { background-color: white; padding: 20px; border-radius: 8px; max-width: 500px; width: 90%; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SmartsourcingKe Pro - Cloud ERP</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-		/* --- 1. General ID Card Styling (Screen & Print) --- */
-.id-card-container {
-    width: 320px;
-    height: 480px;
-    background: #fff;
-    border: 1px solid #000;
-    border-radius: 10px;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 0 10px rgba(0,0,0,0.2);
-}
-
-.id-header {
-    background: var(--primary);
-    color: #fff;
-    padding: 10px;
-    text-align: center;
-}
-
-.id-photo-frame {
-    width: 120px;
-    height: 120px;
-    margin: 20px auto;
-    border: 3px solid var(--blue);
-    border-radius: 5px;
-    overflow: hidden;
-}
-
-/* --- 2. Master Print Logic (Unified) --- */
-@media print {
-    /* Hide everything on the ERP by default */
-    body * { 
-        visibility: hidden !important; 
-    }
-
-    /* ONLY show the Receipt or the ID Card */
-    #receiptModal, #receiptModal *, 
-    #idCardModal, #idCardModal *,
-    #printableIdCard, #printableIdCard * { 
-        visibility: visible !important; 
-    }
-
-    /* Position the active modal at the very top of the paper */
-    #receiptModal, #idCardModal {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: auto;
-        background: white !important;
-    }
-
-    /* Ensure the Logo Watermark and colors actually print */
-    * {
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-    }
-
-    /* Hide the 'Print' and 'Close' buttons on the paper */
-    .no-print { 
-        display: none !important; 
-    }
-}
-.modal {
-    position: fixed;
-    z-index: 9999; /* Ensure it stays on top of the dashboard */
-    left: 0; top: 0;
-    width: 100%; height: 100%;
-    background-color: rgba(0,0,0,0.5);
-    display: flex; /* Helps center the content */
-    align-items: center;
-    justify-content: center;
-}
-
-.modal.hidden {
-    display: none !important;
-}
-
-@media print {
-    body * {
-        visibility: hidden; /* Hide everything else */
-    }
-    #receiptModal, #receiptModal * {
-        visibility: visible; /* Only show the modal */
-    }
-    #receiptModal {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100%;
-        background: white;
-    }
-    .btn, .modal-footer {
-        display: none !important; /* Hide "Print Now" and "Close" buttons on paper */
-    }
-}
-
+    <style id="dynamicStyles">
+        :root { --primary: #2c3e50; --secondary: #27ae60; --accent: #3498db; --danger: #e74c3c; --bg-color: #f4f7f6; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; background-color: var(--bg-color); transition: 0.3s; }
+        .container { max-width: 1200px; margin: auto; background: rgba(255,255,255,0.98); padding: 30px; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); }
+        .hidden { display: none; }
+        .brand-header { text-align: center; margin-bottom: 25px; border-bottom: 2px solid #eee; padding-bottom: 15px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        input, select { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
+        .btn { padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; color: white; transition: 0.2s; }
+        .btn-green { background: var(--secondary); }
+        .btn-blue { background: var(--accent); }
+        .btn-red { background: var(--danger); }
+        .tab-menu { display: flex; gap: 10px; margin-bottom: 25px; background: #eee; padding: 10px; border-radius: 10px; overflow-x: auto; }
+        .tab-btn { flex: 1; padding: 12px; border: none; cursor: pointer; border-radius: 5px; font-weight: bold; min-width: 120px; }
+        .tab-btn.active { background: white; color: var(--accent); }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; }
+        th, td { border: 1px solid #eee; padding: 12px; text-align: left; }
+        th { background: #f8f9fa; }
+        .card { border: 1px solid #ddd; padding: 15px; border-radius: 10px; background: #fff; }
+        
+        @media print {
+            .no-print { display: none !important; }
+            .container { box-shadow: none; width: 100%; border: none; padding: 0; }
+            body { background: white !important; }
+        }
     </style>
 </head>
 <body>
 
-<div id="loginPage" class="container login-container">
-    <img id="loginLogo" src="" class="brand-logo hidden" style="max-height: 80px; margin-bottom: 15px;">
-    <h2 id="loginCompanyName">SmartsourcingKe ERP</h2>
-    <p id="loginTagline" style="font-style: italic; color: #666; margin-bottom: 20px;"></p>
-    
-    <input id="loginEmail" placeholder="Email">
-    <input id="loginPassword" type="password" placeholder="Password">
-    <button class="btn btn-blue" onclick="login()">Login</button>
+<div id="loginPage" class="container" style="max-width: 400px; margin-top: 50px; text-align: center;">
+    <img id="loginLogo" src="" style="max-width:150px; display:none; margin:0 auto 20px;">
+    <h2>ERP System Login</h2>
+    <input type="text" id="userIn" placeholder="Username">
+    <input type="password" id="passIn" placeholder="Password">
+    <button class="btn btn-blue" onclick="handleLogin()">Login</button>
 </div>
 
 <div id="dashboard" class="container hidden">
     <div class="brand-header">
-        <img id="companyLogo" class="brand-logo hidden">
-        <p id="companyName" class="brand-name"></p>
-        <p id="companyTagline" class="brand-motto"></p>
+        <img id="mainLogo" src="" style="max-height:80px; display:none; margin:0 auto 10px;">
+        <h1 id="sysName">SmartsourcingKe Pro</h1>
+        <button class="btn btn-red no-print" style="width:auto; float:right; margin-top:-50px;" onclick="location.reload()">Logout</button>
     </div>
 
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-        <h2 id="welcome">Welcome</h2>
-        <button class="btn btn-red" onclick="logout()">Logout</button>
+    <div class="no-print">
+        <h3 id="welcomeMsg">Welcome</h3>
+        <p id="monthlySalesCounter" style="color:var(--secondary); font-weight:bold; font-size:1.2em;"></p>
+        
+        <div class="tab-menu">
+            <button class="tab-btn active" onclick="showTab('orderTab')">Orders</button>
+            <button class="tab-btn" onclick="showTab('retailerTab')">Retailers</button>
+            <button class="tab-btn" onclick="showTab('disburseTab')">Disbursement</button>
+            <button id="adminBtn" class="tab-btn hidden" onclick="showTab('adminTab')">Admin Tools</button>
+        </div>
     </div>
 
-    <div class="tab-menu">
-        <button class="tab-btn active" onclick="openTab('ordersTab',this)">Orders</button>
-        <button class="tab-btn" onclick="openTab('retailersTab',this)">Retailers</button>
-        <button class="tab-btn" onclick="openTab('inventoryTab',this)">Inventory</button>
-        <button class="tab-btn" onclick="openTab('corporateTab',this)">Corporate</button>
-        <button id="payrollBtn" class="tab-btn hidden" onclick="openTab('payrollTab',this)">Payroll</button>
-        <button id="adminBtn" class="tab-btn hidden" onclick="openTab('adminTab',this)">Admin</button>
-        <button id="profitBtn" class="tab-btn hidden" onclick="openTab('profitTab',this)">Profit</button>
-		<button class="tab-btn" onclick="openTab('messagesTab',this)">
-    Messages <span id="msgBadge" class="hidden" style="background:red; color:white; border-radius:50%; padding:2px 6px; font-size:10px;">0</span>
-</button>
-    </div>
-
-    <div id="ordersTab" class="tab-content">
-        <div class="card">
-            <h3>New Retailer Order</h3>
-            <label>Select Retailer:</label>
-            <select id="retailerSelect"></select>
-            <div style="display: flex; gap: 10px;">
-                <select id="orderProductSelect" style="flex: 2;"></select>
-                <input type="number" id="orderQty" value="1" style="flex: 1;">
-                <button class="btn btn-blue" onclick="addToCart()">Add to Cart</button>
+    <div id="orderTab" class="tab-content">
+        <div class="grid">
+            <div class="card no-print">
+                <h3>New Order</h3>
+                <input type="text" id="retSearch" placeholder="Search Retailer..." oninput="filterRetailers()">
+                <select id="retSelect" size="4"></select>
+                <select id="prodSelect"></select>
+                <input type="number" id="ordQty" placeholder="Quantity" value="1">
+                <button class="btn btn-blue" onclick="addToCart()">Add Item</button>
+                <div id="cartDisplay" style="margin-top:10px; border-top:1px dashed #ccc; padding-top:10px;"></div>
+                <h4 id="cartTotal">Total: KES 0</h4>
+                <button class="btn btn-green" onclick="submitOrder()">Place Order</button>
+            </div>
+            <div class="card">
+                <h3>Order History & Receipts</h3>
+                <table>
+                    <thead><tr><th>Order ID</th><th>Retailer</th><th>Total</th><th>Action</th></tr></thead>
+                    <tbody id="historyBody"></tbody>
+                </table>
             </div>
         </div>
-        <div class="card">
-            <h3>Current Order Items</h3>
-            <table>
-                <thead><tr><th>Product</th><th>Qty</th><th>Price</th><th>Total</th><th>Action</th></tr></thead>
-                <tbody id="cartTableBody"></tbody>
-            </table>
-            <h3 id="cartGrandTotal">Total: KES 0</h3>
-            <button class="btn btn-green" onclick="processOrder()">Complete Order</button>
-        </div>
-        <div class="card">
-            <h3>Order History</h3>
-            <table>
-                <thead><tr><th>Date</th><th>Retailer</th><th>Total</th><th>Status</th><th>Action</th></tr></thead>
-                <tbody id="ordersBody"></tbody>
-            </table>
-        </div>
-    </div>
-	
-	<div id="inventoryTab" class="tab-content hidden">
-    <div class="card">
-        <h3>Product Management</h3>
-        <div id="productList"></div> 
-    </div>
-</div>
-
-    <div id="retailersTab" class="tab-content hidden">
-    <div class="card">
-        <h3>Register Retailer</h3>
-        <input id="retailerName" placeholder="Business Name">
-        <input id="retailerPhone" placeholder="Phone">
-        <input id="retailerLocation" placeholder="Location">
-        <button class="btn btn-blue" onclick="addRetailer()">Save Retailer</button>
     </div>
 
-    <div class="card">
-        <h3>Retailer List</h3>
-        <input id="retailerSearch" placeholder="Search..." oninput="renderRetailers()">
+    <div id="retailerTab" class="tab-content hidden">
+        <div class="grid">
+            <div class="card no-print">
+                <h3>Register Retailer</h3>
+                <input type="text" id="rName" placeholder="Shop Name">
+                <input type="text" id="rLoc" placeholder="Location">
+                <input type="text" id="rPhone" placeholder="Phone Number">
+                <label>ID Proof (PDF):</label>
+                <input type="file" id="rPdf" accept="application/pdf">
+                <button class="btn btn-blue" onclick="saveRetailer()">Save Retailer</button>
+            </div>
+            <div class="card">
+                <h3>Retailer List <button class="btn btn-blue no-print" style="width:auto; padding:5px 10px; float:right;" onclick="window.print()">Print List</button></h3>
+                <table id="retailerTable">
+                    <thead><tr><th>ID</th><th>Name</th><th>Location</th><th>Phone</th></tr></thead>
+                    <tbody id="retailerBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="disburseTab" class="tab-content hidden">
+        <h3>Orders Disbursement Tracker</h3>
         <table>
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Phone</th>
-                    <th>Location</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody id="retailerBody"></tbody>
+            <thead><tr><th>ID</th><th>Retailer</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody id="disburseBody"></tbody>
         </table>
-    </div>
-</div>
-
-
-<div id="corporateTab" class="tab-content hidden">
-    <div class="card">
-        <h3>Manage Schools</h3>
-        <input type="text" id="schoolName" placeholder="School Name">
-        <input type="text" id="schoolPhone" placeholder="Phone Number">
-        <input type="text" id="schoolLocation" placeholder="Location">
-        <button class="btn btn-blue" onclick="addSchool()">Save School</button>
-        
-        <table style="width:100%; margin-top:15px;">
-            <thead>
-                <tr><th>Name</th><th>Phone</th><th>Location</th></tr>
-            </thead>
-            <tbody id="schoolTableBody"></tbody>
-        </table>
-    </div>
-
-    <div class="card">
-        <h3>Create New Corporate Order</h3>
-        <select id="corpSchoolSelect">
-            <option value="">-- Select School --</option>
-        </select>
-        
-        <div style="display:flex; gap:10px; margin-top:10px;">
-            <select id="cbcLevel" style="flex:2;">
-                <option value="">-- Select Grade --</option>
-                <option value="PP1">PP1</option><option value="PP2">PP2</option>
-                <option value="Grade 1">Grade 1</option><option value="Grade 2">Grade 2</option>
-                <option value="Grade 3">Grade 3</option><option value="Grade 4">Grade 4</option>
-                <option value="Grade 5">Grade 5</option><option value="Grade 6">Grade 6</option>
-                <option value="Grade 7">Grade 7</option><option value="Grade 8">Grade 8</option>
-                <option value="Grade 9">Grade 9</option><option value="Grade 10">Grade 10</option>
-                <option value="Grade 11">Grade 11</option><option value="Grade 12">Grade 12</option>
-            </select>
-            <input type="number" id="cbcStudents" placeholder="Students" style="flex:1;">
-            <input type="number" id="cbcPrice" placeholder="Price/Student" style="flex:1;">
-            <button class="btn btn-blue" onclick="addCorporateToCart()">Add to Cart</button>
-        </div>
-
-        <table style="width:100%; margin-top:20px; border-top: 2px solid #eee;">
-            <thead>
-                <tr><th>Grade</th><th>Students</th><th>Subtotal</th><th>Action</th></tr>
-            </thead>
-            <tbody id="corporateCartTable"></tbody>
-        </table>
-        <h3 id="corporateTotalDisplay">Total: KES 0</h3>
-        <button class="btn btn-green" onclick="processCorporateOrder()">Complete Corporate Order</button>
-    </div>
-
-    <div class="card">
-    <h3>Corporate Order History</h3>
-    <table>
-    <thead>
-        <tr>
-            <th>Date</th><th>School</th><th>Total</th><th>Status</th><th>Action</th>
-        </tr>
-    </thead>
-    <tbody id="corpOrdersBody"></tbody>
-</table>
-</div>
-</div>
-
-    <div id="payrollTab" class="tab-content hidden">
-        <div class="card"><h3>Payroll</h3><button class="btn btn-green" onclick="generatePayroll()">Generate Payroll</button></div>
-        <div class="card"><table><thead><tr><th>Staff</th><th>Total Pay</th><th>Action</th></tr></thead><tbody id="payrollBody"></tbody></table></div>
     </div>
 
     <div id="adminTab" class="tab-content hidden">
-    <div class="card">
-        <h3>System Branding & ID Settings</h3>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <input type="text" id="brandCompanyName" placeholder="Institution Name">
-            <input type="text" id="brandTagline" placeholder="Tagline (e.g. Quality Excellence)">
-            <div>
-                <label>System Logo:</label>
-                <input type="file" id="brandLogoFile" accept="image/*">
+        <div class="grid">
+            <div class="card">
+                <h4>System Design</h4>
+                <label>Upload Logo:</label>
+                <input type="file" id="sysLogoIn" accept="image/*" onchange="updateDesign('logo')">
+                <label>Background Color:</label>
+                <input type="color" id="bgColorIn" onchange="updateDesign('color')">
             </div>
-            <div>
-                <label>ID Watermark/Background:</label>
-                <input type="file" id="brandBgFile" accept="image/*">
+            <div class="card">
+                <h4>Add Inventory Item</h4>
+                <input type="text" id="pName" placeholder="Item Name">
+                <input type="number" id="pPrice" placeholder="Wholesale Price">
+                <input type="number" id="pFee" placeholder="Company Fee/Markup">
+                <input type="number" id="pStock" placeholder="Stock Quantity">
+                <button class="btn btn-green" onclick="saveProduct()">Save Item</button>
             </div>
-        </div>
-        <button class="btn btn-green" style="margin-top:10px;" onclick="updateBranding()">Update Branding</button>
-    </div>
-
-    <div class="card">
-        <h3>Staff Management</h3>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <input type="text" id="empFullName" placeholder="Full Name">
-            <input type="email" id="empEmail" placeholder="Login Email">
-            <input type="password" id="empPassword" placeholder="Login Password">
-            <select id="empRole">
-                <option value="staff">Staff</option>
-                <option value="admin">Admin</option>
-            </select>
-            <input type="number" id="empBasic" placeholder="Basic Salary">
-            <input type="number" id="empCommissionRate" placeholder="Commission %">
-            <div style="grid-column: span 2;">
-                <label>Staff ID Photo:</label>
-                <input type="file" id="empPhotoFile" accept="image/*">
+            <div class="card" style="grid-column: span 2;">
+                <h4>Employee Management & Monthly Payroll</h4>
+                <div class="grid">
+                    <div>
+                        <input type="text" id="eName" placeholder="Full Name">
+                        <input type="text" id="eUser" placeholder="Username">
+                        <input type="password" id="ePass" placeholder="Password">
+                        <input type="number" id="eSalary" placeholder="Base Salary">
+                        <input type="number" id="eComm" placeholder="Commission %">
+                        <button class="btn btn-blue" onclick="saveEmployee()">Add Employee</button>
+                    </div>
+                    <div>
+                        <button class="btn btn-blue no-print" onclick="window.print()">Print Payroll Report</button>
+                        <table style="font-size: 0.9em;">
+                            <thead><tr><th>Name</th><th>Base</th><th>Comm.</th><th>Total</th></tr></thead>
+                            <tbody id="payrollBody"></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
-        </div>
-        <button class="btn btn-blue" style="margin-top:10px; width:100%;" onclick="addEmployee()">Create Account & Upload Photo</button>
-    </div>
-
-    <div class="card">
-        <h3>Active Staff Directory</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Photo</th>
-                    <th>Name</th>
-                    <th>Role</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody id="employeeTableBody"></tbody>
-        </table>
-    </div>
-</div>
-
-<div id="idCardModal" class="modal hidden">
-    <div class="modal-content" style="width: 350px; padding: 0; border: none; background: transparent;">
-        <div id="printableIdCard" style="width: 320px; height: 500px; background: white; border: 2px solid #333; border-radius: 15px; position: relative; overflow: hidden; margin: auto; font-family: sans-serif;">
-            
-            <div style="background: var(--primary); color: white; padding: 15px; text-align: center;">
-                <img id="idLogo" src="" style="height: 40px; margin-bottom: 5px;"><br>
-                <strong id="idHeaderName" style="font-size: 14px; text-transform: uppercase;"></strong>
-            </div>
-
-            <img id="idWatermark" src="" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 200px; opacity: 0.1; z-index: 0;">
-
-            <div style="text-align: center; margin-top: 20px; position: relative; z-index: 1;">
-                <img id="idStaffPhoto" src="" style="width: 120px; height: 120px; border-radius: 10px; border: 3px solid var(--primary); object-fit: cover;">
-            </div>
-
-            <div style="text-align: center; margin-top: 15px; position: z-index: 1;">
-                <h2 id="idStaffName" style="margin: 0; color: #333;"></h2>
-                <p id="idStaffRole" style="margin: 5px 0; color: var(--blue); font-weight: bold; text-transform: uppercase; letter-spacing: 1px;"></p>
-                <p id="idStaffEmail" style="font-size: 12px; color: #666;"></p>
-            </div>
-
-            <div style="margin-top: 40px; text-align: center; position: relative; z-index: 1;">
-                <div style="width: 150px; border-bottom: 1px solid #333; margin: auto;"></div>
-                <p style="font-size: 10px; font-weight: bold; margin-top: 5px;">MANAGEMENT SIGNATURE</p>
-            </div>
-
-            <div style="position: absolute; bottom: 0; width: 100%; background: #eee; padding: 10px 0; text-align: center; font-size: 10px;">
-                Valid for SmartsourcingKe Authorized Personnel Only
-            </div>
-        </div>
-
-        <div class="no-print" style="margin-top: 20px; text-align: center;">
-            <button class="btn btn-green" onclick="window.print()">Print ID Card</button>
-            <button class="btn btn-red" onclick="document.getElementById('idCardModal').classList.add('hidden')">Close</button>
         </div>
     </div>
 </div>
-
-    <div id="profitTab" class="tab-content hidden">
-        <div class="card"><canvas id="monthlyTrendChart"></canvas></div>
-        <div class="card"><table><thead><tr><th>Month</th><th>Net Profit</th></tr></thead><tbody id="monthlyFinanceBody"></tbody></table></div>
-    </div>
-</div> 
-<div id="receiptModal" class="modal hidden">
-    <div class="modal-content" style="position:relative; width:400px; padding:20px; background: white;">
-        <img id="watermarkImg" src="" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); width:250px; opacity:0.1; z-index:0; pointer-events:none;">
-        
-        <div style="position:relative; z-index:1;">
-            <div style="text-align:center; border-bottom:2px solid #333; padding-bottom:10px; margin-bottom:15px;">
-                <img id="receiptLogo" src="" style="max-height:70px; margin-bottom:5px;"><br>
-                <strong id="receiptCompanyName" style="font-size:1.2em; text-transform:uppercase;"></strong><br>
-                <span id="receiptTagline" style="font-style:italic; font-size:0.8em;"></span>
-            </div>
-
-            <div id="receiptMeta"></div>
-            <table style="width:100%; border-collapse:collapse; margin-top:10px;">
-    <thead>
-        <tr style="border-bottom:1px solid #000;">
-            <th style="text-align:left;">ITEM</th>
-            <th style="text-align:center;">QTY</th>
-            <th style="text-align:center;">PRICE</th>
-            <th style="text-align:center;">FEE</th>
-            <th style="text-align:right;">TOTAL</th>
-        </tr>
-    </thead>
-    <tbody id="receiptItemsBody"></tbody>
-</table>
-            
-            <div style="text-align:right; border-top:2px solid #000; margin-top:10px; padding-top:5px;">
-                <strong id="receiptGrandTotal" style="font-size:1.1em;"></strong>
-            </div>
-        </div>
-
-        <div class="no-print" style="margin-top:20px; text-align:center;">
-            <button class="btn btn-blue" onclick="window.print()">Print Receipt</button>
-            <button class="btn btn-red" onclick="document.getElementById('receiptModal').classList.add('hidden')">Close</button>
-        </div>
-    </div>
-</div>
-	<div id="messagesTab" class="tab-content hidden">
-    <div class="card">
-        <h3>Internal Communications</h3>
-        <div id="messagesContainer" style="height: 400px; overflow-y: auto; border: 1px solid #eee; padding: 10px; margin-bottom: 10px;"></div>
-        
-        <div style="display: flex; gap: 10px;">
-            <input type="text" id="messageInput" placeholder="Type a message..." style="flex: 1; padding: 10px;">
-            <button class="btn btn-blue" onclick="sendMessage()">Send</button>
-        </div>
-    </div>
-</div>
-    </div>
-
-</div>
-	
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="supabase.js"></script> 
-<script src="core.js"></script>
-<script src="sync.js"></script>
-<script src="ui.js"></script>
-<script src="auth.js"></script>
-<script src="branding.js"></script>
-<script src="products.js"></script>
-<script src="retailers.js"></script>
-<script src="orders.js"></script>
-<script src="retailerOrders.js"></script>
-<script src="corporateOrders.js"></script>
-<script src="employees.js"></script>
-<script src="payroll.js"></script>
-<script src="messaging.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="reports.js"></script>
-<script src="app.js"></script>
-<script src="render.js"></script>
 
 <script>
-    document.addEventListener("DOMContentLoaded", () => {
-    // If initApp is already called inside app.js, 
-    // you don't need to call it again here.
-    console.log("DOM fully loaded and parsed");
-});
+// --- DB CONFIG ---
+const SUPABASE_URL = "https://itpcxhpryagskkhfkwxg.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0cGN4aHByeWFnc2traGZrd3hnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1OTkzMDUsImV4cCI6MjA4NzE3NTMwNX0.BzU2_lwqbgkIdxzUAa2zVcp7UoAFemV8QsAFHpxV-gY";
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    function openTab(tabId, btn) {
-    // Hide all contents using the 'hidden' class
-    document.querySelectorAll('.tab-content').forEach(t => {
-        t.classList.add('hidden');
-        t.style.display = 'none'; // Extra safety
-    });
-    
+let db = { users:[], products:[], retailers:[], orders:[], branding:{} };
+let currentUser = null;
+let cart = [];
+
+// --- UTILS ---
+const makeID = (prefix) => prefix + "-" + Math.floor(1000 + Math.random() * 9000);
+
+function showTab(id) {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    
-    const target = document.getElementById(tabId);
-    if (target) {
-        target.classList.remove('hidden');
-        target.style.display = 'block'; // Ensure it's not set to 'none' inline
-        btn.classList.add('active');
-    }
+    document.getElementById(id).classList.remove('hidden');
+    event.currentTarget.classList.add('active');
+}
 
-    if (tabId === 'messagesTab') {
-        const badge = document.getElementById('msgBadge');
-        if (badge) badge.classList.add('hidden');
-        // Trigger the load function from messaging.js
-        if(typeof loadInternalMessages === 'function') loadInternalMessages();
+// --- CORE FUNCTIONS ---
+async function sync() {
+    const { data:u } = await supabase.from('users').select('*');
+    const { data:p } = await supabase.from('products').select('*');
+    const { data:r } = await supabase.from('retailers').select('*');
+    const { data:o } = await supabase.from('orders').select('*');
+    const { data:b } = await supabase.from('branding').select('*').maybeSingle();
+    
+    db = { users:u||[], products:p||[], retailers:r||[], orders:o||[], branding:b||{} };
+    applyBranding();
+    renderData();
+}
+
+function applyBranding() {
+    if(db.branding.logo) {
+        document.getElementById('loginLogo').src = db.branding.logo;
+        document.getElementById('loginLogo').style.display = 'block';
+        document.getElementById('mainLogo').src = db.branding.logo;
+        document.getElementById('mainLogo').style.display = 'block';
+    }
+    if(db.branding.bg_color) document.body.style.backgroundColor = db.branding.bg_color;
+}
+
+async function handleLogin() {
+    const u = document.getElementById('userIn').value.trim();
+    const p = document.getElementById('passIn').value;
+    const { data:user, error } = await supabase.from('users').select('*').eq('username', u).eq('password', p).maybeSingle();
+    
+    if(user) {
+        currentUser = user;
+        document.getElementById('loginPage').classList.add('hidden');
+        document.getElementById('dashboard').classList.remove('hidden');
+        document.getElementById('welcomeMsg').innerText = "User: " + user.full_name;
+        if(user.role === 'admin') document.getElementById('adminBtn').classList.remove('hidden');
+        await sync();
+    } else { alert("Login Failed: Check credentials"); }
+}
+
+function renderData() {
+    // Dropdowns
+    document.getElementById('retSelect').innerHTML = db.retailers.map(r => `<option value="${r.name}">${r.name} (${r.loc})</option>`).join('');
+    document.getElementById('prodSelect').innerHTML = db.products.map(p => `<option value="${p.id}">${p.name} - KES ${Number(p.price)+Number(p.fee)}</option>`).join('');
+    
+    // Retailer List
+    document.getElementById('retailerBody').innerHTML = db.retailers.map(r => `<tr><td>${r.id}</td><td>${r.name}</td><td>${r.loc}</td><td>${r.phone || 'N/A'}</td></tr>`).join('');
+
+    // Sales & Monthly Logic
+    const currentMonth = new Date().getMonth();
+    let myMonthlyTotal = 0;
+
+    const historyHTML = db.orders.map(o => {
+        const orderDate = new Date(o.created_at);
+        if(o.employee === currentUser.username && orderDate.getMonth() === currentMonth) {
+            myMonthlyTotal += o.total;
+        }
+        return `<tr><td>${o.id}</td><td>${o.shop}</td><td>KES ${o.total.toLocaleString()}</td>
+                <td><button class="btn-blue" onclick="printReceipt('${o.id}')">Receipt</button></td></tr>`;
+    }).reverse().join('');
+    
+    document.getElementById('historyBody').innerHTML = historyHTML;
+    document.getElementById('monthlySalesCounter').innerText = `Your Monthly Sales: KES ${myMonthlyTotal.toLocaleString()}`;
+
+    // Disbursement
+    document.getElementById('disburseBody').innerHTML = db.orders.map(o => `
+        <tr><td>${o.id}</td><td>${o.shop}</td><td>KES ${o.total}</td><td>${o.status}</td>
+        <td>${o.status==='Pending' ? `<button class="btn-blue" onclick="updateStatus('${o.id}', 'Disbursed')">Disburse</button>` : 'Done'}</td></tr>
+    `).join('');
+
+    // Admin Payroll
+    if(currentUser.role === 'admin') {
+        document.getElementById('payrollBody').innerHTML = db.users.map(u => {
+            const sales = db.orders.filter(o => o.employee === u.username).reduce((a,b) => a+b.total, 0);
+            const comm = sales * ((u.comm_rate || 0) / 100);
+            const total = Number(u.salary || 0) + comm;
+            return `<tr><td>${u.full_name}</td><td>${u.salary}</td><td>${comm.toFixed(0)}</td><td>${total.toFixed(0)}</td></tr>`;
+        }).join('');
     }
 }
 
+// --- ACTIONS ---
+async function saveProduct() {
+    const p = { id: makeID("ITM"), name: document.getElementById('pName').value, price: Number(document.getElementById('pPrice').value), fee: Number(document.getElementById('pFee').value), stock: Number(document.getElementById('pStock').value) };
+    await supabase.from('products').insert([p]);
+    sync(); alert("Item Added");
+}
+
+async function saveEmployee() {
+    const e = { id: makeID("EMP"), full_name: document.getElementById('eName').value, username: document.getElementById('eUser').value, password: document.getElementById('ePass').value, salary: document.getElementById('eSalary').value, comm_rate: document.getElementById('eComm').value, role: 'staff' };
+    await supabase.from('users').insert([e]);
+    sync(); alert("Employee Added");
+}
+
+async function saveRetailer() {
+    const r = { id: makeID("RET"), name: document.getElementById('rName').value, loc: document.getElementById('rLoc').value, phone: document.getElementById('rPhone').value };
+    await supabase.from('retailers').insert([r]);
+    sync(); alert("Retailer Added");
+}
+
+function addToCart() {
+    const pId = document.getElementById('prodSelect').value;
+    const p = db.products.find(x => x.id === pId);
+    const qty = Number(document.getElementById('ordQty').value);
+    cart.push({ ...p, qty, finalPrice: (Number(p.price) + Number(p.fee)) });
+    
+    document.getElementById('cartDisplay').innerHTML = cart.map(i => `<p>${i.name} x ${i.qty} = KES ${i.qty * i.finalPrice}</p>`).join('');
+    const total = cart.reduce((a,b) => a + (b.qty * b.finalPrice), 0);
+    document.getElementById('cartTotal').innerText = "Total: KES " + total.toLocaleString();
+}
+
+async function submitOrder() {
+    if(cart.length === 0) return alert("Cart is empty");
+    const total = cart.reduce((a,b) => a + (b.qty * b.finalPrice), 0);
+    const order = { id: makeID("ORD"), shop: document.getElementById('retSelect').value, employee: currentUser.username, items: cart, total: total, status: 'Pending' };
+    await supabase.from('orders').insert([order]);
+    cart = []; document.getElementById('cartDisplay').innerHTML = "";
+    sync(); alert("Order Submitted!");
+}
+
+async function updateStatus(id, stat) {
+    await supabase.from('orders').update({ status: stat }).eq('id', id);
+    sync();
+}
+
+async function updateDesign(type) {
+    let payload = {};
+    if(type === 'logo') {
+        const file = document.getElementById('sysLogoIn').files[0];
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+            await supabase.from('branding').upsert({ id: 1, logo: reader.result });
+            sync();
+        };
+        reader.readAsDataURL(file);
+    } else {
+        const col = document.getElementById('bgColorIn').value;
+        await supabase.from('branding').upsert({ id: 1, bg_color: col });
+        sync();
+    }
+}
+
+function printReceipt(id) {
+    const o = db.orders.find(x => x.id === id);
+    const win = window.open('', '', 'width=600,height=800');
+    win.document.write(`
+        <div style="text-align:center; font-family: sans-serif; padding:40px; border:2px solid #000;">
+            <img src="${db.branding.logo}" style="max-height:80px;"><br>
+            <h1>RECEIPT</h1>
+            <p><strong>Order ID:</strong> ${o.id}</p>
+            <p><strong>Retailer:</strong> ${o.shop}</p>
+            <hr>
+            <div style="text-align:left;">
+                ${o.items.map(i => `<p>${i.name} x ${i.qty} = ${i.qty * i.finalPrice}</p>`).join('')}
+            </div>
+            <hr>
+            <h2>TOTAL: KES ${o.total}</h2>
+            <p>Served By: ${o.employee}</p>
+            <p>Date: ${new Date(o.created_at).toLocaleDateString()}</p>
+        </div>
+    `);
+    win.print();
+}
+
+function filterRetailers() {
+    const q = document.getElementById('retSearch').value.toLowerCase();
+    document.getElementById('retSelect').innerHTML = db.retailers
+        .filter(r => r.name.toLowerCase().includes(q))
+        .map(r => `<option value="${r.name}">${r.name}</option>`).join('');
+}
+
+window.onload = sync;
 </script>
 </body>
 </html>
