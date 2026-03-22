@@ -1,352 +1,3204 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="icon" href="logo.png">
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SmartsourcingKe Pro - Cloud ERP</title>
-    
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartsourcingKe ERP</title>
+    <style>
+        :root { --primary:#1f2d3d; --green:#27ae60; --blue:#3498db; --red:#e74c3c; --bg:#f4f6f9; }
+        body { font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin:0; padding:20px; background:var(--bg); }
+        .hidden { display:none !important; }
+        .container { max-width:1200px; margin:auto; background:white; padding:20px; border-radius:12px; box-shadow:0 5px 20px rgba(0,0,0,0.1); }
+        .btn { padding:8px 12px; border:none; border-radius:6px; cursor:pointer; color:white; font-weight:bold; }
+        .btn-green { background:var(--green); }
+        .btn-blue { background:var(--blue); }
+        .btn-red { background:var(--red); }
+        .tab-menu { display:flex; gap:10px; margin-bottom:25px; background:#eee; padding:10px; border-radius:10px; flex-wrap:wrap; }
+        .tab-btn { flex:1; padding:12px; border:none; cursor:pointer; border-radius:6px; font-weight:bold; background:#ddd; }
+        .tab-btn.active { background:white; color:var(--blue); }
+        .card { background:white; padding:15px; border-radius:10px; box-shadow:0 4px 10px rgba(0,0,0,0.1); margin-bottom:20px; }
+        table { width:100%; border-collapse:collapse; margin-top:10px; }
+        th, td { padding:8px; border-bottom:1px solid #eee; text-align:left; }
+        input, select { width:100%; padding:8px; margin-bottom:10px; border-radius:6px; border:1px solid #ccc; }
+        .brand-header { text-align:center; margin-bottom:25px; border-bottom:2px solid #eee; padding-bottom:15px; }
+        .brand-logo { max-height:100px; margin:auto; display:block; margin-bottom:10px; }
+        .brand-name { font-size:2em; font-weight:bold; margin:0; }
+        .brand-motto { font-style:italic; color:#7f8c8d; margin-top:5px; }
+        .login-container { max-width:400px; margin:100px auto; text-align:center; padding:30px; }
+        .modal { position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; }
+        .modal-content { background-color: white; padding: 20px; border-radius: 8px; max-width: 500px; width: 90%; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
 
-    <style id="dynamicStyles">
-        :root { --primary: #2c3e50; --secondary: #27ae60; --accent: #3498db; --danger: #e74c3c; --bg-color: #f4f7f6; }
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; background-color: var(--bg-color); transition: 0.3s; }
-        .container { max-width: 1200px; margin: auto; background: rgba(255,255,255,0.98); padding: 30px; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); }
-        .hidden { display: none; }
-        .brand-header { text-align: center; margin-bottom: 25px; border-bottom: 2px solid #eee; padding-bottom: 15px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
-        input, select { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
-        .btn { padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; color: white; transition: 0.2s; }
-        .btn-green { background: var(--secondary); }
-        .btn-blue { background: var(--accent); }
-        .btn-red { background: var(--danger); }
-        .tab-menu { display: flex; gap: 10px; margin-bottom: 25px; background: #eee; padding: 10px; border-radius: 10px; overflow-x: auto; }
-        .tab-btn { flex: 1; padding: 12px; border: none; cursor: pointer; border-radius: 5px; font-weight: bold; min-width: 120px; }
-        .tab-btn.active { background: white; color: var(--accent); }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; }
-        th, td { border: 1px solid #eee; padding: 12px; text-align: left; }
-        th { background: #f8f9fa; }
-        .card { border: 1px solid #ddd; padding: 15px; border-radius: 10px; background: #fff; }
-        
-        @media print {
-            .no-print { display: none !important; }
-            .container { box-shadow: none; width: 100%; border: none; padding: 0; }
-            body { background: white !important; }
-        }
+		/* --- 1. General ID Card Styling (Screen & Print) --- */
+.id-card-container {
+    width: 320px;
+    height: 480px;
+    background: #fff;
+    border: 1px solid #000;
+    border-radius: 10px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 0 10px rgba(0,0,0,0.2);
+}
+
+.id-header {
+    background: var(--primary);
+    color: #fff;
+    padding: 10px;
+    text-align: center;
+}
+
+.id-photo-frame {
+    width: 120px;
+    height: 120px;
+    margin: 20px auto;
+    border: 3px solid var(--blue);
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+/* --- 2. Master Print Logic (Unified) --- */
+@media print {
+    /* Hide everything on the ERP by default */
+    body * { 
+        visibility: hidden !important; 
+    }
+
+    /* ONLY show the Receipt or the ID Card */
+    #receiptModal, #receiptModal *, 
+    #idCardModal, #idCardModal *,
+    #printableIdCard, #printableIdCard * { 
+        visibility: visible !important; 
+    }
+
+    /* Position the active modal at the very top of the paper */
+    #receiptModal, #idCardModal {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: auto;
+        background: white !important;
+    }
+
+    /* Ensure the Logo Watermark and colors actually print */
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* Hide the 'Print' and 'Close' buttons on the paper */
+    .no-print { 
+        display: none !important; 
+    }
+}
+.modal {
+    position: fixed;
+    z-index: 9999; /* Ensure it stays on top of the dashboard */
+    left: 0; top: 0;
+    width: 100%; height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    display: flex; /* Helps center the content */
+    align-items: center;
+    justify-content: center;
+}
+
+.modal.hidden {
+    display: none !important;
+}
+
+@media print {
+    body * {
+        visibility: hidden; /* Hide everything else */
+    }
+    #receiptModal, #receiptModal * {
+        visibility: visible; /* Only show the modal */
+    }
+    #receiptModal {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        background: white;
+    }
+    .btn, .modal-footer {
+        display: none !important; /* Hide "Print Now" and "Close" buttons on paper */
+    }
+}
+
     </style>
 </head>
 <body>
 
-<div id="loginPage" class="container" style="max-width: 400px; margin-top: 50px; text-align: center;">
-    <img id="loginLogo" src="" style="max-width:150px; display:none; margin:0 auto 20px;">
-    <h2>ERP System Login</h2>
-    <input type="text" id="userIn" placeholder="Username">
-    <input type="password" id="passIn" placeholder="Password">
-    <button class="btn btn-blue" onclick="handleLogin()">Login</button>
+<div id="loginPage" class="container login-container">
+    <img id="loginLogo" src="" class="brand-logo hidden" style="max-height: 80px; margin-bottom: 15px;">
+    <h2 id="loginCompanyName">SmartsourcingKe ERP</h2>
+    <p id="loginTagline" style="font-style: italic; color: #666; margin-bottom: 20px;"></p>
+    
+    <input id="loginEmail" placeholder="Email">
+    <input id="loginPassword" type="password" placeholder="Password">
+    <button class="btn btn-blue" onclick="login()">Login</button>
 </div>
 
 <div id="dashboard" class="container hidden">
     <div class="brand-header">
-        <img id="mainLogo" src="" style="max-height:80px; display:none; margin:0 auto 10px;">
-        <h1 id="sysName">SmartsourcingKe Pro</h1>
-        <button class="btn btn-red no-print" style="width:auto; float:right; margin-top:-50px;" onclick="location.reload()">Logout</button>
+        <img id="companyLogo" class="brand-logo hidden">
+        <p id="companyName" class="brand-name"></p>
+        <p id="companyTagline" class="brand-motto"></p>
     </div>
 
-    <div class="no-print">
-        <h3 id="welcomeMsg">Welcome</h3>
-        <p id="monthlySalesCounter" style="color:var(--secondary); font-weight:bold; font-size:1.2em;"></p>
-        
-        <div class="tab-menu">
-            <button class="tab-btn active" onclick="showTab('orderTab')">Orders</button>
-            <button class="tab-btn" onclick="showTab('retailerTab')">Retailers</button>
-            <button class="tab-btn" onclick="showTab('disburseTab')">Disbursement</button>
-            <button id="adminBtn" class="tab-btn hidden" onclick="showTab('adminTab')">Admin Tools</button>
-        </div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <h2 id="welcome">Welcome</h2>
+        <button class="btn btn-red" onclick="logout()">Logout</button>
     </div>
 
-    <div id="orderTab" class="tab-content">
-        <div class="grid">
-            <div class="card no-print">
-                <h3>New Order</h3>
-                <input type="text" id="retSearch" placeholder="Search Retailer..." oninput="filterRetailers()">
-                <select id="retSelect" size="4"></select>
-                <select id="prodSelect"></select>
-                <input type="number" id="ordQty" placeholder="Quantity" value="1">
-                <button class="btn btn-blue" onclick="addToCart()">Add Item</button>
-                <div id="cartDisplay" style="margin-top:10px; border-top:1px dashed #ccc; padding-top:10px;"></div>
-                <h4 id="cartTotal">Total: KES 0</h4>
-                <button class="btn btn-green" onclick="submitOrder()">Place Order</button>
-            </div>
-            <div class="card">
-                <h3>Order History & Receipts</h3>
-                <table>
-                    <thead><tr><th>Order ID</th><th>Retailer</th><th>Total</th><th>Action</th></tr></thead>
-                    <tbody id="historyBody"></tbody>
-                </table>
+    <div class="tab-menu">
+        <button class="tab-btn active" onclick="openTab('ordersTab',this)">Orders</button>
+        <button class="tab-btn" onclick="openTab('retailersTab',this)">Retailers</button>
+        <button class="tab-btn" onclick="openTab('inventoryTab',this)">Inventory</button>
+        <button class="tab-btn" onclick="openTab('corporateTab',this)">Corporate</button>
+        <button id="payrollBtn" class="tab-btn hidden" onclick="openTab('payrollTab',this)">Payroll</button>
+        <button id="adminBtn" class="tab-btn hidden" onclick="openTab('adminTab',this)">Admin</button>
+        <button id="profitBtn" class="tab-btn hidden" onclick="openTab('profitTab',this)">Profit</button>
+		<button class="tab-btn" onclick="openTab('messagesTab',this)">
+    Messages <span id="msgBadge" class="hidden" style="background:red; color:white; border-radius:50%; padding:2px 6px; font-size:10px;">0</span>
+</button>
+    </div>
+
+    <div id="ordersTab" class="tab-content">
+        <div class="card">
+            <h3>New Retailer Order</h3>
+            <label>Select Retailer:</label>
+            <select id="retailerSelect"></select>
+            <div style="display: flex; gap: 10px;">
+                <select id="orderProductSelect" style="flex: 2;"></select>
+                <input type="number" id="orderQty" value="1" style="flex: 1;">
+                <button class="btn btn-blue" onclick="addToCart()">Add to Cart</button>
             </div>
         </div>
-    </div>
-
-    <div id="retailerTab" class="tab-content hidden">
-        <div class="grid">
-            <div class="card no-print">
-                <h3>Register Retailer</h3>
-                <input type="text" id="rName" placeholder="Shop Name">
-                <input type="text" id="rLoc" placeholder="Location">
-                <input type="text" id="rPhone" placeholder="Phone Number">
-                <label>ID Proof (PDF):</label>
-                <input type="file" id="rPdf" accept="application/pdf">
-                <button class="btn btn-blue" onclick="saveRetailer()">Save Retailer</button>
-            </div>
-            <div class="card">
-                <h3>Retailer List <button class="btn btn-blue no-print" style="width:auto; padding:5px 10px; float:right;" onclick="window.print()">Print List</button></h3>
-                <table id="retailerTable">
-                    <thead><tr><th>ID</th><th>Name</th><th>Location</th><th>Phone</th></tr></thead>
-                    <tbody id="retailerBody"></tbody>
-                </table>
-            </div>
+        <div class="card">
+            <h3>Current Order Items</h3>
+            <table>
+                <thead><tr><th>Product</th><th>Qty</th><th>Price</th><th>Total</th><th>Action</th></tr></thead>
+                <tbody id="cartTableBody"></tbody>
+            </table>
+            <h3 id="cartGrandTotal">Total: KES 0</h3>
+            <button class="btn btn-green" onclick="processOrder()">Complete Order</button>
+        </div>
+        <div class="card">
+            <h3>Order History</h3>
+            <table>
+                <thead><tr><th>Date</th><th>Retailer</th><th>Total</th><th>Status</th><th>Action</th></tr></thead>
+                <tbody id="ordersBody"></tbody>
+            </table>
         </div>
     </div>
+	
+	<div id="inventoryTab" class="tab-content hidden">
+    <div class="card">
+        <h3>Product Management</h3>
+        <div id="productList"></div> 
+    </div>
+</div>
 
-    <div id="disburseTab" class="tab-content hidden">
-        <h3>Orders Disbursement Tracker</h3>
+    <div id="retailersTab" class="tab-content hidden">
+    <div class="card">
+        <h3>Register Retailer</h3>
+        <input id="retailerName" placeholder="Business Name">
+        <input id="retailerPhone" placeholder="Phone">
+        <input id="retailerLocation" placeholder="Location">
+        <button class="btn btn-blue" onclick="addRetailer()">Save Retailer</button>
+    </div>
+
+    <div class="card">
+        <h3>Retailer List</h3>
+        <input id="retailerSearch" placeholder="Search..." oninput="renderRetailers()">
         <table>
-            <thead><tr><th>ID</th><th>Retailer</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead>
-            <tbody id="disburseBody"></tbody>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Phone</th>
+                    <th>Location</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="retailerBody"></tbody>
+        </table>
+    </div>
+</div>
+
+
+<div id="corporateTab" class="tab-content hidden">
+    <div class="card">
+        <h3>Manage Schools</h3>
+        <input type="text" id="schoolName" placeholder="School Name">
+        <input type="text" id="schoolPhone" placeholder="Phone Number">
+        <input type="text" id="schoolLocation" placeholder="Location">
+        <button class="btn btn-blue" onclick="addSchool()">Save School</button>
+        
+        <table style="width:100%; margin-top:15px;">
+            <thead>
+                <tr><th>Name</th><th>Phone</th><th>Location</th></tr>
+            </thead>
+            <tbody id="schoolTableBody"></tbody>
         </table>
     </div>
 
+    <div class="card">
+        <h3>Create New Corporate Order</h3>
+        <select id="corpSchoolSelect">
+            <option value="">-- Select School --</option>
+        </select>
+        
+        <div style="display:flex; gap:10px; margin-top:10px;">
+            <select id="cbcLevel" style="flex:2;">
+                <option value="">-- Select Grade --</option>
+                <option value="PP1">PP1</option><option value="PP2">PP2</option>
+                <option value="Grade 1">Grade 1</option><option value="Grade 2">Grade 2</option>
+                <option value="Grade 3">Grade 3</option><option value="Grade 4">Grade 4</option>
+                <option value="Grade 5">Grade 5</option><option value="Grade 6">Grade 6</option>
+                <option value="Grade 7">Grade 7</option><option value="Grade 8">Grade 8</option>
+                <option value="Grade 9">Grade 9</option><option value="Grade 10">Grade 10</option>
+                <option value="Grade 11">Grade 11</option><option value="Grade 12">Grade 12</option>
+            </select>
+            <input type="number" id="cbcStudents" placeholder="Students" style="flex:1;">
+            <input type="number" id="cbcPrice" placeholder="Price/Student" style="flex:1;">
+            <button class="btn btn-blue" onclick="addCorporateToCart()">Add to Cart</button>
+        </div>
+
+        <table style="width:100%; margin-top:20px; border-top: 2px solid #eee;">
+            <thead>
+                <tr><th>Grade</th><th>Students</th><th>Subtotal</th><th>Action</th></tr>
+            </thead>
+            <tbody id="corporateCartTable"></tbody>
+        </table>
+        <h3 id="corporateTotalDisplay">Total: KES 0</h3>
+        <button class="btn btn-green" onclick="processCorporateOrder()">Complete Corporate Order</button>
+    </div>
+
+    <div class="card">
+    <h3>Corporate Order History</h3>
+    <table>
+    <thead>
+        <tr>
+            <th>Date</th><th>School</th><th>Total</th><th>Status</th><th>Action</th>
+        </tr>
+    </thead>
+    <tbody id="corpOrdersBody"></tbody>
+</table>
+</div>
+</div>
+
+    <div id="payrollTab" class="tab-content hidden">
+        <div class="card"><h3>Payroll</h3><button class="btn btn-green" onclick="generatePayroll()">Generate Payroll</button></div>
+        <div class="card"><table><thead><tr><th>Staff</th><th>Total Pay</th><th>Action</th></tr></thead><tbody id="payrollBody"></tbody></table></div>
+    </div>
+
     <div id="adminTab" class="tab-content hidden">
-        <div class="grid">
-            <div class="card">
-                <h4>System Design</h4>
-                <label>Upload Logo:</label>
-                <input type="file" id="sysLogoIn" accept="image/*" onchange="updateDesign('logo')">
-                <label>Background Color:</label>
-                <input type="color" id="bgColorIn" onchange="updateDesign('color')">
+    <div class="card">
+        <h3>System Branding & ID Settings</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <input type="text" id="brandCompanyName" placeholder="Institution Name">
+            <input type="text" id="brandTagline" placeholder="Tagline (e.g. Quality Excellence)">
+            <div>
+                <label>System Logo:</label>
+                <input type="file" id="brandLogoFile" accept="image/*">
             </div>
-            <div class="card">
-                <h4>Add Inventory Item</h4>
-                <input type="text" id="pName" placeholder="Item Name">
-                <input type="number" id="pPrice" placeholder="Wholesale Price">
-                <input type="number" id="pFee" placeholder="Company Fee/Markup">
-                <input type="number" id="pStock" placeholder="Stock Quantity">
-                <button class="btn btn-green" onclick="saveProduct()">Save Item</button>
+            <div>
+                <label>ID Watermark/Background:</label>
+                <input type="file" id="brandBgFile" accept="image/*">
             </div>
-            <div class="card" style="grid-column: span 2;">
-                <h4>Employee Management & Monthly Payroll</h4>
-                <div class="grid">
-                    <div>
-                        <input type="text" id="eName" placeholder="Full Name">
-                        <input type="text" id="eUser" placeholder="Username">
-                        <input type="password" id="ePass" placeholder="Password">
-                        <input type="number" id="eSalary" placeholder="Base Salary">
-                        <input type="number" id="eComm" placeholder="Commission %">
-                        <button class="btn btn-blue" onclick="saveEmployee()">Add Employee</button>
-                    </div>
-                    <div>
-                        <button class="btn btn-blue no-print" onclick="window.print()">Print Payroll Report</button>
-                        <table style="font-size: 0.9em;">
-                            <thead><tr><th>Name</th><th>Base</th><th>Comm.</th><th>Total</th></tr></thead>
-                            <tbody id="payrollBody"></tbody>
-                        </table>
-                    </div>
-                </div>
+        </div>
+        <button class="btn btn-green" style="margin-top:10px;" onclick="updateBranding()">Update Branding</button>
+    </div>
+
+    <div class="card">
+        <h3>Staff Management</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <input type="text" id="empFullName" placeholder="Full Name">
+            <input type="email" id="empEmail" placeholder="Login Email">
+            <input type="password" id="empPassword" placeholder="Login Password">
+            <select id="empRole">
+                <option value="staff">Staff</option>
+                <option value="admin">Admin</option>
+            </select>
+            <input type="number" id="empBasic" placeholder="Basic Salary">
+            <input type="number" id="empCommissionRate" placeholder="Commission %">
+            <div style="grid-column: span 2;">
+                <label>Staff ID Photo:</label>
+                <input type="file" id="empPhotoFile" accept="image/*">
             </div>
+        </div>
+        <button class="btn btn-blue" style="margin-top:10px; width:100%;" onclick="addEmployee()">Create Account & Upload Photo</button>
+    </div>
+
+    <div class="card">
+        <h3>Active Staff Directory</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Photo</th>
+                    <th>Name</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="employeeTableBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<div id="idCardModal" class="modal hidden">
+    <div class="modal-content" style="width: 350px; padding: 0; border: none; background: transparent;">
+        <div id="printableIdCard" style="width: 320px; height: 500px; background: white; border: 2px solid #333; border-radius: 15px; position: relative; overflow: hidden; margin: auto; font-family: sans-serif;">
+            
+            <div style="background: var(--primary); color: white; padding: 15px; text-align: center;">
+                <img id="idLogo" src="" style="height: 40px; margin-bottom: 5px;"><br>
+                <strong id="idHeaderName" style="font-size: 14px; text-transform: uppercase;"></strong>
+            </div>
+
+            <img id="idWatermark" src="" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 200px; opacity: 0.1; z-index: 0;">
+
+            <div style="text-align: center; margin-top: 20px; position: relative; z-index: 1;">
+                <img id="idStaffPhoto" src="" style="width: 120px; height: 120px; border-radius: 10px; border: 3px solid var(--primary); object-fit: cover;">
+            </div>
+
+            <div style="text-align: center; margin-top: 15px; position: z-index: 1;">
+                <h2 id="idStaffName" style="margin: 0; color: #333;"></h2>
+                <p id="idStaffRole" style="margin: 5px 0; color: var(--blue); font-weight: bold; text-transform: uppercase; letter-spacing: 1px;"></p>
+                <p id="idStaffEmail" style="font-size: 12px; color: #666;"></p>
+            </div>
+
+            <div style="margin-top: 40px; text-align: center; position: relative; z-index: 1;">
+                <div style="width: 150px; border-bottom: 1px solid #333; margin: auto;"></div>
+                <p style="font-size: 10px; font-weight: bold; margin-top: 5px;">MANAGEMENT SIGNATURE</p>
+            </div>
+
+            <div style="position: absolute; bottom: 0; width: 100%; background: #eee; padding: 10px 0; text-align: center; font-size: 10px;">
+                Valid for SmartsourcingKe Authorized Personnel Only
+            </div>
+        </div>
+
+        <div class="no-print" style="margin-top: 20px; text-align: center;">
+            <button class="btn btn-green" onclick="window.print()">Print ID Card</button>
+            <button class="btn btn-red" onclick="document.getElementById('idCardModal').classList.add('hidden')">Close</button>
         </div>
     </div>
 </div>
 
-<script>
-// --- DB CONFIG ---
-const SUPABASE_URL = "https://itpcxhpryagskkhfkwxg.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0cGN4aHByeWFnc2traGZrd3hnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1OTkzMDUsImV4cCI6MjA4NzE3NTMwNX0.BzU2_lwqbgkIdxzUAa2zVcp7UoAFemV8QsAFHpxV-gY";
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-let db = { users:[], products:[], retailers:[], orders:[], branding:{} };
-let currentUser = null;
-let cart = [];
-
-// --- UTILS ---
-const makeID = (prefix) => prefix + "-" + Math.floor(1000 + Math.random() * 9000);
-
-function showTab(id) {
-    document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById(id).classList.remove('hidden');
-    event.currentTarget.classList.add('active');
-}
-
-// --- CORE FUNCTIONS ---
-async function sync() {
-    const { data:u } = await supabase.from('users').select('*');
-    const { data:p } = await supabase.from('products').select('*');
-    const { data:r } = await supabase.from('retailers').select('*');
-    const { data:o } = await supabase.from('orders').select('*');
-    const { data:b } = await supabase.from('branding').select('*').maybeSingle();
-    
-    db = { users:u||[], products:p||[], retailers:r||[], orders:o||[], branding:b||{} };
-    applyBranding();
-    renderData();
-}
-
-function applyBranding() {
-    if(db.branding.logo) {
-        document.getElementById('loginLogo').src = db.branding.logo;
-        document.getElementById('loginLogo').style.display = 'block';
-        document.getElementById('mainLogo').src = db.branding.logo;
-        document.getElementById('mainLogo').style.display = 'block';
-    }
-    if(db.branding.bg_color) document.body.style.backgroundColor = db.branding.bg_color;
-}
-
-async function handleLogin() {
-    const u = document.getElementById('userIn').value.trim();
-    const p = document.getElementById('passIn').value;
-    const { data:user, error } = await supabase.from('users').select('*').eq('username', u).eq('password', p).maybeSingle();
-    
-    if(user) {
-        currentUser = user;
-        document.getElementById('loginPage').classList.add('hidden');
-        document.getElementById('dashboard').classList.remove('hidden');
-        document.getElementById('welcomeMsg').innerText = "User: " + user.full_name;
-        if(user.role === 'admin') document.getElementById('adminBtn').classList.remove('hidden');
-        await sync();
-    } else { alert("Login Failed: Check credentials"); }
-}
-
-function renderData() {
-    // Dropdowns
-    document.getElementById('retSelect').innerHTML = db.retailers.map(r => `<option value="${r.name}">${r.name} (${r.loc})</option>`).join('');
-    document.getElementById('prodSelect').innerHTML = db.products.map(p => `<option value="${p.id}">${p.name} - KES ${Number(p.price)+Number(p.fee)}</option>`).join('');
-    
-    // Retailer List
-    document.getElementById('retailerBody').innerHTML = db.retailers.map(r => `<tr><td>${r.id}</td><td>${r.name}</td><td>${r.loc}</td><td>${r.phone || 'N/A'}</td></tr>`).join('');
-
-    // Sales & Monthly Logic
-    const currentMonth = new Date().getMonth();
-    let myMonthlyTotal = 0;
-
-    const historyHTML = db.orders.map(o => {
-        const orderDate = new Date(o.created_at);
-        if(o.employee === currentUser.username && orderDate.getMonth() === currentMonth) {
-            myMonthlyTotal += o.total;
-        }
-        return `<tr><td>${o.id}</td><td>${o.shop}</td><td>KES ${o.total.toLocaleString()}</td>
-                <td><button class="btn-blue" onclick="printReceipt('${o.id}')">Receipt</button></td></tr>`;
-    }).reverse().join('');
-    
-    document.getElementById('historyBody').innerHTML = historyHTML;
-    document.getElementById('monthlySalesCounter').innerText = `Your Monthly Sales: KES ${myMonthlyTotal.toLocaleString()}`;
-
-    // Disbursement
-    document.getElementById('disburseBody').innerHTML = db.orders.map(o => `
-        <tr><td>${o.id}</td><td>${o.shop}</td><td>KES ${o.total}</td><td>${o.status}</td>
-        <td>${o.status==='Pending' ? `<button class="btn-blue" onclick="updateStatus('${o.id}', 'Disbursed')">Disburse</button>` : 'Done'}</td></tr>
-    `).join('');
-
-    // Admin Payroll
-    if(currentUser.role === 'admin') {
-        document.getElementById('payrollBody').innerHTML = db.users.map(u => {
-            const sales = db.orders.filter(o => o.employee === u.username).reduce((a,b) => a+b.total, 0);
-            const comm = sales * ((u.comm_rate || 0) / 100);
-            const total = Number(u.salary || 0) + comm;
-            return `<tr><td>${u.full_name}</td><td>${u.salary}</td><td>${comm.toFixed(0)}</td><td>${total.toFixed(0)}</td></tr>`;
-        }).join('');
-    }
-}
-
-// --- ACTIONS ---
-async function saveProduct() {
-    const p = { id: makeID("ITM"), name: document.getElementById('pName').value, price: Number(document.getElementById('pPrice').value), fee: Number(document.getElementById('pFee').value), stock: Number(document.getElementById('pStock').value) };
-    await supabase.from('products').insert([p]);
-    sync(); alert("Item Added");
-}
-
-async function saveEmployee() {
-    const e = { id: makeID("EMP"), full_name: document.getElementById('eName').value, username: document.getElementById('eUser').value, password: document.getElementById('ePass').value, salary: document.getElementById('eSalary').value, comm_rate: document.getElementById('eComm').value, role: 'staff' };
-    await supabase.from('users').insert([e]);
-    sync(); alert("Employee Added");
-}
-
-async function saveRetailer() {
-    const r = { id: makeID("RET"), name: document.getElementById('rName').value, loc: document.getElementById('rLoc').value, phone: document.getElementById('rPhone').value };
-    await supabase.from('retailers').insert([r]);
-    sync(); alert("Retailer Added");
-}
-
-function addToCart() {
-    const pId = document.getElementById('prodSelect').value;
-    const p = db.products.find(x => x.id === pId);
-    const qty = Number(document.getElementById('ordQty').value);
-    cart.push({ ...p, qty, finalPrice: (Number(p.price) + Number(p.fee)) });
-    
-    document.getElementById('cartDisplay').innerHTML = cart.map(i => `<p>${i.name} x ${i.qty} = KES ${i.qty * i.finalPrice}</p>`).join('');
-    const total = cart.reduce((a,b) => a + (b.qty * b.finalPrice), 0);
-    document.getElementById('cartTotal').innerText = "Total: KES " + total.toLocaleString();
-}
-
-async function submitOrder() {
-    if(cart.length === 0) return alert("Cart is empty");
-    const total = cart.reduce((a,b) => a + (b.qty * b.finalPrice), 0);
-    const order = { id: makeID("ORD"), shop: document.getElementById('retSelect').value, employee: currentUser.username, items: cart, total: total, status: 'Pending' };
-    await supabase.from('orders').insert([order]);
-    cart = []; document.getElementById('cartDisplay').innerHTML = "";
-    sync(); alert("Order Submitted!");
-}
-
-async function updateStatus(id, stat) {
-    await supabase.from('orders').update({ status: stat }).eq('id', id);
-    sync();
-}
-
-async function updateDesign(type) {
-    let payload = {};
-    if(type === 'logo') {
-        const file = document.getElementById('sysLogoIn').files[0];
-        const reader = new FileReader();
-        reader.onloadend = async () => {
-            await supabase.from('branding').upsert({ id: 1, logo: reader.result });
-            sync();
-        };
-        reader.readAsDataURL(file);
-    } else {
-        const col = document.getElementById('bgColorIn').value;
-        await supabase.from('branding').upsert({ id: 1, bg_color: col });
-        sync();
-    }
-}
-
-function printReceipt(id) {
-    const o = db.orders.find(x => x.id === id);
-    const win = window.open('', '', 'width=600,height=800');
-    win.document.write(`
-        <div style="text-align:center; font-family: sans-serif; padding:40px; border:2px solid #000;">
-            <img src="${db.branding.logo}" style="max-height:80px;"><br>
-            <h1>RECEIPT</h1>
-            <p><strong>Order ID:</strong> ${o.id}</p>
-            <p><strong>Retailer:</strong> ${o.shop}</p>
-            <hr>
-            <div style="text-align:left;">
-                ${o.items.map(i => `<p>${i.name} x ${i.qty} = ${i.qty * i.finalPrice}</p>`).join('')}
+    <div id="profitTab" class="tab-content hidden">
+        <div class="card"><canvas id="monthlyTrendChart"></canvas></div>
+        <div class="card"><table><thead><tr><th>Month</th><th>Net Profit</th></tr></thead><tbody id="monthlyFinanceBody"></tbody></table></div>
+    </div>
+</div> 
+<div id="receiptModal" class="modal hidden">
+    <div class="modal-content" style="position:relative; width:400px; padding:20px; background: white;">
+        <img id="watermarkImg" src="" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); width:250px; opacity:0.1; z-index:0; pointer-events:none;">
+        
+        <div style="position:relative; z-index:1;">
+            <div style="text-align:center; border-bottom:2px solid #333; padding-bottom:10px; margin-bottom:15px;">
+                <img id="receiptLogo" src="" style="max-height:70px; margin-bottom:5px;"><br>
+                <strong id="receiptCompanyName" style="font-size:1.2em; text-transform:uppercase;"></strong><br>
+                <span id="receiptTagline" style="font-style:italic; font-size:0.8em;"></span>
             </div>
-            <hr>
-            <h2>TOTAL: KES ${o.total}</h2>
-            <p>Served By: ${o.employee}</p>
-            <p>Date: ${new Date(o.created_at).toLocaleDateString()}</p>
+
+            <div id="receiptMeta"></div>
+            <table style="width:100%; border-collapse:collapse; margin-top:10px;">
+    <thead>
+        <tr style="border-bottom:1px solid #000;">
+            <th style="text-align:left;">ITEM</th>
+            <th style="text-align:center;">QTY</th>
+            <th style="text-align:center;">PRICE</th>
+            <th style="text-align:center;">FEE</th>
+            <th style="text-align:right;">TOTAL</th>
+        </tr>
+    </thead>
+    <tbody id="receiptItemsBody"></tbody>
+</table>
+            
+            <div style="text-align:right; border-top:2px solid #000; margin-top:10px; padding-top:5px;">
+                <strong id="receiptGrandTotal" style="font-size:1.1em;"></strong>
+            </div>
         </div>
-    `);
-    win.print();
+
+        <div class="no-print" style="margin-top:20px; text-align:center;">
+            <button class="btn btn-blue" onclick="window.print()">Print Receipt</button>
+            <button class="btn btn-red" onclick="document.getElementById('receiptModal').classList.add('hidden')">Close</button>
+        </div>
+    </div>
+</div>
+	<div id="messagesTab" class="tab-content hidden">
+    <div class="card">
+        <h3>Internal Communications</h3>
+        <div id="messagesContainer" style="height: 400px; overflow-y: auto; border: 1px solid #eee; padding: 10px; margin-bottom: 10px;"></div>
+        
+        <div style="display: flex; gap: 10px;">
+            <input type="text" id="messageInput" placeholder="Type a message..." style="flex: 1; padding: 10px;">
+            <button class="btn btn-blue" onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+</div>
+    </div>
+
+</div>
+	
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="supabase.js"></script> 
+<script src="core.js"></script>
+<script src="sync.js"></script>
+<script src="ui.js"></script>
+<script src="auth.js"></script>
+<script src="branding.js"></script>
+<script src="products.js"></script>
+<script src="retailers.js"></script>
+<script src="orders.js"></script>
+<script src="retailerOrders.js"></script>
+<script src="corporateOrders.js"></script>
+<script src="employees.js"></script>
+<script src="payroll.js"></script>
+<script src="messaging.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="reports.js"></script>
+<script src="app.js"></script>
+<script src="render.js"></script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+    // If initApp is already called inside app.js, 
+    // you don't need to call it again here.
+    console.log("DOM fully loaded and parsed");
+});
+
+    function openTab(tabId, btn) {
+    // Hide all contents using the 'hidden' class
+    document.querySelectorAll('.tab-content').forEach(t => {
+        t.classList.add('hidden');
+        t.style.display = 'none'; // Extra safety
+    });
+    
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    
+    const target = document.getElementById(tabId);
+    if (target) {
+        target.classList.remove('hidden');
+        target.style.display = 'block'; // Ensure it's not set to 'none' inline
+        btn.classList.add('active');
+    }
+
+    if (tabId === 'messagesTab') {
+        const badge = document.getElementById('msgBadge');
+        if (badge) badge.classList.add('hidden');
+        // Trigger the load function from messaging.js
+        if(typeof loadInternalMessages === 'function') loadInternalMessages();
+    }
 }
 
-function filterRetailers() {
-    const q = document.getElementById('retSearch').value.toLowerCase();
-    document.getElementById('retSelect').innerHTML = db.retailers
-        .filter(r => r.name.toLowerCase().includes(q))
-        .map(r => `<option value="${r.name}">${r.name}</option>`).join('');
+</script>
+<script>
+
+
+// ===== supabase.js =====
+
+window.db = {}; // Initialize the global database object immediately
+window.currentUser = null;
+// Supabase Configuration
+const SUPABASE_URL = "https://vmepvvrceqjypadkcfkj.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZtZXB2dnJjZXFqeXBhZGtjZmtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0NjU3ODIsImV4cCI6MjA4ODA0MTc4Mn0.YjOVSoz1GYx5igqJveiS7r0Gyyt-UKmbj5zPysc6ut4";
+
+// Initialize the client and attach to the global window object
+// We pass the ALL_CAPS variables defined above
+window.supa = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+console.log("Supabase Client initialized successfully.");
+
+// ===== core.js =====
+
+// GLOBAL DATABASE CACHE
+window.db = window.db || {
+    users: [], products: [], retailers: [], orders: [],
+    schools: [], corporate_orders: [], branding: null, messages: []
+};
+
+// CURRENT USER STATE
+window.currentUser = window.currentUser || null;
+window.dataLoaded = false;
+
+/**
+ * INITIALIZATION
+ * Runs when the page loads to check if a user is already logged in.
+ */
+document.addEventListener("DOMContentLoaded", async () => {
+    console.log("Core initialized...");
+
+    try {
+        if (!window.supa) {
+            console.error("Supabase client not initialized. Check supabase.js loading order.");
+            return;
+        }
+
+        // Check for an existing session
+        const { data, error } = await supa.auth.getSession();
+        if (error) throw error;
+
+        const session = data?.session;
+
+        if (session) {
+            // If session exists, trigger the signed-in flow in app.js
+            if (typeof handleAuthSuccess === "function") {
+                await handleAuthSuccess(session);
+            }
+        } else {
+            // Show login screen if no session
+            if (typeof showScreen === "function") {
+                showScreen("loginPage");
+            }
+        }
+
+        // Initialize Global Event Listeners after DOM is ready
+        initGlobalListeners();
+
+    } catch (err) {
+        console.error("Initialization error:", err);
+    }
+});
+
+
+/**
+ * GLOBAL EVENT LISTENERS
+ * Attaches clicks to buttons. This is safer than inline onclick.
+ */
+function initGlobalListeners() {
+    // Login Button
+    const loginBtn = document.getElementById("loginBtn");
+    if (loginBtn) {
+        loginBtn.addEventListener("click", () => {
+            if (typeof login === "function") login();
+        });
+    }
+
+    // Logout Button
+    const logoutBtn = document.getElementById("logoutBtn") || document.querySelector(".btn-red");
+    if (logoutBtn) {
+        logoutBtn.addEventListener("click", async () => {
+            if (window.supa) {
+                await supa.auth.signOut();
+            }
+        });
+    }
 }
 
-window.onload = sync;
+/**
+ * SAFE SYNC WRAPPER
+ * Prevents multiple sync processes from running at the same time.
+ */
+let isSyncing = false;
+async function safeSync() {
+    if (isSyncing) return;
+    isSyncing = true;
+    try {
+        if (typeof sync === "function") {
+            await sync();
+        }
+    } finally {
+        isSyncing = false;
+    }
+}
+
+// ===== auth.js =====
+
+/* ---- Authentication Logic ---- */
+
+async function login() {
+    const email = document.getElementById("loginEmail").value.trim();
+    const password = document.getElementById("loginPassword").value;
+
+    try {
+        const { data, error } = await supa.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+
+        // FETCH ROLE: This ensures the system knows you are an admin
+        const { data: profile } = await supa.from('users').select('role, full_name').eq('id', data.user.id).single();
+        window.currentUser = { ...data.user, ...profile };
+
+        await sync();
+        showDashboard();
+        renderAll();
+        renderPermissions(); // Explicitly call this to show admin tabs
+    } catch (err) {
+        alert("Login failed: " + err.message);
+    }
+}
+
+async function logout() {
+    try {
+        if (typeof cleanupMessaging === "function") cleanupMessaging();
+        
+        const { error } = await supa.auth.signOut();
+        if (error) throw error;
+
+        handleSignedOut();
+        console.log("Logged out successfully");
+    } catch (err) {
+        console.error("Logout failed:", err.message);
+    }
+}
+
+/* ---- Session Handlers ---- */
+
+async function handleSignedIn(session) {
+    if (!session) return;
+    const user = await handleAuthSuccess(session)
+
+    // Force pull the role immediately from Supabase
+    const { data: profile } = await supa
+        .from('users')
+        .select('role, full_name')
+        .eq('id', user.id)
+        .single();
+
+    // Set the global user with the correct role
+    window.currentUser = profile ? { ...user, ...profile } : { ...user, role: 'employee' };
+    
+    console.log("Current User Role:", window.currentUser.role);
+
+    await sync(); 
+    showDashboard(); 
+    renderAll();
+}
+
+function handleSignedOut() {
+    document.getElementById("dashboard")?.classList.add("hidden");
+    document.getElementById("loginPage")?.classList.remove("hidden");
+    window.currentUser = null;
+}
+
+async function restoreSession() {
+    const { data } = await supa.auth.getSession();
+    if (!data?.session) return;
+
+    await handleSignedIn(data.session);
+    await loadBranding();
+}
+
+/* ---- Permissions & UI Tools ---- */
+
+function applyPermissions() {
+    const user = window.currentUser;
+    if (!user) return;
+
+    const role = (user.role || "").toLowerCase();
+    
+    // Elements to toggle
+    const adminBtn = document.getElementById("adminBtn");
+    const payrollBtn = document.getElementById("payrollBtn");
+    const performanceBtn = document.getElementById("performanceBtn");
+    const profitBtn = document.getElementById("profitBtn");
+
+    // Default: Hide all restricted tabs
+    [adminBtn, payrollBtn, performanceBtn, profitBtn].forEach(btn => btn?.classList.add("hidden"));
+
+    if (role === "admin") {
+        [adminBtn, payrollBtn, performanceBtn, profitBtn].forEach(btn => btn?.classList.remove("hidden"));
+    } else if (role === "staff") {
+        performanceBtn?.classList.remove("hidden");
+    }
+}
+
+function showScreen('dashboard') {
+    document.getElementById("loginPage")?.classList.add("hidden");
+    document.getElementById("dashboard")?.classList.remove("hidden");
+    
+    const welcome = document.getElementById("welcome");
+    if (welcome && window.currentUser) {
+        welcome.innerText = `Welcome, ${window.currentUser.full_name || 'User'}`;
+    }
+}
+
+/* ---- Staff ID Generation (Consolidated) ---- */
+
+async function generateUserID(userId) {
+    if (!window.db?.users) return;
+    const user = db.users.find(u => String(u.id) === String(userId));
+    if (!user) return alert("User not found");
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: [86, 54] });
+
+    // Background & Design
+    doc.setFillColor(230, 236, 245);
+    doc.rect(0, 0, 86, 54, "F");
+    doc.setDrawColor(100);
+    doc.rect(1, 1, 84, 52);
+
+    // Header Branding
+    if (db.branding?.logo_url) {
+        try {
+            const logoImg = await fetchImageAsBase64(db.branding.logo_url);
+            doc.addImage(logoImg, 'PNG', 5, 4, 18, 10);
+        } catch (e) { console.warn("Logo failed to load for ID"); }
+    }
+
+    doc.setFontSize(8).setFont(undefined, "bold");
+    doc.text(db.branding?.company_name || "Company", 43, 10, { align: "center" });
+
+    // User Photo & Details
+    if (user.pic) {
+        try {
+            const photoImg = await fetchImageAsBase64(user.pic);
+            doc.addImage(photoImg, 'JPEG', 5, 22, 20, 25);
+        } catch (e) { console.warn("Staff photo failed to load for ID"); }
+    }
+
+    doc.setFontSize(7).text("Name:", 35, 22);
+    doc.setFont(undefined, "normal").text(user.full_name || user.email || "User", 35, 26);
+    
+    doc.setFont(undefined, "bold").text("Role:", 35, 34);
+    doc.setFont(undefined, "normal").text(user.role || "Staff", 35, 38);
+    
+    doc.setFont(undefined, "bold").text("Staff ID:", 35, 44);
+    doc.setFont(undefined, "normal").text(String(user.id).slice(0, 8), 35, 48);
+
+    doc.save(`ID_${user.full_name}.pdf`);
+}
+
+// Global Exports
+window.login = login;
+window.logout = logout;
+
+async function checkUserRole() {
+    const { data: { user } } = await supa.auth.getUser();
+    if (user) {
+        const { data: profile } = await supa.from('users').select('role').eq('id', user.id).single();
+        // Update the global user object with the correct role
+        window.currentUser = { ...user, role: profile?.role || 'staff' };
+        console.log("Current User Role:", window.currentUser.role);
+    }
+}
+
+// ===== sync.js =====
+
+/**
+ * SYNC DATA FROM SUPABASE
+ * Fetches all tables in parallel and updates the global window.db cache.
+ */
+async function sync() {
+    if (!window.supa) {
+        console.error("Sync aborted: Supabase client not initialized.");
+        return;
+    }
+
+    // Ensure db structure exists
+    if (!window.db) window.db = {};
+
+    // Map of tables to their Supabase queries
+    const tables = {
+        users: () => supa.from("users").select("*"),
+        products: () => supa.from("products").select("*"),
+        retailers: () => supa.from("retailers").select("*"),
+        orders: () => supa.from("orders").select("*").order("created_at", { ascending: false }),
+        order_items: () => supa.from("order_items").select("*"),
+        schools: () => supa.from("schools").select("*"),
+        corporate_orders: () => supa.from("corporate_orders").select("*").order("created_at", { ascending: false }),
+        corporate_order_items: () => supa.from("corporate_order_items").select("*"),
+        payroll: () => supa.from("payroll").select("*"),
+        messages: () => supa.from("messages").select("*").order("created_at", { ascending: true }),
+        employee_finance: () => supa.from("employee_finance").select("*"),
+        branding: () => supa.from("branding").select("*").maybeSingle()
+    };
+
+    const keys = Object.keys(tables);
+
+    try {
+        // Fetch everything at once for maximum speed
+        const responses = await Promise.allSettled(keys.map(k => tables[k]()));
+
+        responses.forEach((result, i) => {
+            const key = keys[i];
+
+            // Handle Promise Rejection
+            if (result.status === "rejected") {
+                console.error(`SYNC REJECTED [${key}]:`, result.reason);
+                db[key] = (key === "branding") ? null : [];
+                return;
+            }
+
+            const res = result.value;
+
+            // Handle Supabase Error Response
+            if (res.error) {
+                console.error(`SYNC DATABASE ERROR [${key}]:`, res.error.message);
+                db[key] = (key === "branding") ? null : [];
+                return;
+            }
+
+            // Assign data (defaulting to empty array/null if empty)
+            db[key] = (key === "branding") ? (res.data || null) : (res.data || []);
+            
+            if (key !== "branding") {
+                console.log(`SYNC OK [${key}]: ${db[key].length} records`);
+            }
+        });
+
+        // Trigger UI updates safely
+        triggerUIUpdates();
+        window.dataLoaded = true;
+
+    } catch (err) {
+        console.error("Global Sync Failure:", err);
+    }    
+    // Call the specific renderers
+    renderSchools();
+    renderCorporateHistory(); // Create this to show the table in image_20cc22.png
+}
+
+/**
+ * TRIGGER UI UPDATES
+ * Helper to call render functions only if they are defined.
+ */
+function triggerUIUpdates() {
+    const renderTasks = [
+        { name: "renderUserDropdown", fn: typeof renderUserDropdown === "function" ? renderUserDropdown : null },
+        { name: "renderMessages", fn: typeof renderMessages === "function" ? renderMessages : null },
+        { name: "renderAll", fn: typeof renderAll === "function" ? renderAll : null }
+    ];
+
+    renderTasks.forEach(task => {
+        if (task.fn) {
+            try {
+                task.fn();
+            } catch (e) {
+                console.error(`Render Error in ${task.name}:`, e);
+            }
+        }
+    });
+}
+
+// ===== ui.js =====
+
+/**
+ * SWITCH TO DASHBOARD VIEW
+ */
+function showDashboard() {
+    const loginPage = document.getElementById("loginPage");
+    const dashboard = document.getElementById("dashboard");
+
+    if (loginPage) loginPage.classList.add("hidden");
+    if (dashboard) dashboard.classList.remove("hidden");
+    
+    // Set welcome text if available
+    const welcome = document.getElementById("welcome");
+    if (welcome && window.currentUser) {
+        welcome.innerText = `Welcome, ${window.currentUser.full_name || 'User'}`;
+    }
+}
+
+/**
+ * TAB NAVIGATION LOGIC
+ * Replaces 'showSection' to match your HTML 'openTab' calls.
+ */
+function openTab(tabId, btn) {
+    // 1. Hide all tab contents
+    const contents = document.querySelectorAll(".tab-content");
+    contents.forEach(content => content.classList.add("hidden"));
+
+    // 2. Show the target tab
+    const target = document.getElementById(tabId);
+    if (target) {
+        target.classList.remove("hidden");
+    } else {
+        console.error(`Tab ID "${tabId}" not found.`);
+    }
+
+    // 3. Update active button styling
+    const buttons = document.querySelectorAll(".tab-btn");
+    buttons.forEach(b => b.classList.remove("active"));
+    if (btn) btn.classList.add("active");
+}
+
+/**
+ * TOGGLE SIDEBAR (Optional)
+ * Kept for consistency, but ensure 'sidebar' exists in HTML if used.
+ */
+function toggleMenu() {
+    const sidebar = document.getElementById("sidebar");
+    if (!sidebar) return;
+    sidebar.classList.toggle("open");
+}
+
+/**
+ * GLOBAL RENDER DISPATCHER
+ * Calls all modular render functions safely.
+ */
+function renderAll() {
+    // If the database hasn't loaded yet, don't crash, just wait.
+    if (!window.db || Object.keys(window.db).length === 0) {
+        console.warn("Render skipped: window.db is empty.");
+        return;
+    }
+
+    console.log("Refreshing UI components...");
+
+    const renderFunctions = [
+        { name: "Products", fn: typeof renderProducts === "function" ? renderProducts : null },
+        { name: "Retailers", fn: typeof renderRetailers === "function" ? renderRetailers : null },
+        { name: "Orders", fn: typeof renderOrders === "function" ? renderOrders : null },
+        { name: "Schools", fn: typeof renderSchools === "function" ? renderSchools : null },
+        { name: "Corporate", fn: typeof renderCorporate === "function" ? renderCorporate : null },
+        { name: "Employees", fn: typeof renderEmployees === "function" ? renderEmployees : null },
+        { name: "Payroll", fn: typeof renderPayroll === "function" ? renderPayroll : null },
+        { name: "Branding", fn: typeof renderBranding === "function" ? renderBranding : null },
+        { name: "Messages", fn: typeof renderMessages === "function" ? renderMessages : null },
+        { name: "Profit", fn: typeof renderProfit === "function" ? renderProfit : null }
+    ];
+
+    renderFunctions.forEach(task => {
+        if (task.fn) {
+            try {
+                task.fn();
+            } catch (err) {
+                console.error(`Error rendering ${task.name}:`, err);
+            }
+        }
+    });
+}
+
+// Global exposure for HTML onclick events
+window.openTab = openTab;
+window.showDashboard = showDashboard;
+
+// ===== products.js =====
+
+/**
+ * ADD PRODUCT
+ */
+async function addProduct() {
+    const name = document.getElementById("addProductName").value;
+    const stock = document.getElementById("productStock").value;
+    const price = document.getElementById("productBasePrice").value;
+    const fee = document.getElementById("productFee").value;
+
+    try {
+        const { error } = await supa.from("products").insert([{
+            name: name,
+            stock: parseInt(stock),
+            base_price: parseFloat(price), 
+            company_fee: parseFloat(fee)
+        }]);
+
+        if (error) throw error;
+        
+        alert("Product saved!");
+        await refreshProductSystem(); // Unified refresh
+    } catch (err) {
+        alert("Failed to save: " + err.message);
+    }
+}
+
+/**
+ * EDIT PRODUCT
+ */
+async function editProduct(id) {
+    const newPrice = document.getElementById(`price-${id}`).value;
+    const newFee = document.getElementById(`fee-${id}`).value;
+    const newStock = document.getElementById(`stock-${id}`).value;
+
+    try {
+        const { error } = await supa
+            .from("products")
+            .update({ 
+                base_price: parseFloat(newPrice), 
+                company_fee: parseFloat(newFee),
+                stock: parseInt(newStock)
+            })
+            .eq("id", id);
+
+        if (error) throw error;
+
+        alert("Product updated successfully!");
+        
+        // CRITICAL: Refresh the data and the UI
+        await sync(); 
+        if (typeof renderProducts === "function") renderProducts();
+        if (typeof renderPosItems === "function") renderPosItems(); // For the Retailer Order dropdown
+        
+    } catch (err) {
+        console.error("Update Error:", err);
+        alert("Failed to update: " + err.message);
+    }
+}
+
+/**
+ * HELPER: UI REFRESH
+ * Ensures that changes reflect in inventory lists and order dropdowns
+ */
+async function refreshProductSystem() {
+    await sync(); // Pull fresh data from Supabase
+    
+    // Trigger your specific render functions
+    if (typeof renderProducts === "function") renderProducts();
+    if (typeof renderPosItems === "function") renderPosItems();
+    if (typeof renderCorporateOrderForm === "function") renderCorporateOrderForm();
+    
+    console.log("Product system synchronized.");
+}
+
+async function deleteProduct(id) {
+    // 1. Improved Role Check: Ensure we check the current local state
+    const userRole = window.currentUser?.role;
+    console.log("Attempting delete. Current role:", userRole);
+
+    if (userRole !== 'admin') {
+        return alert(`Admin access required. Your current role is: ${userRole || 'Unknown'}`);
+    }
+    
+    // 2. Safety: Check if this product is linked to any existing order items
+    const inOrders = (window.db?.order_items || []).some(item => item.product_id === id);
+    if (inOrders) {
+        return alert("Cannot delete: This product has sales history. Try renaming or archiving it instead.");
+    }
+
+    if (!confirm("Are you sure you want to delete this product permanently?")) return;
+
+    try {
+        const { error } = await supa.from("products").delete().eq("id", id);
+        if (error) throw error;
+        
+        alert("Product removed from inventory.");
+        
+        // 3. Refresh the global data and all UI components
+        await sync();
+        if (typeof renderAll === "function") renderAll();
+        
+    } catch (err) {
+        console.error("Delete Error:", err);
+        alert("Delete failed: " + err.message);
+    }
+}
+
+// ===== retailers.js =====
+
+
+async function addRetailer() {
+    const name = document.getElementById("retailerName").value.trim();
+    const phone = document.getElementById("retailerPhone").value.trim();
+    const location = document.getElementById("retailerLocation").value.trim();
+
+    if (!name || !phone) return alert("Name and Phone are required.");
+
+    try {
+        const { error } = await supa.from("retailers").insert([{ 
+            name: name, 
+            phone: phone, 
+            location: location,
+            // Use the ID of the person currently logged in
+            created_by: window.currentUser.id 
+        }]);
+
+        if (error) throw error;
+
+        alert("Retailer saved!");
+        await sync(); // Refresh the list immediately
+        renderRetailers(); 
+    } catch (err) {
+        console.error(err);
+        alert("Save failed: " + err.message);
+    }
+}
+
+function viewRetailer(id) {
+    const retailer = window.db.retailers.find(r => r.id === id);
+    if (retailer) {
+        alert(`Retailer: ${retailer.name}\nPhone: ${retailer.phone}\nLocation: ${retailer.location}`);
+    }
+}
+
+// ===== retailerOrders.js =====
+
+/**
+ * ADD TO CART
+ * Handles inventory checks and local cart state.
+ */
+function addToCart() {
+    const productId = document.getElementById("orderProductSelect").value;
+    const qty = parseInt(document.getElementById("orderQty").value);
+    
+    // Find product to get both base_price and company_fee
+    const product = window.db.products.find(p => p.id === productId);
+    
+    if (!product) return alert("Please select a valid product.");
+    if (qty <= 0) return alert("Quantity must be at least 1.");
+
+    // CALCULATION: Selling Price + Company Fee
+    const basePrice = Number(product.base_price || 0);
+    const companyFee = Number(product.company_fee || 0);
+    const totalUnitPrice = basePrice + companyFee;
+
+    const existingItem = window.cart.find(item => item.productId === productId);
+    
+    if (existingItem) {
+        existingItem.qty += qty;
+    } else {
+        window.cart.push({
+            productId: product.id,
+            name: product.name,
+            price: totalUnitPrice, // Storing the combined price
+            qty: qty
+        });
+    }
+
+    renderCart(); 
+}
+
+function renderCart() {
+    const tbody = document.getElementById("cartTableBody");
+    let grandTotal = 0;
+
+    tbody.innerHTML = window.cart.map((item, index) => {
+        const rowTotal = item.qty * item.price;
+        grandTotal += rowTotal;
+        return `
+            <tr>
+                <td>${item.name}</td>
+                <td>${item.qty}</td>
+                <td>${item.price}</td>
+                <td>${rowTotal.toLocaleString()}</td>
+                <td><button onclick="window.cart.splice(${index},1); renderCart();" style="color:red;">Remove</button></td>
+            </tr>
+        `;
+    }).join("");
+
+    document.getElementById("cartGrandTotal").innerText = `Total: KES ${grandTotal.toLocaleString()}`;
+}
+
+async function createOrder() {
+    const retailerId = document.getElementById("retailerSelect")?.value;
+    if (!retailerId) return alert("Select a retailer.");
+    if (!window.cart || window.cart.length === 0) return alert("Cart is empty.");
+
+    const total = window.cart.reduce((sum, c) => sum + (c.qty * c.price), 0);
+
+    try {
+        // 1. Insert Master Order
+        const { data: order, error: orderErr } = await supa.from("orders").insert([{
+            retailer_id: retailerId,
+            total: total,
+            created_by: window.currentUser.id,
+            status: "pending"
+        }]).select().single();
+
+        if (orderErr) throw orderErr;
+
+        // 2. Insert Items & Update Stock
+        for (const item of window.cart) {
+            // Save item with the combined price
+            await supa.from("order_items").insert([{
+                order_id: order.id,
+                product_id: item.productId, // Fixed from item.product_id
+                quantity: item.qty,
+                price_at_sale: item.price // This now includes the fee
+            }]);
+
+            // Deduct stock
+            const originalProd = window.db.products.find(p => p.id === item.productId);
+            if (originalProd) {
+                const newStock = (originalProd.stock || 0) - item.qty;
+                await supa.from("products").update({ stock: newStock }).eq("id", item.productId);
+            }
+        }
+
+        alert("Order created successfully!");
+        window.cart = [];
+        renderCart();
+        await sync(); 
+
+    } catch (err) {
+        console.error("Order Error:", err);
+        alert("Failed to create order: " + err.message);
+    }
+}
+
+
+
+/**
+ * PRINT RETAIL RECEIPT (PDF)
+ */
+async function showOnScreenReceipt(orderId, type = 'retailer') {
+    // 1. Get the Order and Branding
+    const brand = window.db.branding || { company_name: "SmartsourcingKe ERP", tagline: "Quality Service" };
+    const order = type === 'retailer' 
+        ? window.db.orders.find(o => o.id === orderId)
+        : window.db.corporate_orders.find(o => o.id === orderId);
+
+    if (!order) return alert("Order not found");
+
+    // 2. Fetch the Items FIRST (Asynchronous)
+    const table = type === 'retailer' ? 'order_items' : 'corporate_order_items';
+    const { data: items, error } = await supa
+        .from(table)
+        .select('*, products(name)')
+        .eq('order_id', orderId);
+
+    if (error) return alert("Error loading items: " + error.message);
+
+    // 3. Map the items into HTML rows
+    const itemsHtml = items.map(item => {
+        // Use price_at_sale (Retail) or subtotal (Corporate)
+        const total = item.subtotal || (item.quantity * (item.price_at_sale || 0));
+        const name = item.products?.name || item.grade || "Item";
+        const qty = item.quantity || item.student_count || 0;
+
+        return `
+            <tr>
+                <td>${name}</td>
+                <td>${qty}</td>
+                <td style="text-align: right;">KES ${Number(total).toLocaleString()}</td>
+            </tr>
+        `;
+    }).join("");
+
+    // 4. Build the Final Branded HTML
+    const receiptDiv = document.getElementById("receiptContent");
+    receiptDiv.innerHTML = `
+        <div style="position: relative; padding: 20px; border: 1px solid #eee; background: white; font-family: 'Courier New', Courier, monospace; color: #333;">
+            ${brand.bg_url ? `<img src="${brand.bg_url}" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 300px; opacity: 0.08; z-index: 0; pointer-events: none;">` : ''}
+
+            <div style="text-align: center; position: relative; z-index: 1; border-bottom: 2px dashed #333; padding-bottom: 10px; margin-bottom: 15px;">
+                ${brand.logo_url ? `<img src="${brand.logo_url}" style="max-height: 60px; margin-bottom: 5px;"><br>` : ''}
+                <h2 style="margin: 0; text-transform: uppercase;">${brand.company_name}</h2>
+                <small><em>${brand.tagline}</em></small>
+            </div>
+
+            <div style="position: relative; z-index: 1;">
+                <p><strong>Receipt No:</strong> ${order.id.slice(0,8).toUpperCase()}</p>
+                <p><strong>Date:</strong> ${new Date(order.created_at).toLocaleString()}</p>
+                <hr style="border: none; border-top: 1px dashed #333;">
+                
+                <table style="width: 100%; text-align: left; font-size: 14px;">
+                    <thead>
+                        <tr>
+                            <th style="border-bottom: 1px solid #333;">Item</th>
+                            <th style="border-bottom: 1px solid #333;">Qty</th>
+                            <th style="border-bottom: 1px solid #333; text-align: right;">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${itemsHtml}
+                    </tbody>
+                </table>
+
+                <hr style="border: none; border-top: 2px solid #333; margin-top: 15px;">
+                <div style="text-align: right; font-size: 1.2em;">
+                    <strong>GRAND TOTAL: KES ${Number(order.total).toLocaleString()}</strong>
+                </div>
+            </div>
+
+            <div style="margin-top: 30px; text-align: center; position: relative; z-index: 1;">
+                <div style="width: 150px; border-bottom: 1px solid #333; margin: 10px auto;"></div>
+                <p style="font-size: 10px;">AUTHORIZED SIGNATURE & STAMP</p>
+                <p style="font-size: 12px; margin-top: 15px;">Thank you for your business!</p>
+            </div>
+        </div>
+    `;
+
+    document.getElementById("receiptModal").classList.remove("hidden");
+}
+
+async function viewReceipt(orderId) {
+    try {
+        const order = window.db.orders.find(o => o.id === orderId);
+        if (!order) return;
+
+        // Ensure we find the same retailer used in the table
+        const retailer = (window.db.retailers || []).find(r => r.id === order.retailer_id);
+        const items = (window.db.order_items || []).filter(item => item.order_id === orderId);
+
+        // Update Receipt ID to match the table exactly
+        document.getElementById("receiptMeta").innerHTML = `
+            <p><strong>Order ID:</strong> #${order.id.slice(0, 8).toUpperCase()}</p>
+            <p><strong>Retailer:</strong> ${retailer ? retailer.name : 'N/A'}</p>
+            <p><strong>Date:</strong> ${new Date(order.created_at).toLocaleString()}</p>
+        `;
+
+        // Rest of your rendering logic for items...
+        const itemsHtml = items.map(item => {
+            const product = (window.db.products || []).find(p => p.id === item.product_id);
+            return `
+                <tr>
+                    <td>${product ? product.name : 'Unknown Product'}</td>
+                    <td style="text-align:center;">${item.quantity}</td>
+                    <td style="text-align:right;">${Number(item.price_at_time).toLocaleString()}</td>
+                    <td style="text-align:right;">${(item.quantity * item.price_at_time).toLocaleString()}</td>
+                </tr>`;
+        }).join("");
+
+        document.getElementById("receiptItemsBody").innerHTML = itemsHtml;
+        document.getElementById("receiptGrandTotal").textContent = `TOTAL: KES ${Number(order.total).toLocaleString()}`;
+        
+        document.getElementById("receiptModal").classList.remove("hidden");
+    } catch (err) {
+        console.error("Receipt Error:", err);
+    }
+}
+
+/**
+ * UPDATE ORDER STATUS
+ * Changes status to 'disbursed' so receipt can be printed
+ */
+async function updateOrderStatus(orderId, newStatus) {
+    try {
+        const { error } = await supa
+            .from("orders")
+            .update({ status: newStatus })
+            .eq("id", orderId);
+
+        if (error) throw error;
+
+        alert(`Order successfully ${newStatus}!`);
+        
+        // Refresh local data and UI
+        await sync(); 
+        renderOrders();
+        
+    } catch (err) {
+        console.error("Status Update Error:", err);
+        alert("Failed to update status: " + err.message);
+    }
+}
+
+// ===== corporateOrders.js =====
+
+// 1. Initialize Global Cart
+window.corporateCart = [];
+
+/**
+ * ADD TO CORPORATE CART
+ */
+function addCorporateToCart() {
+    const grade = document.getElementById("cbcLevel").value;
+    const students = parseInt(document.getElementById("cbcStudents").value);
+    const price = parseFloat(document.getElementById("cbcPrice").value);
+
+    if (!grade || !students || !price) {
+        return alert("Please fill in Grade, Students, and Price.");
+    }
+
+    const item = {
+        grade: grade, 
+        students: students,
+        pricePerStudent: price,
+        subtotal: students * price
+    };
+
+    window.corporateCart.push(item);
+    renderCorporateCart(); 
+}
+
+/**
+ * RENDER CART UI
+ */
+function renderCorporateCart() {
+    const tbody = document.getElementById("corporateCartTable");
+    const totalDisplay = document.getElementById("corporateTotalDisplay");
+    if (!tbody) return;
+
+    let grandTotal = 0;
+    tbody.innerHTML = window.corporateCart.map((item, index) => {
+        grandTotal += item.subtotal;
+        return `
+            <tr>
+                <td>${item.grade}</td>
+                <td>${item.students}</td>
+                <td>KES ${item.subtotal.toLocaleString()}</td>
+                <td>
+                    <button onclick="window.corporateCart.splice(${index},1); renderCorporateCart();" style="color:red; border:none; background:none; cursor:pointer; font-weight:bold;">
+                        Remove
+                    </button>
+                </td>
+            </tr>`;
+    }).join("");
+
+    if (totalDisplay) totalDisplay.innerText = grandTotal.toLocaleString();
+}
+
+/**
+ * SAVE ORDER TO DATABASE
+ */
+// Rename this to match the 'onclick' in index.html
+// Rename this to match the 'onclick' in index.html
+async function processCorporateOrder() { 
+    const schoolId = document.getElementById("corpSchoolSelect").value;
+    
+    if (!window.currentUser) return alert("Please log in again.");
+    if (!schoolId) return alert("Please select a school.");
+    if (!window.corporateCart.length) return alert("Cart is empty.");
+
+    try {
+        const grandTotal = window.corporateCart.reduce((sum, item) => sum + item.subtotal, 0);
+
+        // 1. Create Header
+        const { data: order, error: orderErr } = await supa.from("corporate_orders").insert([{
+            school_id: schoolId,
+            total: grandTotal,
+            status: 'pending',
+            created_by: window.currentUser.id 
+        }]).select().single();
+
+        if (orderErr) throw orderErr;
+
+        // 2. Create Items
+        const itemsToInsert = window.corporateCart.map(item => ({
+            corporate_order_id: order.id,
+            grade: item.grade, 
+            student_count: item.students,
+            price_per_student: item.pricePerStudent,
+            subtotal: item.subtotal
+        }));
+
+        const { error: itemsErr } = await supa.from("corporate_order_items").insert(itemsToInsert);
+        if (itemsErr) throw itemsErr;
+
+        alert("Corporate Order Saved Successfully!");
+        window.corporateCart = [];
+        renderCorporateCart();
+        await sync(); 
+    } catch (err) {
+        alert("Order failed: " + err.message);
+    }
+}
+
+/**
+ * RENDER SCHOOLS DROPDOWN & TABLE
+ */
+function renderSchools() {
+    const tbody = document.getElementById("schoolTableBody");
+    const select = document.getElementById("corpSchoolSelect");
+    const schools = window.db.schools || [];
+
+    if (tbody) {
+        tbody.innerHTML = schools.length === 0 
+            ? '<tr><td colspan="3" style="text-align:center;">No schools registered.</td></tr>'
+            : schools.map(s => `<tr><td>${s.name}</td><td>${s.phone}</td><td>${s.location || 'N/A'}</td></tr>`).join("");
+    }
+
+    if (select) {
+        select.innerHTML = '<option value="">-- Select School --</option>' + 
+            schools.map(s => `<option value="${s.id}">${s.name}</option>`).join("");
+    }
+}
+
+
+// RENAME THIS EXACTLY
+function renderCorporateHistory() {
+    const tbody = document.getElementById("corpOrdersBody"); // Matched to index.html
+    if (!tbody) return;
+
+    const orders = window.db.corporate_orders || [];
+    if (orders.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No corporate history found.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = orders.map(order => {
+        const school = window.db.schools?.find(s => s.id === order.school_id);
+        return `
+            <tr>
+                <td>${new Date(order.created_at).toLocaleDateString()}</td>
+                <td>${school ? school.name : 'N/A'}</td>
+                <td>KES ${Number(order.total).toLocaleString()}</td>
+                <td><span class="badge">${order.status.toUpperCase()}</span></td>
+                <td>
+                    <button class="btn btn-blue" onclick="viewReceipt('${order.id}', 'corporate')">Receipt</button>
+                </td>
+            </tr>`;
+    }).join("");
+}
+
+/**
+ * ADD NEW SCHOOL
+ */
+async function addSchool() {
+    const name = document.getElementById("schoolName").value;
+    const phone = document.getElementById("schoolPhone").value; // Added this
+    const location = document.getElementById("schoolLocation").value;
+
+    if (!name || !phone) return alert("School name and phone are required.");
+
+    try {
+        const { error } = await supa
+            .from("schools")
+            .insert([{ name, phone, location }]) // Match your table columns
+            .select();
+
+        if (error) throw error;
+
+        alert("School added successfully!");
+        
+        await sync(); // Fetches the new school into window.db.schools
+        if (typeof renderSchools === "function") renderSchools(); // Corrected function name
+        
+        // Clear forms
+        document.getElementById("schoolName").value = "";
+        document.getElementById("schoolPhone").value = "";
+        document.getElementById("schoolLocation").value = "";
+    } catch (err) {
+        console.error("Error adding school:", err);
+        alert("Save failed: " + err.message);
+    }
+}
+
+function viewReceipt(orderId, type) {
+    if (type !== 'corporate') return; // Handle other types as needed
+
+    const order = window.db.corporate_orders.find(o => o.id === orderId);
+    const school = window.db.schools.find(s => s.id === order.school_id);
+    const items = window.db.corporate_order_items.filter(i => i.corporate_order_id === orderId);
+
+    // Populate the Modal defined in your index.html
+    document.getElementById("receiptCompanyName").innerText = window.db.branding?.name || "SmartsourcingKe";
+    document.getElementById("receiptTagline").innerText = window.db.branding?.tagline || "";
+    document.getElementById("receiptGrandTotal").innerText = `TOTAL: KES ${Number(order.total).toLocaleString()}`;
+    
+    document.getElementById("receiptMeta").innerHTML = `
+        <p><strong>School:</strong> ${school ? school.name : 'N/A'}</p>
+        <p><strong>Date:</strong> ${new Date(order.created_at).toLocaleDateString()}</p>
+        <p><strong>Order ID:</strong> ${order.id.slice(0,8)}</p>
+    `;
+
+    document.getElementById("receiptItemsBody").innerHTML = items.map(i => `
+        <tr>
+            <td>${i.grade}</td>
+            <td style="text-align:center;">${i.student_count}</td>
+            <td style="text-align:center;">${i.price_per_student}</td>
+            <td style="text-align:center;">-</td>
+            <td style="text-align:right;">${i.subtotal.toLocaleString()}</td>
+        </tr>
+    `).join("");
+
+    // Show the modal
+    document.getElementById("receiptModal").classList.remove("hidden");
+}
+
+// ===== employees.js =====
+
+/**
+ * ADD EMPLOYEE / ADMIN
+ * Creates Auth account, uploads photo, and creates database profile
+ */
+async function addEmployee() {
+    const email = document.getElementById("empEmail").value;
+    const password = document.getElementById("empPassword").value;
+    const fullName = document.getElementById("empFullName").value;
+    const role = document.getElementById("empRole").value;
+    const salary = document.getElementById("empSalary") ? document.getElementById("empSalary").value : 0;
+    const photoFile = document.getElementById("empPhoto").files[0];
+
+    if (!email || !password || !fullName) return alert("Please fill in all fields.");
+
+    try {
+        // 1. Create the Auth Account 
+        // Note: We don't 'await' the session to change. 
+        // If your Supabase project has 'Confirm Email' ON, they must click a link before logging in.
+        const { data: authData, error: authError } = await supa.auth.signUp({ 
+            email, 
+            password,
+            options: {
+                data: {
+                    full_name: fullName,
+                    role: role
+                }
+            }
+        });
+
+        if (authError) throw authError;
+        
+        // Use the ID from the newly created auth user
+        const newUserId = authData.user.id;
+
+        let photoUrl = "";
+
+        // 2. Upload Profile Photo (Optional)
+        if (photoFile && newUserId) {
+            const fileExt = photoFile.name.split('.').pop();
+            const fileName = `${newUserId}-${Date.now()}.${fileExt}`;
+            const { error: uploadError } = await supa.storage
+                .from('avatars')
+                .upload(fileName, photoFile);
+
+            if (!uploadError) {
+                const { data: publicData } = supa.storage.from('avatars').getPublicUrl(fileName);
+                photoUrl = publicData.publicUrl;
+            }
+        }
+
+        // 3. Create Database Profile in 'users' table
+        // This links the Auth ID to your visible Staff list
+        const { error: dbError } = await supa.from("users").insert([{
+            id: newUserId, // CRITICAL: This connects Auth to Database
+            email: email,
+            full_name: fullName,
+            role: role,
+            salary: parseFloat(salary),
+            pic: photoUrl,
+            status: 'active',
+            created_at: new Date()
+        }]);
+
+        if (dbError) throw dbError;
+
+        alert(`Success! ${fullName} created. They can now login with their email.`);
+        
+        // 4. Cleanup and Refresh
+        await sync(); 
+        if (typeof renderAll === "function") renderAll(); 
+        
+        // Clear Form
+        document.getElementById("empEmail").value = "";
+        document.getElementById("empPassword").value = "";
+        document.getElementById("empFullName").value = "";
+
+    } catch (err) {
+        console.error("Employee Creation Error:", err);
+        alert("Error: " + err.message);
+    }
+}
+
+// REST OF FILE (renderEmployees, printIDCard, editStaff) remains the same
+
+/**
+ * RENDER EMPLOYEES
+ */
+function renderEmployees() {
+    const tbody = document.getElementById("employeeTableBody");
+    if (!tbody) {
+        console.warn("Table body 'employeeTableBody' not found in HTML.");
+        return;
+    }
+
+    // CRITICAL: Your data is stored in window.db.users, not window.db.employees
+    const staff = (window.db.users || []).filter(u => u.role === 'staff' || u.role === 'admin');
+    
+    if (staff.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No active employees found.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = staff.map(user => `
+        <tr>
+            <td>${user.full_name || 'N/A'}</td>
+            <td>${user.email}</td>
+            <td><span class="badge" style="background:${user.role === 'admin' ? '#e74c3c' : '#3498db'}">
+                ${user.role.toUpperCase()}
+            </span></td>
+            <td>${user.phone || '-'}</td>
+            <td>
+                <button class="btn btn-blue" onclick="editUser('${user.id}')">Edit</button>
+                ${user.role !== 'admin' ? `<button class="btn btn-red" onclick="deleteUser('${user.id}')">Remove</button>` : ''}
+            </td>
+        </tr>
+    `).join("");
+}
+
+/**
+ * EDIT STAFF (Restored missing function)
+ */
+async function editStaff(userId) {
+    const user = window.db.users.find(u => u.id === userId);
+    if (!user) return;
+
+    const newName = prompt("Update Full Name:", user.full_name);
+    const newRole = prompt("Update Role (staff/admin):", user.role);
+
+    if (newName && newRole) {
+        try {
+            const { error } = await supa
+                .from('users')
+                .update({ full_name: newName, role: newRole })
+                .eq('id', userId);
+
+            if (error) throw error;
+            alert("Staff updated!");
+            await sync();
+            renderEmployees();
+        } catch (err) {
+            alert("Update failed: " + err.message);
+        }
+    }
+}
+
+/**
+ * PRINT ID CARD
+ */
+function printIDCard(userId) {
+    const user = window.db.users.find(u => u.id === userId);
+    if (!user) return alert("User not found");
+
+    const branding = window.db.branding || { company_name: "SmartsourcingKe" };
+
+    const idHtml = `
+        <div id="idCard" style="width:300px; border:2px solid #333; padding:20px; text-align:center; border-radius:15px; background:#fff; font-family: sans-serif;">
+            <div style="font-weight:bold; font-size:18px; color: #2c3e50;">${branding.company_name}</div>
+            <hr style="margin: 10px 0;">
+            <img src="${user.pic || 'https://via.placeholder.com/100'}" style="width:110px; height:110px; border-radius:10px; margin:10px 0; border:2px solid #eee; object-fit: cover;">
+            <h3 style="margin:5px 0; color: #333;">${user.full_name}</h3>
+            <p style="color:blue; font-weight:bold; margin:0; font-size: 14px;">${user.role.toUpperCase()}</p>
+            <div style="margin-top:20px; font-size:10px; color: #999;">Employee ID: ${user.id.slice(0,8)}</div>
+        </div>
+    `;
+
+    const content = document.getElementById("receiptContent");
+    if (content) {
+        content.innerHTML = idHtml + '<br><button class="btn btn-blue no-print" onclick="window.print()">Print ID Card</button>';
+        document.getElementById("receiptModal").classList.remove("hidden");
+    }
+}
+
+// ===== payroll.js =====
+
+/**
+ * GENERATE PAYROLL
+ * Calculates basic salary + commission based on the 'company_fee' of items in disbursed orders.
+ */
+async function generatePayroll() {
+    // 1. Safety Check: Ensure all necessary data is loaded
+    if (!window.db?.users || !window.db?.orders || !window.supa) {
+        return alert("Data not fully loaded. Please wait for sync or refresh.");
+    }
+
+    const month = new Date().toISOString().slice(0, 7); // Format: YYYY-MM
+    if (!confirm(`Generate payroll for ${month}? This will overwrite existing drafts for this month.`)) return;
+
+    try {
+        // 2. Clear existing draft payroll for this specific month to avoid duplicates
+        await supa.from("payroll").delete().eq("payroll_month", month).eq("status", "draft");
+
+        const staffMembers = window.db.users.filter(u => u.role === "staff");
+        const allOrders = window.db.orders || [];
+        const allItems = window.db.order_items || [];
+        const allProducts = window.db.products || [];
+
+        for (const staff of staffMembers) {
+            // Filter: Only orders created by this staff, disbursed this month
+            const staffOrders = allOrders.filter(o => {
+                const orderMonth = new Date(o.created_at).toISOString().slice(0, 7);
+                return o.created_by === staff.id && 
+                       o.status === "disbursed" && 
+                       orderMonth === month;
+            });
+
+            let totalCommission = 0;
+
+            staffOrders.forEach(order => {
+                // Find all items belonging to this specific order
+                const items = allItems.filter(i => i.order_id === order.id);
+                
+                items.forEach(item => {
+                    // Match the item to a product to find the specific company_fee
+                    const product = allProducts.find(p => p.id === item.product_id);
+                    if (product) {
+                        const feePerUnit = Number(product.company_fee) || 0;
+                        const quantity = Number(item.quantity) || 0;
+                        totalCommission += (feePerUnit * quantity);
+                    }
+                });
+            });
+
+            const basicSalary = Number(staff.salary) || 0;
+            const netPay = basicSalary + totalCommission;
+
+            // 3. Insert into Supabase
+            const { error: insertErr } = await supa.from("payroll").insert([{
+                user_id: staff.id,
+                payroll_month: month,
+                basic_salary: basicSalary,
+                commission: totalCommission,
+                total_pay: netPay,
+                status: 'draft'
+            }]);
+
+            if (insertErr) throw insertErr;
+        }
+
+        alert(`Payroll for ${staffMembers.length} staff members generated!`);
+        
+        // 4. Refresh data and UI
+        await sync(); 
+        if (typeof renderPayrollTable === "function") renderPayrollTable();
+
+    } catch (err) {
+        console.error("Payroll Generation Error:", err);
+        alert("Critical failure during payroll generation: " + err.message);
+    }
+}
+
+async function downloadPayslip(staffId, month) {
+    const record = db.payroll.find(p => p.staff_id === staffId && p.payroll_month === month);
+    const staff = db.users.find(u => u.id === staffId);
+    if (!record || !staff) return alert("Record not found");
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    // Design Header
+    doc.setFillColor(31, 45, 61);
+    doc.rect(0, 0, 210, 40, "F");
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(22);
+    doc.text(db.branding?.company_name || "Company ERP", 20, 25);
+    
+    doc.setFontSize(10);
+    doc.text("OFFICIAL PAYSLIP - " + month, 150, 25);
+
+    // Body
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(12);
+    let y = 60;
+
+    doc.setFont(undefined, "bold");
+    doc.text("EMPLOYEE DETAILS", 20, y);
+    doc.setFont(undefined, "normal");
+    y += 10;
+    doc.text(`Name: ${staff.full_name}`, 20, y);
+    doc.text(`Staff ID: ${String(staff.id).slice(0,8)}`, 120, y);
+    y += 8;
+    doc.text(`Role: ${staff.role}`, 20, y);
+    y += 20;
+
+    // Financial Table
+    doc.line(20, y, 190, y);
+    y += 10;
+    doc.text("Description", 20, y);
+    doc.text("Amount (KES)", 150, y);
+    y += 5;
+    doc.line(20, y, 190, y);
+    
+    y += 10;
+    doc.text("Basic Salary", 20, y);
+    doc.text(Number(record.basic_salary).toLocaleString(), 150, y);
+    
+    y += 10;
+    doc.text("Commission Earned", 20, y);
+    doc.text(Number(record.commission).toLocaleString(), 150, y);
+    
+    y += 15;
+    doc.setFont(undefined, "bold");
+    doc.text("NET PAYABLE", 20, y);
+    doc.text(Number(record.total).toLocaleString(), 150, y);
+    
+    y += 40;
+    doc.setFontSize(8);
+    doc.setFont(undefined, "italic");
+    doc.text("This is a computer generated document and does not require a signature.", 105, y, {align:"center"});
+
+    doc.save(`Payslip_${staff.full_name}_${month}.pdf`);
+}
+
+async function viewPayslip(id) {
+    const p = window.db.payroll.find(x => x.id === id);
+    const staff = window.db.users.find(u => u.id === p.user_id);
+    const branding = window.db.branding || {};
+
+    // Populate the Modal (Reuse the receipt modal ID)
+    document.getElementById("receiptCompanyName").innerText = branding.company_name || "SmartsourcingKe";
+    document.getElementById("receiptTagline").innerText = "OFFICIAL PAYSLIP";
+    document.getElementById("receiptLogo").src = branding.logo_url || "";
+    document.getElementById("watermarkImg").src = branding.logo_url || "";
+
+    document.getElementById("receiptMeta").innerHTML = `
+        <div style="display:flex; justify-content:space-between;">
+            <span><strong>Staff:</strong> ${staff.full_name}</span>
+            <span><strong>Month:</strong> ${p.payroll_month}</span>
+        </div>
+    `;
+
+    document.getElementById("receiptItemsBody").innerHTML = `
+        <tr><td>Basic Salary</td><td>1</td><td style="text-align:right;">${p.basic_salary.toLocaleString()}</td></tr>
+        <tr><td>Commissions</td><td>-</td><td style="text-align:right;">${p.commission.toLocaleString()}</td></tr>
+        <tr style="border-top:2px solid #000;">
+            <td><strong>NET PAY</strong></td>
+            <td></td>
+            <td style="text-align:right;"><strong>KES ${p.total_pay.toLocaleString()}</strong></td>
+        </tr>
+    `;
+
+    document.getElementById("receiptGrandTotal").innerText = ""; 
+    document.getElementById("receiptModal").classList.remove("hidden");
+}
+
+window.viewPayrollReceipt = viewPayrollReceipt;
+
+// ===== orders.js =====
+
+/**
+ * RENDER ORDERS
+ * Displays history and ensures the "Action" column has the View/Receipt buttons.
+ */
+function renderOrders() {
+    const tbody = document.getElementById("ordersBody"); // Matches your index.html ID
+    if (!tbody) return;
+
+    const searchTerm = document.getElementById("orderSearch")?.value.toLowerCase() || "";
+    
+    // Get orders from global DB and sort by newest first
+    const orders = (window.db.orders || []).filter(o => 
+        o.id.toLowerCase().includes(searchTerm) || 
+        (o.retailer_name && o.retailer_name.toLowerCase().includes(searchTerm))
+    ).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+    if (orders.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No orders found.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = orders.map(order => {
+        // Find retailer name if not directly in order object
+        const retailer = window.db.retailers?.find(r => r.id === order.retailer_id);
+        const retailerName = retailer ? retailer.name : (order.retailer_name || "Unknown");
+
+        return `
+            <tr>
+                <td>${order.id.slice(0, 8)}</td>
+                <td>${retailerName}</td>
+                <td>KES ${order.total || 0}</td>
+                <td><span class="status-badge ${order.status}">${order.status}</span></td>
+                <td>${new Date(order.created_at).toLocaleDateString()}</td>
+                <td>
+                    <button class="btn btn-blue" onclick="viewOrderDetails('${order.id}')" style="padding:2px 5px; font-size:10px;">View</button>
+                    ${order.status === 'disbursed' ? 
+                        `<button class="btn btn-green" onclick="generateAndStoreReceipt('${order.id}')" style="padding:2px 5px; font-size:10px;">Receipt</button>` 
+                        : ''}
+                </td>
+            </tr>
+        `;
+    }).join("");
+}
+
+/**
+ * CREATE ORDER
+ * Updated to force a refresh so it shows in history immediately.
+ */
+async function createOrder() {
+    if (window.cart.length === 0) return alert("Cart is empty!");
+    const retailerId = document.getElementById("retailerSelect").value;
+    if (!retailerId) return alert("Select a retailer!");
+
+    const total = window.cart.reduce((sum, item) => sum + (item.qty * item.selling_price), 0);
+
+    // 1. Insert the Order
+    const { data: order, error: orderError } = await supa.from("orders").insert([{
+        retailer_id: retailerId,
+        total: total,
+        status: 'pending',
+        created_by: window.currentUser.id
+    }]).select().single();
+
+    if (orderError) return alert("Order Error: " + orderError.message);
+
+    // 2. Insert Order Items
+    const itemsToInsert = window.cart.map(item => ({
+        order_id: order.id,
+        product_id: item.product_id,
+        quantity: item.qty,
+        price: item.selling_price
+    }));
+
+    const { error: itemsError } = await supa.from("order_items").insert(itemsToInsert);
+    
+    if (itemsError) {
+        alert("Items Error: " + itemsError.message);
+    } else {
+        alert("Order #" + order.id.slice(0,8) + " created successfully!");
+        window.cart = []; // Clear cart
+        if (typeof renderCart === "function") renderCart();
+        
+        // IMPORTANT: Sync and Refresh
+        await sync(); 
+        renderOrders(); 
+    }
+}
+
+async function processOrder() {
+    const retailerId = document.getElementById("retailerSelect").value;
+    if (!retailerId || window.cart.length === 0) {
+        return alert("Please select a retailer and add items to the cart.");
+    }
+
+    const totalAmount = window.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+
+    try {
+        // 1. Insert the Main Order
+        const { data: order, error: orderErr } = await supa.from("orders").insert([{
+            retailer_id: retailerId,
+            total: totalAmount,
+            status: 'pending'
+        }]).select().single();
+
+        if (orderErr) throw orderErr;
+
+        // 2. Prepare and Insert Order Items
+        const orderItems = window.cart.map(item => ({
+            order_id: order.id,
+            product_id: item.productId,
+            quantity: item.qty,
+            price_at_sale: item.price
+        }));
+
+        const { error: itemsErr } = await supa.from("order_items").insert(orderItems);
+        if (itemsErr) throw itemsErr;
+
+        alert("Order completed successfully!");
+        window.cart = []; // Clear the cart
+        renderCart();    // Update the UI
+        await sync();    // Refresh data from Supabase
+    } catch (err) {
+        console.error("Order processing error:", err.message);
+        alert("Failed to complete order: " + err.message);
+    }
+}
+
+async function disburseOrder(orderId, tableName) {
+    if (!confirm("Confirm disbursement? This will mark the order as completed and allow printing.")) return;
+
+    try {
+        const { error } = await supa
+            .from(tableName)
+            .update({ status: 'completed' })
+            .eq('id', orderId);
+
+        if (error) throw error;
+
+        alert("Order Disbursed Successfully!");
+        await sync(); // This will refresh the table and show the "Print" button
+    } catch (err) {
+        alert("Disbursement failed: " + err.message);
+    }
+}
+
+function viewOrderDetails(orderId) {
+    console.log("Viewing details for order:", orderId);
+    
+    // 1. Find the order in the database
+    const order = window.db.orders.find(o => o.id === orderId);
+    if (!order) return alert("Order not found");
+
+    // 2. Reuse your existing receipt modal logic
+    if (typeof viewReceipt === 'function') {
+        viewReceipt(orderId, 'retailer');
+    } else {
+        console.error("viewReceipt function is missing!");
+    }
+}
+
+window.viewOrderDetails = function(orderId) {
+    viewReceipt(orderId, 'retailer');
+};
+
+// ===== reports.js =====
+
+// Global chart instance
+window.monthlyTrendChart = window.monthlyTrendChart || null;
+window.profitChart = window.profitChart || null;
+window.salesChart = window.salesChart || null;
+
+/**
+ * RENDER MONTHLY FINANCE TABLE & CHART
+ * Consolidates retail, corporate, and payroll data into a monthly view.
+ */
+// Update in reports.js
+function renderMonthlyFinance() {
+	if (window.monthlyTrendChart instanceof Chart) window.monthlyTrendChart.destroy();
+    const monthlyData = {};
+    const track = (dateStr, manufacturer = 0, fee = 0, corporate = 0, payroll = 0) => {
+        const date = new Date(dateStr);
+        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+        if (!monthlyData[key]) {
+            monthlyData[key] = { manufacturer: 0, fee: 0, corporate: 0, payroll: 0 };
+        }
+        monthlyData[key].manufacturer += manufacturer;
+        monthlyData[key].fee += fee;
+        monthlyData[key].corporate += corporate;
+        monthlyData[key].payroll += payroll;
+    };
+
+    // 1. Process Retail (Fee = Your Profit)
+    (db.orders || []).filter(o => o.status === "disbursed").forEach(order => {
+        const items = (db.order_items || []).filter(i => i.order_id === order.id);
+        items.forEach(item => {
+            const product = db.products.find(p => p.id === item.product_id);
+            const fee = (product?.company_fee || 0) * item.quantity;
+            const manCost = ((product?.price || 0) - (product?.company_fee || 0)) * item.quantity;
+            track(order.created_at, manCost, fee, 0, 0);
+        });
+    });
+
+    // 2. Process Payroll (Subtracting from profit)
+    (db.payroll || []).forEach(p => {
+        track(p.payroll_month + "-01", 0, 0, 0, Number(p.total_pay));
+    });
+
+    renderProfitTable(monthlyData);
+    updateProfitChart(monthlyData);
+}
+
+/**
+ * UPDATE TREND CHART
+ */
+function updateTrendChart(labels, data) {
+    const canvas = document.getElementById("monthlyTrendChart");
+    if (!canvas) return;
+
+    if (!monthlyTrendChart) {
+        monthlyTrendChart = new Chart(canvas, {
+            type: "line",
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: "Monthly Net Profit (KES)",
+                    data: data,
+                    borderColor: "#27ae60",
+                    backgroundColor: "rgba(39, 174, 96, 0.1)",
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    } else {
+        monthlyTrendChart.data.labels = labels;
+        monthlyTrendChart.data.datasets[0].data = data;
+        monthlyTrendChart.update();
+    }
+	
+	const staffPerformance = db.users.filter(u => u.role === 'staff').map(user => {
+    const userOrders = (db.orders || []).filter(o => o.created_by === user.id && o.status === 'disbursed');
+    let totalProfitGenerated = 0;
+    
+    userOrders.forEach(order => {
+        const items = (db.order_items || []).filter(i => i.order_id === order.id);
+        items.forEach(item => {
+            const product = db.products.find(p => p.id === item.product_id);
+            totalProfitGenerated += (product?.company_fee || 0) * item.quantity;
+        });
+    });
+
+    return { name: user.full_name, profit: totalProfitGenerated };
+});
+
+}
+
+/**
+ * EXPORT PERFORMANCE PDF
+ */
+function exportPerformancePDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    doc.setFontSize(18).text("Staff Performance Report", 20, 20);
+    doc.setFontSize(10).text("Generated on: " + new Date().toLocaleDateString(), 20, 28);
+
+    let y = 40;
+    db.users.forEach(user => {
+        const sales = (db.orders || [])
+            .filter(o => o.created_by === user.id && o.status === "disbursed")
+            .reduce((sum, o) => sum + Number(o.total || 0), 0);
+
+        doc.text(`${user.full_name} (${user.role})`, 20, y);
+        doc.text(`Total Sales: KES ${sales.toLocaleString()}`, 150, y, { align: "right" });
+        doc.line(20, y + 2, 190, y + 2);
+        y += 12;
+
+        if (y > 270) { doc.addPage(); y = 20; }
+    });
+
+// Inside exportPerformancePDF loop:
+const sales = (db.orders || [])
+    .filter(o => o.created_by === user.id && o.status === "disbursed")
+    .reduce((sum, o) => sum + Number(o.total || 0), 0);
+
+// Use a conditional to highlight top performers in the PDF
+if (sales > 100000) {
+    doc.setTextColor(39, 174, 96); // Green for high performers
+} else {
+    doc.setTextColor(0, 0, 0); // Black for others
+}
+
+    doc.save("Staff_Performance.pdf");
+}
+
+// ===== messaging.js =====
+
+let lastCount = 0;
+
+
+/* ---- messaging.js Updates ---- */
+async function sendMessage() {
+    const input = document.getElementById("messageInput"); // Matches index.html
+    const message = input.value.trim();
+
+    if (!message || !window.currentUser) return;
+
+    try {
+        const { error } = await supa.from("messages").insert([{
+            content: message,
+            sender_id: window.currentUser.id,
+            sender_name: window.currentUser.full_name || window.currentUser.email
+        }]);
+
+        if (error) throw error;
+        input.value = ""; 
+        await loadInternalMessages(); 
+    } catch (err) {
+        console.error("Send error:", err.message);
+    }
+}
+
+async function loadInternalMessages() {
+    const chatBox = document.getElementById("messagesContainer"); // Matches index.html
+    if (!chatBox) return;
+
+    const { data: messages } = await supa.from("messages").select("*").order("created_at", { ascending: true });
+
+    if (messages) {
+        chatBox.innerHTML = messages.map(msg => `
+            <div style="padding: 5px; border-bottom: 1px solid #eee;">
+                <strong>${msg.sender_name}:</strong> ${msg.content}
+            </div>
+        `).join("");
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+}
+
+async function loadMessages() {
+    const chatBox = document.getElementById("chatMessages"); // Ensure this ID exists in your HTML
+    if (!chatBox) return;
+
+    try {
+        // 1. Fetch the last 50 messages from Supabase
+        const { data: messages, error } = await supa
+            .from("messages")
+            .select("*")
+            .order("created_at", { ascending: true })
+            .limit(50);
+
+        if (error) throw error;
+
+        // 2. Render messages to the UI
+        chatBox.innerHTML = messages.map(msg => {
+            const isMe = msg.sender_id === window.currentUser.id;
+            return `
+                <div class="message ${isMe ? 'sent' : 'received'}">
+                    <small><strong>${msg.sender_name}</strong></small>
+                    <p>${msg.content}</p>
+                    <span class="time">${new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                </div>
+            `;
+        }).join("");
+
+        // 3. Auto-scroll to the bottom
+        chatBox.scrollTop = chatBox.scrollHeight;
+
+    } catch (err) {
+        console.error("Error loading messages:", err);
+    }
+}
+
+
+
+
+// ===== render.js =====
+
+/**
+ * MASTER RENDERER
+ * Triggers all sub-renderers after every database sync.
+ */
+function renderAll() {
+    console.log("Master Render started...");
+    
+    // 1. APPLY GLOBAL BRANDING
+    const branding = window.db.branding || {};
+    const mainLogo = document.getElementById("mainAppLogo");
+    if (mainLogo && branding.logo_url) mainLogo.src = branding.logo_url;
+    
+    const companyTitle = document.getElementById("dashboardCompanyName");
+    if (companyTitle) companyTitle.innerText = branding.company_name || "SmartsourcingKe";
+	
+    // 2. DEFINE AND RUN TASKS
+    const tasks = [
+        { name: 'Employees', func: typeof renderEmployees === 'function' ? renderEmployees : null },
+        { name: 'Products', func: typeof renderProducts === 'function' ? renderProducts : null },
+        { name: 'Retailer Dropdowns', func: typeof renderRetailerDropdown === 'function' ? renderRetailerDropdown : null },
+        { name: 'Retailers', func: typeof renderRetailers === 'function' ? renderRetailers : null },
+        { name: 'Orders', func: typeof renderOrders === 'function' ? renderOrders : null },        
+        { name: 'Corp History', func: typeof renderCorporateHistory === 'function' ? renderCorporateHistory : null },
+        { name: 'Schools', func: typeof renderSchools === 'function' ? renderSchools : null },
+        { name: 'Payroll', func: typeof renderPayroll === 'function' ? renderPayroll : null },
+        { name: 'Profit', func: typeof renderProfit === 'function' ? renderProfit : null },
+        { name: 'Messages', func: typeof renderMessages === 'function' ? renderMessages : null }
+    ];
+
+    tasks.forEach(task => {
+        if (task.func) {
+            try {
+                task.func();
+                console.log(`Render Success: ${task.name}`);
+            } catch (e) {
+                console.error(`Error in ${task.name}:`, e);
+            }
+        }
+    });
+
+    // 3. APPLY SECURITY PERMISSIONS
+    if (typeof renderPermissions === 'function') {
+        renderPermissions();
+    }
+}
+
+/**
+ * RENDER PERMISSIONS
+ * Shows or hides admin tabs based on the logged-in user's role.
+ */
+function renderPermissions() {
+    const role = window.currentUser?.role;
+    console.log("Applying permissions for role:", role);
+
+    const adminTabBtn = document.querySelector('[onclick*="adminTab"]');
+    const payrollTabBtn = document.querySelector('[onclick*="payrollTab"]');
+    const profitTabBtn = document.querySelector('[onclick*="profitTab"]');
+
+    const displayStyle = (role === 'admin') ? 'block' : 'none';
+    
+    if (adminTabBtn) adminTabBtn.style.display = displayStyle;
+    if (payrollTabBtn) payrollTabBtn.style.display = displayStyle;
+    if (profitTabBtn) profitTabBtn.style.display = displayStyle;
+}
+
+/**
+ * RENDER EMPLOYEES
+ * Fills the admin table with staff data from window.db.users.
+ */
+function renderEmployees() {
+    const tbody = document.getElementById("employeeTableBody");
+    if (!tbody) return;
+
+    const staff = (window.db.users || []).filter(u => u.role === 'staff' || u.role === 'admin');
+    
+    if (staff.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No staff found.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = staff.map(user => `
+        <tr>
+            <td>${user.full_name || 'N/A'}</td>
+            <td>${user.email}</td>
+            <td><span class="badge" style="background:${user.role === 'admin' ? '#e74c3c' : '#3498db'}">
+                ${user.role.toUpperCase()}
+            </span></td>
+            <td>${user.phone || '-'}</td>
+            <td>
+                <button class="btn btn-blue" onclick="editUser('${user.id}')">Edit</button>
+            </td>
+        </tr>
+    `).join("");
+}
+
+/**
+ * RENDER RETAILERS
+ */
+function renderRetailers() {
+    const tbody = document.getElementById("retailerBody");
+    if (!tbody) return;
+
+    const searchTerm = document.getElementById("retailerSearch")?.value.toLowerCase() || "";
+    const retailers = (window.db.retailers || []).filter(r => 
+        r.name.toLowerCase().includes(searchTerm) || 
+        r.phone.includes(searchTerm)
+    );
+
+    if (retailers.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4">No retailers found.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = retailers.map(r => `
+        <tr>
+            <td>${r.name}</td>
+            <td>${r.phone}</td>
+            <td>${r.location}</td>
+            <td>
+                <button class="btn btn-blue" onclick="selectRetailerForOrder('${r.id}')">New Order</button>
+            </td>
+        </tr>
+    `).join("");
+}
+
+/**
+ * RENDER CORPORATE (CBC)
+ */
+/* ---- render.js Updates ---- */
+
+// 1. Correct the ID for Corporate Orders
+function renderCorporateOrders() {
+    const tbody = document.getElementById("corpOrdersBody"); // Must match index.html
+    if (!tbody) return;
+
+    const orders = window.db.corporate_orders || [];
+    tbody.innerHTML = orders.map(order => `
+        <tr>
+            <td>${new Date(order.created_at).toLocaleDateString()}</td>
+            <td>${order.schools?.name || 'N/A'}</td>
+            <td>KES ${order.total.toLocaleString()}</td>
+            <td><span class="badge">${order.status.toUpperCase()}</span></td>
+            <td>
+                <button class="btn btn-blue" onclick="viewReceipt('${order.id}', 'corporate')">Receipt</button>
+            </td>
+        </tr>
+    `).join("");
+}
+
+// 2. Add the Print Function
+async function viewCorporateReceipt(orderId) {
+    const modal = document.getElementById("receiptModal");
+    if (!modal) return;
+    
+    // Show modal
+    modal.classList.remove("hidden");
+    
+    // Populate modal data
+    await renderCorporateReceipt(orderId); // This is the function already in your render.js
+}
+
+/**
+ * RENDER PRODUCT DROPDOWNS
+ * Used in the "Create Order" section.
+ */
+function renderProductDropdowns() {
+    // 1. Identify all dropdowns that need product data
+    const selects = ["orderProductSelect", "corpProductSelect"]; 
+    
+    // 2. Use window.products (from your sync function) as the source
+    // If window.db.products is your primary store, keep it, but ensure it's fresh.
+    const products = window.products || window.db?.products || [];
+
+    selects.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        
+        // 3. Clear and Rebuild
+        // We filter for p.stock > 0 so staff don't try to sell what you don't have
+        const options = products
+            .filter(p => p.stock > 0) 
+            .map(p => `<option value="${p.id}">${p.name} - Sh${p.base_price} (Stock: ${p.stock})</option>`)
+            .join("");
+
+        el.innerHTML = '<option value="">-- Select Product --</option>' + options;
+    });
+    
+    console.log("Order dropdowns refreshed with latest stock.");
+}
+
+/**
+ * RENDER RETAILER DROPDOWN
+ */
+function renderRetailerDropdown() {
+    const el = document.getElementById("retailerSelect");
+    if (!el) return;
+
+    const retailers = window.db.retailers || [];
+    el.innerHTML = '<option value="">Select Retailer</option>' + 
+        retailers.map(r => `<option value="${r.id}">${r.name}</option>`).join("");
+}
+
+/**
+ * RENDER SCHOOL DROPDOWN
+ */
+function renderSchoolDropdown() {
+    const el = document.getElementById("corpSchoolSelect");
+    if (!el) return;
+
+    const schools = window.db.schools || [];
+    el.innerHTML = '<option value="">Select School</option>' + 
+        schools.map(s => `<option value="${s.id}">${s.name}</option>`).join("");
+}
+
+/**
+ * RENDER ADMIN TOOLS
+ */
+function renderAdmin() {
+    const tbody = document.getElementById("adminUserTableBody");
+    if (!tbody) return;
+
+    const users = window.db.users || [];
+    
+    tbody.innerHTML = users.map(user => `
+        <tr>
+            <td>${user.full_name || 'N/A'}</td>
+            <td>${user.email}</td>
+            <td><span class="badge">${user.role}</span></td>
+            <td>
+                <button class="btn btn-blue" onclick="editUserRole('${user.id}')">Edit Role</button>
+            </td>
+        </tr>
+    `).join("");
+}
+
+function renderProducts() {
+    // MATCHING YOUR HTML: change 'inventoryList' to 'productList'
+    const container = document.getElementById("productList"); 
+    if (!container) return; 
+
+    const products = window.db.products || [];
+    let html = "";
+
+    products.forEach(product => {
+        html += `
+            <div class="card" style="border:1px solid #ddd; padding:15px; margin-bottom:10px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h4 style="margin:0;">${product.name}</h4>
+                    <button onclick="deleteProduct('${product.id}')" style="color:red; border:none; background:none; cursor:pointer;">🗑️</button>
+                </div>
+                
+                <div style="display: grid; gap: 5px; margin-top: 10px;">
+                    <label>Base Price (KES):</label>
+                    <input type="number" id="price-${product.id}" value="${product.base_price || 0}">
+                    
+                    <label>Company Fee (KES):</label>
+                    <input type="number" id="fee-${product.id}" value="${product.company_fee || 0}">
+                    
+                    <label>Stock Count:</label>
+                    <input type="number" id="stock-${product.id}" value="${product.stock || 0}">
+                </div>
+
+                <button class="btn btn-blue" style="width:100%; margin-top:10px;" 
+                        onclick="editProduct('${product.id}')">Update Product</button>
+            </div>`;
+    });
+    container.innerHTML = html;
+}
+
+async function saveProductUpdate(productId) {
+    const newPrice = document.getElementById(`price-${productId}`).value;
+    const newFee = document.getElementById(`fee-${productId}`).value;
+    const newStock = document.getElementById(`stock-${productId}`).value;
+
+    try {
+        const { error } = await supa
+            .from('products')
+            .update({ 
+                productBasePrice: parseFloat(newPrice),
+                productCompanyFee: parseFloat(newFee),
+                productStock: parseInt(newStock)
+            });
+            .eq('id', productId);
+
+        if (error) throw error;
+
+        alert("Product updated successfully!");
+        
+        // Refresh the database and UI
+        if (typeof sync === 'function') {
+            await sync(); 
+        } else {
+            location.reload(); // Fallback if sync isn't global
+        }
+        
+    } catch (err) {
+        console.error("Update error:", err);
+        alert("Failed to update: " + err.message);
+    }
+}
+
+function previewIDCard(userId) {
+    const user = window.db.users.find(u => u.id === userId);
+    const branding = window.db.branding || {};
+
+    // Map data to the ID Template
+    document.getElementById("idHeaderName").innerText = branding.company_name || "COMPANY ERP";
+    document.getElementById("idLogo").src = branding.logo_url || "";
+    document.getElementById("idWatermark").src = branding.bg_url || ""; // Watermark image
+    
+    document.getElementById("idStaffPhoto").src = user.photo_url || "default-avatar.png";
+    document.getElementById("idStaffName").innerText = user.full_name;
+    document.getElementById("idStaffRole").innerText = user.role;
+    document.getElementById("idStaffEmail").innerText = user.email;
+
+    // Show the modal
+    document.getElementById("idCardModal").classList.remove("hidden");
+}
+
+async function renderReceipt(orderId) {
+    const order = window.db.orders?.find(o => o.id === orderId);
+    if (!order) return;
+
+    try {
+        // Fetch items specifically for this order
+        const { data: items, error } = await supa.from('order_items').select('*').eq('order_id', orderId);
+        if (error) throw error;
+
+        const itemsBody = document.getElementById("receiptItemsBody");
+        if (!itemsBody) return;
+
+        itemsBody.innerHTML = items.map(item => {
+            const product = window.db.products?.find(p => p.id === item.product_id);
+            const price = Number(item.price_at_sale || 0);
+            const fee = product ? Number(product.company_fee || 0) : 0;
+            
+            return `
+                <tr>
+                    <td>${product ? product.name : 'Unknown Product'}</td>
+                    <td style="text-align:center;">${item.quantity}</td>
+                    <td style="text-align:center;">${(price - fee).toLocaleString()}</td>
+                    <td style="text-align:center;">${fee.toLocaleString()}</td>
+                    <td style="text-align:right;">${(item.quantity * price).toLocaleString()}</td>
+                </tr>`;
+        }).join("");
+
+        document.getElementById("receiptGrandTotal").innerText = `TOTAL: KES ${Number(order.total).toLocaleString()}`;
+        
+        document.getElementById("receiptMeta").innerHTML = `
+            <p><strong>Order No:</strong> #${order.id.slice(0, 8)}</p>
+            <p><strong>Date:</strong> ${new Date(order.created_at).toLocaleDateString()}</p>
+        `;
+    } catch (err) {
+        console.error("Receipt Error:", err);
+    }
+
+
+        // 4. Grand Total
+        document.getElementById("receiptGrandTotal").textContent = `TOTAL: KES ${Number(order.total).toLocaleString()}`;
+
+     catch (err) {
+        console.error("Retailer Receipt Error:", err);
+    }
+}
+
+
+function renderOrders() {
+    const tbody = document.getElementById("ordersBody");
+    if (!tbody) return;
+
+    const orders = (window.db.orders || []).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+    tbody.innerHTML = orders.map(order => {
+    const retailer = window.db.retailers?.find(r => r.id === order.retailer_id);
+    const date = new Date(order.created_at).toLocaleDateString();
+    
+    return `
+        <tr>
+            <td>${date}</td> <td>${order.id.slice(0, 8)}</td> <td>${retailer ? retailer.name : 'Unknown'}</td> <td>KES ${Number(order.total || 0).toLocaleString()}</td>
+            <td><span class="badge">${(order.status || 'pending').toUpperCase()}</span></td>
+            <td>
+                <button class="btn btn-blue" onclick="viewReceipt('${order.id}', 'retailer')">Receipt</button>
+            </td>
+        </tr>`;
+}).join("");
+}
+
+async function renderCorporateReceipt(orderId) {
+    const order = window.db.corporate_orders?.find(o => o.id === orderId);
+    if (!order) return;
+
+    const school = window.db.schools?.find(s => s.id === order.school_id);
+    
+    // Set Meta Data (Order Number and Date)
+    const meta = document.getElementById("receiptMeta");
+    if (meta) {
+        meta.innerHTML = `
+            <div style="display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding-bottom:5px;">
+                <span><strong>Order No:</strong> #${order.id.slice(0, 8)}</span>
+                <span><strong>Date:</strong> ${new Date(order.created_at).toLocaleDateString()}</span>
+            </div>
+            <div style="margin-top:5px;">
+                <strong>School:</strong> ${school ? school.name : 'N/A'}
+            </div>
+        `;
+    }
+
+    // Fetch Items from corporate_order_items
+    const { data: items } = await supa.from('corporate_order_items').select('*').eq('corporate_order_id', orderId);
+    const itemsBody = document.getElementById("receiptItemsBody");
+    
+    if (items && itemsBody) {
+        itemsBody.innerHTML = items.map(item => `
+            <tr>
+                <td>${item.grade} (${item.student_count} Students)</td>
+                <td style="text-align:center;">1</td>
+                <td style="text-align:right;">KES ${Number(item.subtotal).toLocaleString()}</td>
+            </tr>
+        `).join("");
+    }
+
+    document.getElementById("receiptGrandTotal").textContent = `TOTAL: KES ${Number(order.total).toLocaleString()}`;
+}
+
+function renderMessages() {
+    const container = document.getElementById("messagesContainer");
+    if (!container) return;
+
+    // Table name is usually 'messages' or 'team_messages'
+    const msgs = window.db.messages || []; 
+    
+    container.innerHTML = msgs.map(m => `
+        <div style="margin-bottom:10px; padding:8px; background:#f9f9f9; border-radius:5px;">
+            <strong>${m.sender_name || 'System'}:</strong> ${m.content}
+            <div style="font-size:0.7em; color:#999;">${new Date(m.created_at).toLocaleTimeString()}</div>
+        </div>
+    `).join("");
+    
+    // Auto-scroll to bottom
+    container.scrollTop = container.scrollHeight;
+}
+
+
+function viewReceipt(id, type = 'retailer') {
+    const modal = document.getElementById("receiptModal");
+    if (!modal) return;
+
+    modal.classList.remove("hidden");
+    modal.style.display = 'block';
+
+    // Apply Branding (Logo, Name, Watermark) immediately
+    applyReceiptBranding();
+
+    // Now populate the specific data
+    if (type === 'corporate') {
+        renderCorporateReceipt(id);
+    } else if (type === 'payroll') {
+        if (typeof viewPayrollReceipt === 'function') viewPayrollReceipt(id);
+    } else {
+        renderReceipt(id);
+    }
+}
+
+function closeReceiptModal() {
+    document.getElementById("receiptModal").classList.add("hidden");
+    document.getElementById("receiptModal").style.display = "none";
+}
+
+function renderProfit() {
+    const container = document.getElementById("profitReport");
+    if (!container) return;
+
+    const retailTotal = (window.db.orders || []).reduce((sum, o) => sum + Number(o.total || 0), 0);
+    const corpTotal = (window.db.corporate_orders || []).reduce((sum, o) => sum + Number(o.total || 0), 0);
+
+    container.innerHTML = `
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+            <div class="card"><h4>Retail</h4><h2>KES ${retailTotal.toLocaleString()}</h2></div>
+            <div class="card"><h4>Corporate</h4><h2>KES ${corpTotal.toLocaleString()}</h2></div>
+            <div class="card" style="grid-column: span 2; background:#1f2d3d; color:white;">
+                <h4>Total Revenue</h4><h1>KES ${(retailTotal + corpTotal).toLocaleString()}</h1>
+            </div>
+        </div>`;
+}
+
+function renderPayroll() {
+    const tbody = document.getElementById("payrollBody");
+    if (!tbody) return;
+    
+    tbody.innerHTML = (window.db.payroll || []).map(p => `
+        <tr>
+            <td>${p.payroll_month}</td>
+            <td>KES ${Number(p.total_pay).toLocaleString()}</td>
+            <td>${p.status}</td>
+            <td><button class="btn btn-green" onclick="viewReceipt('${p.id}', 'payroll')">Slip</button></td>
+        </tr>`).join("");
+}
+
+function applyReceiptBranding() {
+    const branding = window.db.branding || {};
+    
+    // Set Company Name & Tagline
+    const nameEl = document.getElementById("receiptCompanyName");
+    const tagEl = document.getElementById("receiptTagline");
+    const logoImg = document.getElementById("receiptLogo");
+    const watermark = document.getElementById("watermarkImg");
+
+    if (nameEl) nameEl.innerText = branding.company_name || "SmartsourcingKe";
+    if (tagEl) tagEl.innerText = branding.tagline || "Quality & Excellence";
+
+    // Set Logo and Watermark
+    if (branding.logo_url) {
+        if (logoImg) {
+            logoImg.src = branding.logo_url;
+            logoImg.style.display = 'block';
+        }
+        if (watermark) {
+            watermark.src = branding.logo_url;
+            watermark.style.opacity = '0.1'; // Ensure it looks like a watermark
+        }
+    }
+}
+
+// ===== branding.js =====
+
+/**
+ * UPDATE BRANDING
+ * Saves company name, tagline, logo, and background to Supabase.
+ */
+async function updateBranding() {
+    if (!window.currentUser || window.currentUser.role !== "admin") {
+        return alert("Access Denied: Admin privileges required.");
+    }
+
+    // Map these to the IDs in your index.html's Admin Tab
+    const name = document.getElementById("brandingName")?.value;
+    const tagline = document.getElementById("brandingTagline")?.value;
+    const logoFile = document.getElementById("brandingLogo")?.files[0];
+    const bgFile = document.getElementById("brandingBg")?.files[0];
+
+    let logoUrl = window.db.branding?.logo_url || null;
+    let bgUrl = window.db.branding?.background_url || null;
+
+    try {
+        // 1. Upload Logo to Storage if provided
+        if (logoFile) {
+            const fileName = `logo_${Date.now()}.${logoFile.name.split('.').pop()}`;
+            const { error: upErr } = await supa.storage.from("branding").upload(fileName, logoFile);
+            if (upErr) throw upErr;
+            logoUrl = supa.storage.from("branding").getPublicUrl(fileName).data.publicUrl;
+        }
+
+        // 2. Upload Background to Storage if provided
+        if (bgFile) {
+            const fileName = `bg_${Date.now()}.${bgFile.name.split('.').pop()}`;
+            const { error: upErr } = await supa.storage.from("branding").upload(fileName, bgFile);
+            if (upErr) throw upErr;
+            bgUrl = supa.storage.from("branding").getPublicUrl(fileName).data.publicUrl;
+        }
+
+        // 3. Upsert into the branding table
+        const { error: dbErr } = await supa.from("branding").upsert({
+            id: 1, 
+            company_name: name,
+            tagline: tagline,
+            logo_url: logoUrl,
+            background_url: bgUrl,
+            updated_at: new Date()
+        });
+
+        if (dbErr) throw dbErr;
+
+        alert("Branding updated successfully!");
+        await sync(); // Refresh global data and UI
+    } catch (err) {
+        console.error("Branding Update Error:", err);
+        alert("Failed to update branding: " + err.message);
+    }
+}
+
+/**
+ * RENDER BRANDING
+ * Displays the branding data across the login and dashboard screens.
+ */
+/**
+ * RENDER BRANDING
+ * Synchronizes all branding elements (Login, Dashboard, Receipts, IDs).
+ */
+function renderBranding() {
+    // Ensure we handle both array and single object data from Supabase
+    const brand = Array.isArray(window.db.branding) ? window.db.branding[0] : window.db.branding;
+    if (!brand) return;
+
+    // 1. Text Branding (Names & Taglines)
+    const nameElements = ["companyName", "loginCompanyName", "receiptCompanyName", "idHeaderName"];
+    const taglineElements = ["companyTagline", "loginTagline", "receiptTagline"];
+
+    nameElements.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = brand.company_name || "SmartsourcingKe ERP";
+    });
+
+    taglineElements.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = brand.tagline || "";
+    });
+
+    // 2. Logo Branding
+    const logoElements = ["companyLogo", "loginLogo", "receiptLogo", "idLogo"];
+    if (brand.logo_url) {
+        logoElements.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.src = brand.logo_url;
+                el.classList.remove("hidden");
+                el.style.display = "block"; // Force display if hidden by CSS
+            }
+        });
+
+        // Apply to Receipt Watermark & ID Watermark
+        const watermarkImg = document.getElementById("watermarkImg");
+        const idWatermark = document.getElementById("idWatermark");
+        if (watermarkImg) watermarkImg.src = brand.logo_url;
+        if (idWatermark) idWatermark.src = brand.logo_url;
+    }
+
+    // 3. Background / Page Styling
+    if (brand.background_url) {
+        // Apply a light overlay so text stays readable on the dashboard
+        document.body.style.backgroundImage = `linear-gradient(rgba(244, 246, 249, 0.9), rgba(244, 246, 249, 0.9)), url('${brand.background_url}')`;
+        document.body.style.backgroundSize = "cover";
+        document.body.style.backgroundAttachment = "fixed";
+    }
+}
+
+/**
+ * LOAD BRANDING
+ */
+async function loadBranding() {
+    const { data, error } = await supa.from("branding").select("*").maybeSingle();
+    if (error) console.error("Load Branding Error:", error);
+    if (data) {
+        window.db.branding = data;
+        renderBranding();
+    }
+}
+
+function applyBranding(brand) {
+    if (!brand) return;
+
+    // Institution Name & Tagline
+    document.title = brand.company_name || "ERP System";
+    const nameEls = document.querySelectorAll(".institution-name"); // Use a class for all name placeholders
+    nameEls.forEach(el => el.textContent = brand.company_name);
+
+    // Background Image logic
+    if (brand.background_url) {
+        const loginPage = document.getElementById("loginPage");
+        if (loginPage) {
+            loginPage.style.backgroundImage = `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('${brand.background_url}')`;
+            loginPage.style.backgroundSize = "cover";
+        }
+    }
+    
+    // Watermark for Receipts (Update the global CSS variable)
+    if (brand.logo_url) {
+        document.documentElement.style.setProperty('--brand-logo', `url(${brand.logo_url})`);
+    }
+}
+
+// ===== app.js =====
+
+// Global State
+window.db = {};
+window.currentUser = null;
+window.cart = [];
+window.corporateCart = []; 
+
+/**
+ * INITIALIZE APP
+ */
+async function initApp() {
+    console.log("Initializing SmartsourcingKe ERP...");
+    
+    // 1. Fetch current session from Supabase
+    const { data: { session }, error } = await supa.auth.getSession();
+    
+    if (error) {
+        console.error("Session fetch error:", error);
+        return showScreen("loginPage");
+    }
+
+    if (session) {
+        // Pass the whole session or just the user, but stay consistent
+        await handleAuthSuccess(session);
+    } else {
+        console.log("No session found, redirecting to login.");
+        showScreen("loginPage");
+    }
+
+    // 2. Setup Real-time Listeners (if defined in messages.js)
+    if (typeof subscribeToMessages === "function") {
+        subscribeToMessages();
+    }
+}
+
+// Change the parameter name to 'session' and extract the user correctly
+async function handleAuthSuccess(session) {
+    if (!session || !session.user) return;
+    
+    // Set global user
+    window.currentUser = session.user;
+
+    // Fetch the role from the 'users' table specifically
+    const { data: profile, error } = await supa
+        .from('users')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+
+    if (error || !profile) {
+        console.error("Profile fetch error:", error);
+        // If profile doesn't exist, we can't be admin
+        window.currentUser.role = 'staff'; 
+    } else {
+        window.currentUser.role = profile.role;
+        console.log("Logged in as:", profile.role);
+    }
+
+    await sync(); // Only sync AFTER we have the role
+    showScreen("dashboardPage");
+}
+
+
+async function sync() {
+    if (isSyncing) return;
+    isSyncing = true;
+    console.log("Syncing database...");
+    try {
+        // Fetch ALL tables at once to fill ALL tabs
+        const [prod, ret, ord, corp, sch, usr, msg, brand] = await Promise.all([
+            supa.from('products').select('*'),
+            supa.from('retailers').select('*'),
+            supa.from('orders').select('*'),
+            supa.from('corporate_orders').select('*'),
+            supa.from('schools').select('*'),
+            supa.from('users').select('*'),
+            supa.from('messages').select('*').order('created_at', { ascending: true }), // For Messages tab
+            supa.from('branding').select('*').single() // For Admin tab settings
+        ]);
+
+        // Mapping data to the global window.db object
+        window.db = {
+            products: prod.data || [],
+            retailers: ret.data || [],
+            orders: ord.data || [],
+            corporate_orders: corp.data || [],
+            schools: sch.data || [],
+            users: usr.data || [],
+            messages: msg.data || [], // Missing this was likely breaking your Chat
+            branding: brand.data || {} // Missing this was likely breaking Admin settings
+        };
+        
+        console.log("Sync complete. Data loaded:", window.db);
+        
+        // After data is loaded, you MUST call the renderers
+        if (typeof renderAll === 'function') renderAll(); 
+        
+    } catch (err) {
+        console.error("Sync failed:", err.message);
+    }
+	
+window.db.users = users;
+isSyncing = false;
+}
+
+/**
+ * UI NAVIGATION
+ */
+function showScreen(sectionId) {
+    // Hide all sections
+    document.querySelectorAll(".app-section").forEach(s => s.classList.add("hidden"));
+    
+    // Special handling for dashboard/login wrappers
+    if (sectionId === "loginPage") {
+        document.getElementById("dashboard").classList.add("hidden");
+    } else {
+        document.getElementById("loginPage").classList.add("hidden");
+    }
+
+    const target = document.getElementById(sectionId);
+    if (target) {
+        target.classList.remove("hidden");
+    }
+}
+
+
+supa.auth.onAuthStateChange(async (event, session) => {
+    console.log("AUTH EVENT:", event);
+    
+    if (session && session.user) {
+        window.currentUser = session.user;
+        // Check if handleAuthSuccess exists before calling
+        if (typeof handleAuthSuccess === "function") {
+            await handleAuthSuccess(session); // Pass the whole session
+        }
+    } else {
+        console.log("No session found, redirecting to login.");
+        // FIX: Instead of calling a missing function, just show the login UI
+        const loginModal = document.getElementById("loginModal");
+        if (loginModal) {
+            loginModal.classList.remove("hidden");
+        }
+    }
+});
+
+async function checkUserSession() {
+    const { data: { user } } = await supa.auth.getUser();
+    
+    if (user) {
+        // Find the profile in our 'users' table
+        const { data: profile } = await supa
+            .from('users')
+            .select('*')
+            .eq('auth_user_id', user.id)
+            .single();
+
+        if (profile) {
+            window.currentUser = profile;
+            // Now the "Account Not Set Up" warning will disappear
+            renderUI(); 
+        } else {
+            console.error("Auth exists but no profile found in users table.");
+        }
+    }
+}
+
+function openTab(tabId, btn) {
+    // 1. Hide all tab contents
+    const contents = document.querySelectorAll('.tab-content');
+    contents.forEach(content => {
+        content.style.display = 'none';
+    });
+
+    // 2. Show the requested tab
+    const target = document.getElementById(tabId);
+    if (target) {
+        target.style.display = 'block'; // Force it to show
+    }
+
+    // 3. Update button colors
+    const buttons = document.querySelectorAll('.tab-btn');
+    buttons.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    
+    // 4. If opening messages, load them and clear the badge
+    if (tabId === 'messagesTab') {
+        loadInternalMessages();
+        const badge = document.getElementById('msgBadge');
+        if (badge) badge.classList.add('hidden');
+    }
+}
+
+function viewReceipt(id, type = 'retailer') {
+    const modal = document.getElementById("receiptModal");
+    if (!modal) return;
+
+    modal.classList.remove("hidden");
+    modal.style.display = 'block';
+
+    if (type === 'corporate') {
+        // Logic from your corporateOrders.js
+        renderCorporateReceipt(id); 
+    } else if (type === 'payroll') {
+        // Logic from your payroll.js
+        viewPayrollReceipt(id);
+    } else {
+        // Standard Retail Receipt from retailerOrders.js
+        renderReceipt(id);
+    }
+}
+
+function closeReceiptModal() {
+    const modal = document.getElementById("receiptModal");
+    modal.classList.add("hidden");
+    modal.style.display = 'none';
+}
 </script>
 </body>
 </html>
