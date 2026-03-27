@@ -55,10 +55,10 @@ async function addEmployee() {
             email: email,
             full_name: fullName,
             role: role,
-            salary: parseFloat(salary),
+            salary: parseFloat(salary) || 0,
             pic: photoUrl,
             status: 'active',
-            created_at: new Date()
+            created_at: new Date().toISOString()
         }]);
 
         if (dbError) throw dbError;

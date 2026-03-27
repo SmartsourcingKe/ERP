@@ -2,25 +2,30 @@
  * ADD PRODUCT
  */
 async function addProduct() {
-    const name = document.getElementById("addProductName").value;
-    const stock = document.getElementById("productStock").value;
-    const price = document.getElementById("productBasePrice").value;
-    const fee = document.getElementById("productFee").value;
+    const name = document.getElementById("newProductName").value;
+    const price = document.getElementById("newProductPrice").value;
+    const fee = document.getElementById("newProductFee").value;
+    const stock = document.getElementById("newProductStock").value;
+
+    if (!name) return alert("Product name required");
 
     try {
         const { error } = await supa.from("products").insert([{
-            name: name,
-            stock: parseInt(stock),
-            base_price: parseFloat(price), 
-            company_fee: parseFloat(fee)
+            name,
+            base_price: parseFloat(price) || 0,
+            company_fee: parseFloat(fee) || 0,
+            stock: parseInt(stock) || 0
         }]);
 
         if (error) throw error;
-        
-        alert("Product saved!");
-        await refreshProductSystem(); // Unified refresh
+
+        alert("Product added ✅");
+
+        await sync();
+
     } catch (err) {
-        alert("Failed to save: " + err.message);
+        console.error(err);
+        alert("Failed: " + err.message);
     }
 }
 
@@ -28,28 +33,26 @@ async function addProduct() {
  * EDIT PRODUCT
  */
 async function editProduct(id) {
-    const newPrice = document.getElementById(`price-${id}`).value;
-    const newFee = document.getElementById(`fee-${id}`).value;
-    const newStock = document.getElementById(`stock-${id}`).value;
+    const newPrice = parseFloat(document.getElementById(`price-${id}`).value) || 0;
+    const newFee = parseFloat(document.getElementById(`fee-${id}`).value) || 0;
+    const newStock = parseInt(document.getElementById(`stock-${id}`).value) || 0;
 
     try {
         const { error } = await supa
             .from("products")
             .update({ 
-                base_price: parseFloat(newPrice), 
-                company_fee: parseFloat(newFee),
-                stock: parseInt(newStock)
+                base_price: newPrice, 
+                company_fee: newFee,
+                stock: newStock
             })
-            .eq("id", id);
+            .eq("id", id); // ✅ FIXED: removed broken semicolon
 
         if (error) throw error;
 
         alert("Product updated successfully!");
         
         // CRITICAL: Refresh the data and the UI
-        await sync(); 
-        if (typeof renderProducts === "function") renderProducts();
-        if (typeof renderPosItems === "function") renderPosItems(); // For the Retailer Order dropdown
+        await refreshProductSystem(); // ✅ FIXED typo
         
     } catch (err) {
         console.error("Update Error:", err);

@@ -1,7 +1,13 @@
 // GLOBAL DATABASE CACHE
-window.db = window.db || {
-    users: [], products: [], retailers: [], orders: [],
-    schools: [], corporate_orders: [], branding: null, messages: []
+window.db = {
+    users: window.db?.users || [],
+    products: window.db?.products || [],
+    retailers: window.db?.retailers || [],
+    orders: window.db?.orders || [],
+    schools: window.db?.schools || [],
+    corporate_orders: window.db?.corporate_orders || [],
+    branding: window.db?.branding || null,
+    messages: window.db?.messages || []
 };
 
 // CURRENT USER STATE

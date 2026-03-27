@@ -161,3 +161,29 @@ function viewOrderDetails(orderId) {
 window.viewOrderDetails = function(orderId) {
     viewReceipt(orderId, 'retailer');
 };
+
+async function markAsPaid(orderId) {
+    if (!confirm("Mark this order as disbursed/paid?")) return;
+
+    try {
+        const { error } = await supa
+            .from("orders")
+            .update({ status: "paid" })
+            .eq("id", orderId);
+
+        if (error) throw error;
+
+        alert("Order marked as PAID ✅");
+
+        // Refresh system
+        if (typeof sync === "function") {
+            await sync();
+        } else {
+            location.reload();
+        }
+
+    } catch (err) {
+        console.error("Disbursement Error:", err);
+        alert("Failed to update order: " + err.message);
+    }
+}

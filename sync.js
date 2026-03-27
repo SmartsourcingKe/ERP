@@ -3,15 +3,20 @@
  * Fetches all tables in parallel and updates the global window.db cache.
  */
 async function sync() {
+    try {
+        // Example: load branding from Supabase
+        const { data: brandingData, error } = await supa.from("branding").select("*").single();
+        if (error) throw error;
+        window.branding = brandingData;  // Make it globally accessible
     if (!window.supa) {
         console.error("Sync aborted: Supabase client not initialized.");
         return;
     }
 
-    // Ensure db structure exists
-    if (!window.db) window.db = {};
+    if (!window.db) {
+        window.db = {};
+    }
 
-    // Map of tables to their Supabase queries
     const tables = {
         users: () => supa.from("users").select("*"),
         products: () => supa.from("products").select("*"),
@@ -24,72 +29,82 @@ async function sync() {
         payroll: () => supa.from("payroll").select("*"),
         messages: () => supa.from("messages").select("*").order("created_at", { ascending: true }),
         employee_finance: () => supa.from("employee_finance").select("*"),
-        branding: () => supa.from("branding").select("*").maybeSingle()
+        branding: () => supa.from("branding").select("*").limit(1),
     };
 
     const keys = Object.keys(tables);
 
     try {
-        // Fetch everything at once for maximum speed
         const responses = await Promise.allSettled(keys.map(k => tables[k]()));
 
         responses.forEach((result, i) => {
             const key = keys[i];
 
-            // Handle Promise Rejection
             if (result.status === "rejected") {
                 console.error(`SYNC REJECTED [${key}]:`, result.reason);
-                db[key] = (key === "branding") ? null : [];
+                window.db[key] = key === "branding" ? {} : [];
                 return;
             }
 
             const res = result.value;
 
-            // Handle Supabase Error Response
             if (res.error) {
-                console.error(`SYNC DATABASE ERROR [${key}]:`, res.error.message);
-                db[key] = (key === "branding") ? null : [];
+                console.error(`SYNC ERROR [${key}]:`, res.error.message);
+                window.db[key] = key === "branding" ? {} : [];
                 return;
             }
 
-            // Assign data (defaulting to empty array/null if empty)
-            db[key] = (key === "branding") ? (res.data || null) : (res.data || []);
-            
-            if (key !== "branding") {
-                console.log(`SYNC OK [${key}]: ${db[key].length} records`);
-            }
+            const data = res.data || [];
+
+            if (key === "branding") {
+    window.db.branding = res.data?.[0] || {};
+} else {
+    window.db[key] = res.data || [];
+}
         });
 
-        // Trigger UI updates safely
-        triggerUIUpdates();
+        if (typeof triggerUIUpdates === "function") {
+            triggerUIUpdates();
+        } else if (typeof renderAll === "function") {
+            renderAll();
+        }
+
         window.dataLoaded = true;
 
     } catch (err) {
         console.error("Global Sync Failure:", err);
-    }    
-    // Call the specific renderers
-    renderSchools();
-    renderCorporateHistory(); // Create this to show the table in image_20cc22.png
+    }
+	await triggerUIUpdates();
+    } catch (err) {
+        console.error("SYNC FAILED:", err);
+    }
 }
 
-/**
- * TRIGGER UI UPDATES
- * Helper to call render functions only if they are defined.
- */
-function triggerUIUpdates() {
+async function triggerUIUpdates() {
+    // Define your render tasks with optional "requiredData" checks
     const renderTasks = [
         { name: "renderUserDropdown", fn: typeof renderUserDropdown === "function" ? renderUserDropdown : null },
         { name: "renderMessages", fn: typeof renderMessages === "function" ? renderMessages : null },
-        { name: "renderAll", fn: typeof renderAll === "function" ? renderAll : null }
+        { 
+            name: "renderAll", 
+            fn: typeof renderAll === "function" ? renderAll : null,
+            requiredData: () => typeof branding !== "undefined"  // Only run if branding exists
+        }
     ];
 
-    renderTasks.forEach(task => {
-        if (task.fn) {
-            try {
-                task.fn();
-            } catch (e) {
-                console.error(`Render Error in ${task.name}:`, e);
-            }
+    for (const task of renderTasks) {
+        if (!task.fn) continue;
+
+        // Check if requiredData exists
+        if (task.requiredData && !task.requiredData()) {
+            console.warn(`${task.name} skipped: required data not ready`);
+            continue;
         }
-    });
+
+        try {
+            await task.fn(); // support async render functions
+        } catch (err) {
+            console.error(`Error running ${task.name}:`, err);
+        }
+    }
 }

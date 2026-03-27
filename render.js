@@ -1,25 +1,36 @@
-/**
- * MASTER RENDERER
- * Triggers all sub-renderers after every database sync.
- */
-function renderAll() {
+ console.log("render.js loaded");
+ 
+window.renderAll = function () {
     console.log("Master Render started...");
     
-    // 1. APPLY GLOBAL BRANDING
-    const branding = window.db.branding || {};
-    const mainLogo = document.getElementById("mainAppLogo");
-    if (mainLogo && branding.logo_url) mainLogo.src = branding.logo_url;
-    
-    const companyTitle = document.getElementById("dashboardCompanyName");
-    if (companyTitle) companyTitle.innerText = branding.company_name || "SmartsourcingKe";
-	
-    // 2. DEFINE AND RUN TASKS
+    // ✅ Use a consistent 'branding' variable
+    const branding = window.db?.branding || {};
+
+    const logo = document.getElementById("companyLogo");
+    const name = document.getElementById("companyName");
+    const tagline = document.getElementById("companyTagline");
+
+    if (logo && branding.logo_url) {
+        logo.src = branding.logo_url;
+        logo.classList.remove("hidden");
+    }
+
+    // ✅ Apply background to the body using the correct key (background_url)
+    if (branding.background_url) {
+        document.body.style.backgroundImage = `url('${branding.background_url}')`;
+        document.body.style.backgroundSize = "cover";
+        document.body.style.backgroundAttachment = "fixed";
+        document.body.style.backgroundPosition = "center";
+    }
+
+    // ✅ 2. DEFINE AND RUN TASKS
     const tasks = [
         { name: 'Employees', func: typeof renderEmployees === 'function' ? renderEmployees : null },
         { name: 'Products', func: typeof renderProducts === 'function' ? renderProducts : null },
+        { name: 'Product Dropdowns', func: typeof renderProductDropdowns === 'function' ? renderProductDropdowns : null },
         { name: 'Retailer Dropdowns', func: typeof renderRetailerDropdown === 'function' ? renderRetailerDropdown : null },
         { name: 'Retailers', func: typeof renderRetailers === 'function' ? renderRetailers : null },
-        { name: 'Orders', func: typeof renderOrders === 'function' ? renderOrders : null },        
+        { name: 'Orders', func: typeof renderOrders === 'function' ? renderOrders : null },
         { name: 'Corp History', func: typeof renderCorporateHistory === 'function' ? renderCorporateHistory : null },
         { name: 'Schools', func: typeof renderSchools === 'function' ? renderSchools : null },
         { name: 'Payroll', func: typeof renderPayroll === 'function' ? renderPayroll : null },
@@ -38,11 +49,11 @@ function renderAll() {
         }
     });
 
-    // 3. APPLY SECURITY PERMISSIONS
+    // ✅ 3. APPLY PERMISSIONS
     if (typeof renderPermissions === 'function') {
         renderPermissions();
     }
-}
+};
 
 /**
  * RENDER PERMISSIONS
@@ -52,15 +63,19 @@ function renderPermissions() {
     const role = window.currentUser?.role;
     console.log("Applying permissions for role:", role);
 
-    const adminTabBtn = document.querySelector('[onclick*="adminTab"]');
-    const payrollTabBtn = document.querySelector('[onclick*="payrollTab"]');
-    const profitTabBtn = document.querySelector('[onclick*="profitTab"]');
+    const adminBtn = document.getElementById("adminBtn");
+    const payrollBtn = document.getElementById("payrollBtn");
+    const profitBtn = document.getElementById("profitBtn");
 
-    const displayStyle = (role === 'admin') ? 'block' : 'none';
-    
-    if (adminTabBtn) adminTabBtn.style.display = displayStyle;
-    if (payrollTabBtn) payrollTabBtn.style.display = displayStyle;
-    if (profitTabBtn) profitTabBtn.style.display = displayStyle;
+    if (role === 'admin') {
+        if (adminBtn) adminBtn.classList.remove("hidden");
+        if (payrollBtn) payrollBtn.classList.remove("hidden");
+        if (profitBtn) profitBtn.classList.remove("hidden");
+    } else {
+        if (adminBtn) adminBtn.classList.add("hidden");
+        if (payrollBtn) payrollBtn.classList.add("hidden");
+        if (profitBtn) profitBtn.classList.add("hidden");
+    }
 }
 
 /**
@@ -86,9 +101,10 @@ function renderEmployees() {
                 ${user.role.toUpperCase()}
             </span></td>
             <td>${user.phone || '-'}</td>
-            <td>
-                <button class="btn btn-blue" onclick="editUser('${user.id}')">Edit</button>
-            </td>
+			<td>
+    <button class="btn btn-blue" onclick="editStaff('${user.id}')">Edit</button>
+    <button class="btn btn-green" onclick="previewIDCard('${user.id}')">Print ID</button>
+</td>
         </tr>
     `).join("");
 }
@@ -103,7 +119,7 @@ function renderRetailers() {
     const searchTerm = document.getElementById("retailerSearch")?.value.toLowerCase() || "";
     const retailers = (window.db.retailers || []).filter(r => 
         r.name.toLowerCase().includes(searchTerm) || 
-        r.phone.includes(searchTerm)
+        (r.phone || '').includes(searchTerm)
     );
 
     if (retailers.length === 0) {
@@ -169,7 +185,7 @@ function renderProductDropdowns() {
     
     // 2. Use window.products (from your sync function) as the source
     // If window.db.products is your primary store, keep it, but ensure it's fresh.
-    const products = window.products || window.db?.products || [];
+    const products = window.db?.products || [];
 
     selects.forEach(id => {
         const el = document.getElementById(id);
@@ -178,7 +194,7 @@ function renderProductDropdowns() {
         // 3. Clear and Rebuild
         // We filter for p.stock > 0 so staff don't try to sell what you don't have
         const options = products
-            .filter(p => p.stock > 0) 
+            .filter(p => true) 
             .map(p => `<option value="${p.id}">${p.name} - Sh${p.base_price} (Stock: ${p.stock})</option>`)
             .join("");
 
@@ -273,14 +289,14 @@ async function saveProductUpdate(productId) {
     const newStock = document.getElementById(`stock-${productId}`).value;
 
     try {
-        const { error } = await supa
-            .from('products')
-            .update({ 
-                productBasePrice: parseFloat(newPrice),
-                productCompanyFee: parseFloat(newFee),
-                productStock: parseInt(newStock)
-            });
-            .eq('id', productId);
+       const { error } = await supa
+    .from('products')
+    .update({ 
+    base_price: parseFloat(newPrice) || 0,
+    company_fee: parseFloat(newFee) || 0,
+    stock: parseInt(newStock) || 0
+})
+.eq('id', productId);
 
         if (error) throw error;
 
@@ -318,7 +334,15 @@ function previewIDCard(userId) {
 }
 
 async function renderReceipt(orderId) {
-    const order = window.db.orders?.find(o => o.id === orderId);
+    const b = window.db?.branding || {};
+	const header = `
+	  <div style="text-align:center;">
+		${b.logo_url ? `<img src="${b.logo_url}" height="60">` : ""}
+		<h2>${b.company_name || "My Company"}</h2>
+		<p>${b.tagline || ""}</p>
+	  </div>
+	`;
+	const order = window.db.orders?.find(o => o.id === orderId);
     if (!order) return;
 
     try {
@@ -344,7 +368,6 @@ async function renderReceipt(orderId) {
                 </tr>`;
         }).join("");
 
-        document.getElementById("receiptGrandTotal").innerText = `TOTAL: KES ${Number(order.total).toLocaleString()}`;
         
         document.getElementById("receiptMeta").innerHTML = `
             <p><strong>Order No:</strong> #${order.id.slice(0, 8)}</p>
@@ -358,31 +381,44 @@ async function renderReceipt(orderId) {
         // 4. Grand Total
         document.getElementById("receiptGrandTotal").textContent = `TOTAL: KES ${Number(order.total).toLocaleString()}`;
 
-     catch (err) {
-        console.error("Retailer Receipt Error:", err);
     }
-}
 
 
 function renderOrders() {
     const tbody = document.getElementById("ordersBody");
     if (!tbody) return;
 
-    const orders = (window.db.orders || []).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    const orders = (window.db.orders || [])
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
     tbody.innerHTML = orders.map(order => {
-    const retailer = window.db.retailers?.find(r => r.id === order.retailer_id);
-    const date = new Date(order.created_at).toLocaleDateString();
-    
-    return `
+        const retailer = window.db.retailers?.find(r => r.id === order.retailer_id);
+        const date = new Date(order.created_at).toLocaleDateString();
+
+        const items = window.db.order_items?.filter(i => i.order_id === order.id) || [];
+
+        const productList = items.map(i => {
+            const product = window.db.products?.find(p => p.id === i.product_id);
+            return product 
+                ? `${product.name} (${i.product_id.slice(0,6)})`
+                : `Unknown (${i.product_id})`;
+        }).join(", ");
+
+        return `
         <tr>
-            <td>${date}</td> <td>${order.id.slice(0, 8)}</td> <td>${retailer ? retailer.name : 'Unknown'}</td> <td>KES ${Number(order.total || 0).toLocaleString()}</td>
+            <td>${date}</td>
+            <td>${retailer ? retailer.name : 'Unknown'}</td>
+            <td>${productList || '-'}</td>
+            <td>KES ${Number(order.total || 0).toLocaleString()}</td>
             <td><span class="badge">${(order.status || 'pending').toUpperCase()}</span></td>
             <td>
                 <button class="btn btn-blue" onclick="viewReceipt('${order.id}', 'retailer')">Receipt</button>
+                ${order.status !== 'paid' ? 
+                    `<button class="btn btn-green" onclick="markAsPaid('${order.id}')">Disburse</button>` 
+                    : ''}
             </td>
         </tr>`;
-}).join("");
+    }).join("");
 }
 
 async function renderCorporateReceipt(orderId) {
@@ -497,18 +533,17 @@ function renderPayroll() {
 }
 
 function applyReceiptBranding() {
-    const branding = window.db.branding || {};
+    const branding = window.db?.branding || {};
     
-    // Set Company Name & Tagline
+    // Update IDs that exist in your index.html modal
     const nameEl = document.getElementById("receiptCompanyName");
     const tagEl = document.getElementById("receiptTagline");
     const logoImg = document.getElementById("receiptLogo");
     const watermark = document.getElementById("watermarkImg");
 
     if (nameEl) nameEl.innerText = branding.company_name || "SmartsourcingKe";
-    if (tagEl) tagEl.innerText = branding.tagline || "Quality & Excellence";
+    if (tagEl) tagEl.innerText = branding.tagline || "";
 
-    // Set Logo and Watermark
     if (branding.logo_url) {
         if (logoImg) {
             logoImg.src = branding.logo_url;
@@ -516,7 +551,7 @@ function applyReceiptBranding() {
         }
         if (watermark) {
             watermark.src = branding.logo_url;
-            watermark.style.opacity = '0.1'; // Ensure it looks like a watermark
+            watermark.style.opacity = "0.1"; // Ensure it stays as a faint watermark
         }
     }
 }

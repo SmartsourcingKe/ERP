@@ -22,40 +22,14 @@ async function login() {
 }
 
 async function logout() {
-    try {
-        if (typeof cleanupMessaging === "function") cleanupMessaging();
-        
-        const { error } = await supa.auth.signOut();
-        if (error) throw error;
-
-        handleSignedOut();
-        console.log("Logged out successfully");
-    } catch (err) {
-        console.error("Logout failed:", err.message);
-    }
-}
-
-/* ---- Session Handlers ---- */
-
-async function handleSignedIn(session) {
-    if (!session) return;
-    const user = await handleAuthSuccess(session)
-
-    // Force pull the role immediately from Supabase
-    const { data: profile } = await supa
-        .from('users')
-        .select('role, full_name')
-        .eq('id', user.id)
-        .single();
-
-    // Set the global user with the correct role
-    window.currentUser = profile ? { ...user, ...profile } : { ...user, role: 'employee' };
+    await supa.auth.signOut();
+    // CRITICAL: Wipe the local database so the next user starts fresh
+    window.db = {}; 
+    window.cart = [];
+    window.corporateCart = [];
     
-    console.log("Current User Role:", window.currentUser.role);
-
-    await sync(); 
-    showDashboard(); 
-    renderAll();
+    // Force a clean reload to clear memory
+    window.location.reload(); 
 }
 
 function handleSignedOut() {
@@ -96,7 +70,8 @@ function applyPermissions() {
     }
 }
 
-function showScreen('dashboard') {
+// FIXED function name
+function showScreen(screen) {
     document.getElementById("loginPage")?.classList.add("hidden");
     document.getElementById("dashboard")?.classList.remove("hidden");
     

@@ -1,3 +1,29 @@
+function applyBranding() {
+    const b = window.db?.branding;
+    if (!b || Object.keys(b).length === 0) {
+        console.warn("Branding data not available yet");
+        return;
+    }
+
+    console.log("Applying branding:", b); // debug log
+
+    // Apply background if available
+    if (b.background_url) {
+        document.body.style.backgroundImage = `url(${b.background_url})`;
+        document.body.style.backgroundSize = "cover";
+        document.body.style.backgroundPosition = "center";
+    } else {
+        // Reset to default if no background
+        document.body.style.backgroundImage = "";
+    }
+
+    // Update system/company name
+    const nameEl = document.getElementById("systemName");
+    if (nameEl) {
+        nameEl.textContent = b.company_name || "ERP System";
+    }
+}
+
 /**
  * SWITCH TO DASHBOARD VIEW
  */
@@ -47,44 +73,7 @@ function toggleMenu() {
     if (!sidebar) return;
     sidebar.classList.toggle("open");
 }
-
-/**
- * GLOBAL RENDER DISPATCHER
- * Calls all modular render functions safely.
- */
-function renderAll() {
-    // If the database hasn't loaded yet, don't crash, just wait.
-    if (!window.db || Object.keys(window.db).length === 0) {
-        console.warn("Render skipped: window.db is empty.");
-        return;
-    }
-
-    console.log("Refreshing UI components...");
-
-    const renderFunctions = [
-        { name: "Products", fn: typeof renderProducts === "function" ? renderProducts : null },
-        { name: "Retailers", fn: typeof renderRetailers === "function" ? renderRetailers : null },
-        { name: "Orders", fn: typeof renderOrders === "function" ? renderOrders : null },
-        { name: "Schools", fn: typeof renderSchools === "function" ? renderSchools : null },
-        { name: "Corporate", fn: typeof renderCorporate === "function" ? renderCorporate : null },
-        { name: "Employees", fn: typeof renderEmployees === "function" ? renderEmployees : null },
-        { name: "Payroll", fn: typeof renderPayroll === "function" ? renderPayroll : null },
-        { name: "Branding", fn: typeof renderBranding === "function" ? renderBranding : null },
-        { name: "Messages", fn: typeof renderMessages === "function" ? renderMessages : null },
-        { name: "Profit", fn: typeof renderProfit === "function" ? renderProfit : null }
-    ];
-
-    renderFunctions.forEach(task => {
-        if (task.fn) {
-            try {
-                task.fn();
-            } catch (err) {
-                console.error(`Error rendering ${task.name}:`, err);
-            }
-        }
-    });
-}
-
+ 
 // Global exposure for HTML onclick events
 window.openTab = openTab;
 window.showDashboard = showDashboard;

@@ -17,7 +17,7 @@ function addToCart() {
     const companyFee = Number(product.company_fee || 0);
     const totalUnitPrice = basePrice + companyFee;
 
-    const existingItem = window.cart.find(item => item.productId === productId);
+    const existingItem = window.cart.find(item => item.product_id === productId);
     
     if (existingItem) {
         existingItem.qty += qty;
@@ -77,16 +77,16 @@ async function createOrder() {
             // Save item with the combined price
             await supa.from("order_items").insert([{
                 order_id: order.id,
-                product_id: item.productId, // Fixed from item.product_id
+                product_id: item.product_id, // Fixed from item.product_id
                 quantity: item.qty,
                 price_at_sale: item.price // This now includes the fee
             }]);
 
             // Deduct stock
-            const originalProd = window.db.products.find(p => p.id === item.productId);
+            const originalProd = window.db.products.find(p => p.id === item.product_id);
             if (originalProd) {
                 const newStock = (originalProd.stock || 0) - item.qty;
-                await supa.from("products").update({ stock: newStock }).eq("id", item.productId);
+                await supa.from("products").update({ stock: newStock }).eq("id", item.product_id);
             }
         }
 

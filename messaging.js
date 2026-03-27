@@ -6,7 +6,7 @@ async function sendMessage() {
     const input = document.getElementById("messageInput"); // Matches index.html
     const message = input.value.trim();
 
-    if (!message || !window.currentUser) return;
+    if (!message || !window.currentUser?.id) return;
 
     try {
         const { error } = await supa.from("messages").insert([{
@@ -24,18 +24,27 @@ async function sendMessage() {
 }
 
 async function loadInternalMessages() {
-    const chatBox = document.getElementById("messagesContainer"); // Matches index.html
+    const chatBox = document.getElementById("messagesContainer");
     if (!chatBox) return;
 
-    const { data: messages } = await supa.from("messages").select("*").order("created_at", { ascending: true });
+    try {
+        const { data: messages, error } = await supa
+            .from("messages")
+            .select("*")
+            .order("created_at", { ascending: true });
 
-    if (messages) {
+        if (error) throw error;
+
         chatBox.innerHTML = messages.map(msg => `
             <div style="padding: 5px; border-bottom: 1px solid #eee;">
                 <strong>${msg.sender_name}:</strong> ${msg.content}
             </div>
         `).join("");
+
         chatBox.scrollTop = chatBox.scrollHeight;
+
+    } catch (err) {
+        console.error("Load error:", err.message);
     }
 }
 
@@ -55,7 +64,7 @@ async function loadMessages() {
 
         // 2. Render messages to the UI
         chatBox.innerHTML = messages.map(msg => {
-            const isMe = msg.sender_id === window.currentUser.id;
+            const isMe = window.currentUser && msg.sender_id === window.currentUser.id;
             return `
                 <div class="message ${isMe ? 'sent' : 'received'}">
                     <small><strong>${msg.sender_name}</strong></small>

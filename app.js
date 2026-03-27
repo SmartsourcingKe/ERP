@@ -1,6 +1,6 @@
 // Global State
-window.db = {};
-window.currentUser = null;
+window.db = window.db || {};
+window.currentUser = window.currentUser || null;
 window.cart = [];
 window.corporateCart = []; 
 
@@ -32,6 +32,25 @@ async function initApp() {
     }
 }
 
+async function handleSignedIn(user) {
+    const { data, error } = await supa
+        .from("users")
+        .select("*")
+        .eq("email", user.email)
+        .single();
+
+    if (error) {
+        console.error("User fetch error:", error);
+        return;
+    }
+
+    window.currentUser = data; // ✅ ONLY SET ONCE
+    console.log("FINAL USER:", window.currentUser);
+
+    await sync();
+    renderAll();
+}
+
 // Change the parameter name to 'session' and extract the user correctly
 async function handleAuthSuccess(session) {
     if (!session || !session.user) return;
@@ -55,52 +74,11 @@ async function handleAuthSuccess(session) {
         console.log("Logged in as:", profile.role);
     }
 
-    await sync(); // Only sync AFTER we have the role
-    showScreen("dashboardPage");
+if (window._authHandled) return;
+window._authHandled = true;
+
 }
 
-
-async function sync() {
-    if (isSyncing) return;
-    isSyncing = true;
-    console.log("Syncing database...");
-    try {
-        // Fetch ALL tables at once to fill ALL tabs
-        const [prod, ret, ord, corp, sch, usr, msg, brand] = await Promise.all([
-            supa.from('products').select('*'),
-            supa.from('retailers').select('*'),
-            supa.from('orders').select('*'),
-            supa.from('corporate_orders').select('*'),
-            supa.from('schools').select('*'),
-            supa.from('users').select('*'),
-            supa.from('messages').select('*').order('created_at', { ascending: true }), // For Messages tab
-            supa.from('branding').select('*').single() // For Admin tab settings
-        ]);
-
-        // Mapping data to the global window.db object
-        window.db = {
-            products: prod.data || [],
-            retailers: ret.data || [],
-            orders: ord.data || [],
-            corporate_orders: corp.data || [],
-            schools: sch.data || [],
-            users: usr.data || [],
-            messages: msg.data || [], // Missing this was likely breaking your Chat
-            branding: brand.data || {} // Missing this was likely breaking Admin settings
-        };
-        
-        console.log("Sync complete. Data loaded:", window.db);
-        
-        // After data is loaded, you MUST call the renderers
-        if (typeof renderAll === 'function') renderAll(); 
-        
-    } catch (err) {
-        console.error("Sync failed:", err.message);
-    }
-	
-window.db.users = users;
-isSyncing = false;
-}
 
 /**
  * UI NAVIGATION
@@ -123,22 +101,43 @@ function showScreen(sectionId) {
 }
 
 
-supa.auth.onAuthStateChange(async (event, session) => {
-    console.log("AUTH EVENT:", event);
-    
-    if (session && session.user) {
+let authHandled = false;
+
+supa.auth.onAuthStateChanged(async (event, session) => {
+    if (session) {
         window.currentUser = session.user;
-        // Check if handleAuthSuccess exists before calling
-        if (typeof handleAuthSuccess === "function") {
-            await handleAuthSuccess(session); // Pass the whole session
-        }
+        // 1. IMMEDIATELY show the dashboard
+        document.getElementById('loginPage').classList.add('hidden');
+        document.getElementById('mainApp').classList.remove('hidden');
+        
+        // 2. Load data in the background
+        showLoadingSpinner(true); 
+        await sync();
+        showLoadingSpinner(false);
     } else {
-        console.log("No session found, redirecting to login.");
-        // FIX: Instead of calling a missing function, just show the login UI
-        const loginModal = document.getElementById("loginModal");
-        if (loginModal) {
-            loginModal.classList.remove("hidden");
-        }
+        // Show login if no session
+        document.getElementById('loginPage').classList.remove('hidden');
+        document.getElementById('mainApp').classList.add('hidden');
+    }
+});
+
+// Step 2: Set current user from DB
+window.currentUser = {
+    id: user.id,
+    email: user.email,
+    full_name: profile?.full_name || user.email,
+    role: profile?.role || "staff"
+};
+
+console.log("Logged in as:", window.currentUser.role);
+
+        console.log("Logged in as:", window.currentUser.role);
+
+        // Load data ONCE
+        await sync();
+
+        // Show dashboard
+        showDashboard();
     }
 });
 
@@ -163,35 +162,15 @@ async function checkUserSession() {
     }
 }
 
-function openTab(tabId, btn) {
-    // 1. Hide all tab contents
-    const contents = document.querySelectorAll('.tab-content');
-    contents.forEach(content => {
-        content.style.display = 'none';
-    });
-
-    // 2. Show the requested tab
-    const target = document.getElementById(tabId);
-    if (target) {
-        target.style.display = 'block'; // Force it to show
-    }
-
-    // 3. Update button colors
-    const buttons = document.querySelectorAll('.tab-btn');
-    buttons.forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    
-    // 4. If opening messages, load them and clear the badge
-    if (tabId === 'messagesTab') {
-        loadInternalMessages();
-        const badge = document.getElementById('msgBadge');
-        if (badge) badge.classList.add('hidden');
-    }
-}
-
 function viewReceipt(id, type = 'retailer') {
     const modal = document.getElementById("receiptModal");
     if (!modal) return;
+
+    modal.classList.remove("hidden");
+    modal.style.display = 'block';
+
+    // ✅ ADD THIS LINE HERE:
+    if (typeof applyReceiptBranding === 'function') applyReceiptBranding();
 
     modal.classList.remove("hidden");
     modal.style.display = 'block';

@@ -3,68 +3,63 @@
  * Saves company name, tagline, logo, and background to Supabase.
  */
 async function updateBranding() {
-    if (!window.currentUser || window.currentUser.role !== "admin") {
-        return alert("Access Denied: Admin privileges required.");
-    }
+  if (!window.currentUser || window.currentUser.role !== "admin") {
+    return alert("Access Denied: Admin only");
+  }
 
-    // Map these to the IDs in your index.html's Admin Tab
-    const name = document.getElementById("brandingName")?.value;
-    const tagline = document.getElementById("brandingTagline")?.value;
-    const logoFile = document.getElementById("brandingLogo")?.files[0];
-    const bgFile = document.getElementById("brandingBg")?.files[0];
+  const name = document.getElementById("brandingName")?.value;
+  const tagline = document.getElementById("brandingTagline")?.value;
 
-    let logoUrl = window.db.branding?.logo_url || null;
-    let bgUrl = window.db.branding?.background_url || null;
+  let logo_url = null;
+  let background_url = null;
 
-    try {
-        // 1. Upload Logo to Storage if provided
-        if (logoFile) {
-            const fileName = `logo_${Date.now()}.${logoFile.name.split('.').pop()}`;
-            const { error: upErr } = await supa.storage.from("branding").upload(fileName, logoFile);
-            if (upErr) throw upErr;
-            logoUrl = supa.storage.from("branding").getPublicUrl(fileName).data.publicUrl;
-        }
+  const logoFile = document.getElementById("brandingLogo")?.files[0];
+  const bgFile = document.getElementById("brandingBackground")?.files[0];
 
-        // 2. Upload Background to Storage if provided
-        if (bgFile) {
-            const fileName = `bg_${Date.now()}.${bgFile.name.split('.').pop()}`;
-            const { error: upErr } = await supa.storage.from("branding").upload(fileName, bgFile);
-            if (upErr) throw upErr;
-            bgUrl = supa.storage.from("branding").getPublicUrl(fileName).data.publicUrl;
-        }
+  // ✅ Upload logo
+  if (logoFile) {
+    const path = `branding/logo_${Date.now()}_${logoFile.name}`;
+    await supa.storage.from("assets").upload(path, logoFile);
 
-        // 3. Upsert into the branding table
-        const { error: dbErr } = await supa.from("branding").upsert({
-            id: 1, 
-            company_name: name,
-            tagline: tagline,
-            logo_url: logoUrl,
-            background_url: bgUrl,
-            updated_at: new Date()
-        });
+    const { data } = supa.storage.from("assets").getPublicUrl(path);
+    logo_url = data.publicUrl;
+  }
 
-        if (dbErr) throw dbErr;
+  // ✅ Upload background
+  if (bgFile) {
+    const path = `branding/bg_${Date.now()}_${bgFile.name}`;
+    await supa.storage.from("assets").upload(path, bgFile);
 
-        alert("Branding updated successfully!");
-        await sync(); // Refresh global data and UI
-    } catch (err) {
-        console.error("Branding Update Error:", err);
-        alert("Failed to update branding: " + err.message);
-    }
+    const { data } = supa.storage.from("assets").getPublicUrl(path);
+    background_url = data.publicUrl;
+  }
+
+  // ✅ SAVE (NO ID!)
+  const { error } = await supa.from("branding").upsert({
+    company_name: name,
+    tagline,
+    logo_url,
+    background_url
+  });
+
+  if (error) {
+    console.error(error);
+    return alert("Failed to update branding: " + error.message);
+  }
+
+  alert("Branding updated successfully");
+
+  await sync();         // ✅ reload data
+  applyBranding();      // ✅ reapply UI
 }
 
-/**
- * RENDER BRANDING
- * Displays the branding data across the login and dashboard screens.
- */
-/**
- * RENDER BRANDING
- * Synchronizes all branding elements (Login, Dashboard, Receipts, IDs).
- */
 function renderBranding() {
-    // Ensure we handle both array and single object data from Supabase
-    const brand = Array.isArray(window.db.branding) ? window.db.branding[0] : window.db.branding;
-    if (!brand) return;
+    // Handle both array and single object from Supabase
+    const brand = Array.isArray(window.db?.branding) ? window.db.branding[0] : window.db?.branding;
+    if (!brand || Object.keys(brand).length === 0) {
+        console.warn("No branding data available yet");
+        return;
+    }
 
     // 1. Text Branding (Names & Taglines)
     const nameElements = ["companyName", "loginCompanyName", "receiptCompanyName", "idHeaderName"];
@@ -82,29 +77,31 @@ function renderBranding() {
 
     // 2. Logo Branding
     const logoElements = ["companyLogo", "loginLogo", "receiptLogo", "idLogo"];
-    if (brand.logo_url) {
-        logoElements.forEach(id => {
-            const el = document.getElementById(id);
-            if (el) {
-                el.src = brand.logo_url;
-                el.classList.remove("hidden");
-                el.style.display = "block"; // Force display if hidden by CSS
-            }
-        });
+    logoElements.forEach(id => {
+        const el = document.getElementById(id);
+        if (el && brand.logo_url) {
+            el.src = brand.logo_url;
+            el.classList.remove("hidden");
+            el.style.display = "block"; // Ensure visible
+        }
+    });
 
-        // Apply to Receipt Watermark & ID Watermark
-        const watermarkImg = document.getElementById("watermarkImg");
-        const idWatermark = document.getElementById("idWatermark");
-        if (watermarkImg) watermarkImg.src = brand.logo_url;
-        if (idWatermark) idWatermark.src = brand.logo_url;
-    }
+    // Apply to watermark images
+    const watermarkElements = ["watermarkImg", "idWatermark"];
+    watermarkElements.forEach(id => {
+        const el = document.getElementById(id);
+        if (el && brand.logo_url) el.src = brand.logo_url;
+    });
 
     // 3. Background / Page Styling
     if (brand.background_url) {
-        // Apply a light overlay so text stays readable on the dashboard
+        // Light overlay to keep text readable
         document.body.style.backgroundImage = `linear-gradient(rgba(244, 246, 249, 0.9), rgba(244, 246, 249, 0.9)), url('${brand.background_url}')`;
         document.body.style.backgroundSize = "cover";
         document.body.style.backgroundAttachment = "fixed";
+    } else {
+        // Reset if no background defined
+        document.body.style.backgroundImage = "";
     }
 }
 
@@ -112,33 +109,84 @@ function renderBranding() {
  * LOAD BRANDING
  */
 async function loadBranding() {
-    const { data, error } = await supa.from("branding").select("*").maybeSingle();
-    if (error) console.error("Load Branding Error:", error);
-    if (data) {
+    try {
+        const { data, error } = await supa.from("branding").select("*").maybeSingle();
+        if (error) {
+            console.error("Load Branding Error:", error);
+            return;
+        }
+
+        if (!data) {
+            console.warn("No branding data found");
+            return;
+        }
+
         window.db.branding = data;
-        renderBranding();
+
+        // Apply UI branding
+        renderBranding();          // For logos, receipts, backgrounds
+        applyBranding(window.db.branding); // For page title, login background, CSS watermark
+    } catch (err) {
+        console.error("Unexpected error loading branding:", err);
     }
 }
 
 function applyBranding(brand) {
     if (!brand) return;
 
-    // Institution Name & Tagline
+    // Page title
     document.title = brand.company_name || "ERP System";
-    const nameEls = document.querySelectorAll(".institution-name"); // Use a class for all name placeholders
-    nameEls.forEach(el => el.textContent = brand.company_name);
 
-    // Background Image logic
-    if (brand.background_url) {
-        const loginPage = document.getElementById("loginPage");
-        if (loginPage) {
-            loginPage.style.backgroundImage = `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('${brand.background_url}')`;
-            loginPage.style.backgroundSize = "cover";
-        }
+    // Institution names (all elements with this class)
+    document.querySelectorAll(".institution-name").forEach(el => {
+        el.textContent = brand.company_name || "ERP System";
+    });
+
+    // Login page background
+    const loginPage = document.getElementById("loginPage");
+    if (loginPage && brand.background_url) {
+        loginPage.style.backgroundImage = `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('${brand.background_url}')`;
+        loginPage.style.backgroundSize = "cover";
+        loginPage.style.backgroundPosition = "center";
     }
-    
-    // Watermark for Receipts (Update the global CSS variable)
+
+    // App watermark
+    const bgEl = document.getElementById("appBgWatermark");
+    if (bgEl && brand.bg_url) {
+        bgEl.style.backgroundImage = `url('${brand.bg_url}')`;
+        bgEl.style.backgroundSize = "contain";
+        bgEl.style.backgroundRepeat = "no-repeat";
+        bgEl.style.backgroundPosition = "center";
+    }
+
+    // Watermark for receipts via CSS variable
     if (brand.logo_url) {
         document.documentElement.style.setProperty('--brand-logo', `url(${brand.logo_url})`);
     }
 }
+
+function applyReceiptBranding() {
+    const branding = window.db?.branding || {};
+
+    // Safely update company name and tagline
+    const companyEl = document.getElementById("receiptCompanyName");
+    if (companyEl) companyEl.innerText = branding.company_name || "SmartsourcingKe";
+
+    const taglineEl = document.getElementById("receiptTagline");
+    if (taglineEl) taglineEl.innerText = branding.tagline || "";
+
+    // Safely update logo and watermark
+    const logo = document.getElementById("receiptLogo");
+    const watermark = document.getElementById("watermarkImg");
+
+    if (branding.logo_url) {
+        if (logo) logo.src = branding.logo_url;
+        if (watermark) watermark.src = branding.logo_url;
+    } else {
+        // Optional: clear images if logo_url not defined
+        if (logo) logo.src = "";
+        if (watermark) watermark.src = "";
+    }
+}
+
+window.updateBranding = updateBranding;

@@ -170,3 +170,10 @@ async function viewPayslip(id) {
 }
 
 window.viewPayrollReceipt = viewPayrollReceipt;
+
+function viewPayrollReceipt(id) {
+    const record = window.db.payroll.find(p => p.id === id);
+    if (!record) return alert("Payroll record not found");
+
+    alert(`Payroll for ${record.employee_name}\nAmount: ${record.amount}`);
+}
