@@ -133,9 +133,6 @@ console.log("Logged in as:", window.currentUser.role);
 
         console.log("Logged in as:", window.currentUser.role);
 
-        // Load data ONCE
-        await sync();
-
         // Show dashboard
         showDashboard();
     }
