@@ -104,38 +104,56 @@ function showScreen(sectionId) {
 let authHandled = false;
 
 supa.auth.onAuthStateChanged(async (event, session) => {
+    const loginPage = document.getElementById('loginPage');
+    const mainApp = document.getElementById('mainApp');
+
     if (session) {
-        window.currentUser = session.user;
-        // 1. IMMEDIATELY show the dashboard
-        document.getElementById('loginPage').classList.add('hidden');
-        document.getElementById('mainApp').classList.remove('hidden');
-        
-        // 2. Load data in the background
-        showLoadingSpinner(true); 
-        await sync();
-        showLoadingSpinner(false);
+        // 1. Get basic user info immediately
+        const user = session.user;
+
+        try {
+            // 2. Fetch the extra profile data (Role/Full Name) from your 'profiles' table
+            const { data: profile } = await supa
+                .from('profiles')
+                .select('role, full_name')
+                .eq('id', user.id)
+                .single();
+
+            // 3. Set the global user object ONCE
+            window.currentUser = {
+                id: user.id,
+                email: user.email,
+                full_name: profile?.full_name || user.email,
+                role: profile?.role || "staff"
+            };
+
+            console.log("Authenticated as:", window.currentUser.role);
+
+            // 4. UI SWAP: Show the app immediately so it doesn't feel "stuck"
+            if (loginPage) loginPage.classList.add('hidden');
+            if (mainApp) mainApp.classList.remove('hidden');
+
+            // 5. Background Sync: Load products, orders, etc.
+            // We do this AFTER the UI swap so the user sees the dashboard layout first
+            if (typeof showLoadingSpinner === 'function') showLoadingSpinner(true);
+            
+            await sync(); // This fills window.db with your 34 orders, etc.
+            
+            if (typeof showLoadingSpinner === 'function') showLoadingSpinner(false);
+
+        } catch (err) {
+            console.error("Auth Profile Error:", err);
+            // Fallback if profile fetch fails
+            window.currentUser = { id: user.id, email: user.email, role: 'staff' };
+        }
     } else {
-        // Show login if no session
-        document.getElementById('loginPage').classList.remove('hidden');
-        document.getElementById('mainApp').classList.add('hidden');
+        // 6. LOGOUT: Wipe data and show login
+        window.currentUser = null;
+        window.db = {}; 
+        if (loginPage) loginPage.classList.remove('hidden');
+        if (mainApp) mainApp.classList.add('hidden');
     }
 });
-
-// Step 2: Set current user from DB
-window.currentUser = {
-    id: user.id,
-    email: user.email,
-    full_name: profile?.full_name || user.email,
-    role: profile?.role || "staff"
-};
-
-console.log("Logged in as:", window.currentUser.role);
-
-        console.log("Logged in as:", window.currentUser.role);
-
-        // Show dashboard
-        showDashboard();
-}
 
 async function checkUserSession() {
     const { data: { user } } = await supa.auth.getUser();
