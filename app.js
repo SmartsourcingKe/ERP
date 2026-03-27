@@ -135,7 +135,6 @@ console.log("Logged in as:", window.currentUser.role);
 
         // Show dashboard
         showDashboard();
-    }
 });
 
 async function checkUserSession() {
