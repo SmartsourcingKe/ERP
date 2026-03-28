@@ -1,6 +1,11 @@
- console.log("render.js loaded");
+ const DEBUG = false;
+ if (DEBUG) console.log("render.js loaded");
  
 window.renderAll = function () {
+	if (!window.db) {
+    console.warn("⚠️ Data not ready, skipping render");
+    return;
+}
     console.log("Master Render started...");
     
     // ✅ Use a consistent 'branding' variable
@@ -39,15 +44,17 @@ window.renderAll = function () {
     ];
 
     tasks.forEach(task => {
-        if (task.func) {
-            try {
-                task.func();
-                console.log(`Render Success: ${task.name}`);
-            } catch (e) {
-                console.error(`Error in ${task.name}:`, e);
-            }
-        }
-    });
+    if (!task.func) {
+        console.warn(`⚠️ Missing render function: ${task.name}`);
+        return;
+    }
+
+    try {
+        task.func();
+    } catch (e) {
+        console.error(`❌ Render failed: ${task.name}`, e);
+    }
+});
 
     // ✅ 3. APPLY PERMISSIONS
     if (typeof renderPermissions === 'function') {
@@ -555,3 +562,4 @@ function applyReceiptBranding() {
         }
     }
 }
+

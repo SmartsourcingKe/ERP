@@ -107,3 +107,5 @@ async function deleteProduct(id) {
         alert("Delete failed: " + err.message);
     }
 }
+
+window.renderProducts = renderProducts;

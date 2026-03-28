@@ -169,3 +169,5 @@ function printIDCard(userId) {
         document.getElementById("receiptModal").classList.remove("hidden");
     }
 }
+
+window.renderEmployees = renderEmployees;

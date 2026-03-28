@@ -187,3 +187,5 @@ async function markAsPaid(orderId) {
         alert("Failed to update order: " + err.message);
     }
 }
+
+window.renderOrders = renderOrders;

@@ -177,3 +177,10 @@ function viewPayrollReceipt(id) {
 
     alert(`Payroll for ${record.employee_name}\nAmount: ${record.amount}`);
 }
+
+function renderPayroll() {
+    renderPayrollTable();
+}
+
+// make it globally available
+window.renderPayroll = renderPayroll;
