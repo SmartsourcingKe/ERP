@@ -27,6 +27,7 @@ window.renderAll = function () {
 
     if (bg) {
         body.style.backgroundImage = `url('${bg}')`;
+	}
 	if (!window.db) {
     console.warn("⚠️ Data not ready, skipping render");
     return;
@@ -68,6 +69,7 @@ window.renderAll = function () {
         console.error(`❌ Render failed: ${task.name}`, e);
     }
 });
+	
 
     // ✅ 3. APPLY PERMISSIONS
     if (typeof renderPermissions === 'function') {

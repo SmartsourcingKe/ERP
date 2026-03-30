@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ssk-erp-v6';
+const CACHE_NAME = 'ssk-erp-v8';
 
 const ASSETS = [
     '/',

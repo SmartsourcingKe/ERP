@@ -103,23 +103,24 @@ function showScreen(sectionId) {
 
 let authHandled = false;
 
-supa.auth.onAuthStateChanged(async (event, session) => {
+supa.auth.onAuthStateChange(async (event, session) => {
     const loginPage = document.getElementById('loginPage');
     const mainApp = document.getElementById('mainApp');
 
+    console.log("Auth Event Triggered:", event);
+
     if (session) {
-        // 1. Get basic user info immediately
         const user = session.user;
 
         try {
-            // 2. Fetch the extra profile data (Role/Full Name) from your 'profiles' table
-            const { data: profile } = await supa
+            // Fetch profile data
+            const { data: profile, error } = await supa
                 .from('profiles')
                 .select('role, full_name')
                 .eq('id', user.id)
                 .single();
 
-            // 3. Set the global user object ONCE
+            // Set global user
             window.currentUser = {
                 id: user.id,
                 email: user.email,
@@ -129,29 +130,32 @@ supa.auth.onAuthStateChanged(async (event, session) => {
 
             console.log("Authenticated as:", window.currentUser.role);
 
-            // 4. UI SWAP: Show the app immediately so it doesn't feel "stuck"
-            if (loginPage) loginPage.classList.add('hidden');
-            if (mainApp) mainApp.classList.remove('hidden');
+            // UI Swap
+            if (loginPage) loginPage.style.display = 'none';
+            if (mainApp) mainApp.style.display = 'block';
 
-            // 5. Background Sync: Load products, orders, etc.
-            // We do this AFTER the UI swap so the user sees the dashboard layout first
-            if (typeof showLoadingSpinner === 'function') showLoadingSpinner(true);
-            
-            await sync(); // This fills window.db with your 34 orders, etc.
-            
-            if (typeof showLoadingSpinner === 'function') showLoadingSpinner(false);
+            // Start Sync
+            if (typeof sync === 'function') {
+                console.log("Starting background sync...");
+                await sync(); 
+            }
 
         } catch (err) {
             console.error("Auth Profile Error:", err);
-            // Fallback if profile fetch fails
             window.currentUser = { id: user.id, email: user.email, role: 'staff' };
         }
     } else {
-        // 6. LOGOUT: Wipe data and show login
+        // Handle Logout
         window.currentUser = null;
         window.db = {}; 
-        if (loginPage) loginPage.classList.remove('hidden');
-        if (mainApp) mainApp.classList.add('hidden');
+        if (loginPage) {
+            loginPage.style.display = 'block';
+            loginPage.classList.remove('hidden');
+        }
+        if (mainApp) {
+            mainApp.style.display = 'none';
+            mainApp.classList.add('hidden');
+        }
     }
 });
 
