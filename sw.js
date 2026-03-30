@@ -1,7 +1,7 @@
 const CACHE_NAME = 'ssk-erp-v8';
 
 const ASSETS = [
-    '/',
+    './',
     'index.html',
     'manifest.json',
     'logo.png',
