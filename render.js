@@ -3,16 +3,22 @@
  
 window.renderAll = function () {
     console.log("Master Render started...");
-    
-    // ✅ Use 'b' consistently
-    const b = window.db?.branding || {};
 
+    // 1. DATA CHECK
+    if (!window.db) {
+        console.warn("⚠️ Data not ready, skipping render");
+        return;
+    }
+
+    // 2. APPLY GLOBAL BRANDING
+    // Use 'b' as the shorthand for branding data
+    const b = window.db.branding || {};
     const logo = document.getElementById("companyLogo");
     const name = document.getElementById("companyName");
     const tagline = document.getElementById("companyTagline");
 
+    // Handle Logo
     if (logo) {
-        // CHANGE: 'branding.logo_url' to 'b.logo_url'
         if (b.logo_url) {
             logo.src = b.logo_url;
             logo.classList.remove("hidden");
@@ -21,28 +27,16 @@ window.renderAll = function () {
         }
     }
 
-    // CHANGE: 'branding.bg_url' to 'b.bg_url'
-    const bg = b.bg_url;
-    const body = document.body;
-
-    if (bg) {
-        body.style.backgroundImage = `url('${bg}')`;
-	}
-	if (!window.db) {
-    console.warn("⚠️ Data not ready, skipping render");
-    return;
-}
-    console.log("Master Render started...");
-    
-    // ✅ Apply background to the body using the correct key (background_url)
-    if (branding.background_url) {
-        document.body.style.backgroundImage = `url('${branding.background_url}')`;
+    // Handle Background (Using the correct key from your DB)
+    const backgroundUrl = b.background_url || b.bg_url; 
+    if (backgroundUrl) {
+        document.body.style.backgroundImage = `url('${backgroundUrl}')`;
         document.body.style.backgroundSize = "cover";
         document.body.style.backgroundAttachment = "fixed";
         document.body.style.backgroundPosition = "center";
     }
 
-    // ✅ 2. DEFINE AND RUN TASKS
+    // 3. DEFINE AND RUN TASKS
     const tasks = [
         { name: 'Employees', func: typeof renderEmployees === 'function' ? renderEmployees : null },
         { name: 'Products', func: typeof renderProducts === 'function' ? renderProducts : null },
@@ -58,23 +52,23 @@ window.renderAll = function () {
     ];
 
     tasks.forEach(task => {
-    if (!task.func) {
-        console.warn(`⚠️ Missing render function: ${task.name}`);
-        return;
-    }
+        if (!task.func) {
+            console.warn(`⚠️ Missing render function: ${task.name}`);
+            return;
+        }
+        try {
+            task.func();
+        } catch (e) {
+            console.error(`❌ Render failed: ${task.name}`, e);
+        }
+    });
 
-    try {
-        task.func();
-    } catch (e) {
-        console.error(`❌ Render failed: ${task.name}`, e);
-    }
-});
-	
-
-    // ✅ 3. APPLY PERMISSIONS
+    // 4. APPLY PERMISSIONS
     if (typeof renderPermissions === 'function') {
         renderPermissions();
     }
+    
+    console.log("Render cycle complete.");
 };
 
 /**
