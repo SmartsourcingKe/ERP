@@ -1,6 +1,5 @@
-const CACHE_NAME = 'ssk-erp-v4'; // Increment this version number whenever you update your JS files
+const CACHE_NAME = 'ssk-erp-v6';
 
-// 1. List EVERY local file from your index.html plus the manifest and icon
 const ASSETS = [
     '/',
     '/index.html',

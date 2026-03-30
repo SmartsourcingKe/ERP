@@ -2,24 +2,37 @@
  if (DEBUG) console.log("render.js loaded");
  
 window.renderAll = function () {
+    console.log("Master Render started...");
+    
+    // ✅ Use 'b' consistently
+    const b = window.db?.branding || {};
+
+    const logo = document.getElementById("companyLogo");
+    const name = document.getElementById("companyName");
+    const tagline = document.getElementById("companyTagline");
+
+    if (logo) {
+        // CHANGE: 'branding.logo_url' to 'b.logo_url'
+        if (b.logo_url) {
+            logo.src = b.logo_url;
+            logo.classList.remove("hidden");
+        } else {
+            logo.classList.add("hidden");
+        }
+    }
+
+    // CHANGE: 'branding.bg_url' to 'b.bg_url'
+    const bg = b.bg_url;
+    const body = document.body;
+
+    if (bg) {
+        body.style.backgroundImage = `url('${bg}')`;
 	if (!window.db) {
     console.warn("⚠️ Data not ready, skipping render");
     return;
 }
     console.log("Master Render started...");
     
-    // ✅ Use a consistent 'branding' variable
-    const branding = window.db?.branding || {};
-
-    const logo = document.getElementById("companyLogo");
-    const name = document.getElementById("companyName");
-    const tagline = document.getElementById("companyTagline");
-
-    if (logo && branding.logo_url) {
-        logo.src = branding.logo_url;
-        logo.classList.remove("hidden");
-    }
-
     // ✅ Apply background to the body using the correct key (background_url)
     if (branding.background_url) {
         document.body.style.backgroundImage = `url('${branding.background_url}')`;

@@ -215,26 +215,37 @@ if ('serviceWorker' in navigator) {
     });
 }
 
+// At the very bottom of app.js
 let deferredPrompt;
 
+// 1. Detect iOS to show specific instructions
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+if (isIOS) {
+    const iosText = document.getElementById('iosInstructions');
+    const installBtn = document.getElementById('installBtn');
+    if (iosText) iosText.style.display = 'block';
+    if (installBtn) installBtn.style.display = 'none'; // iOS button doesn't work, instructions are needed
+}
+
+// 2. Android/Chrome logic
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
-    // This matches your new HTML ID exactly
     const banner = document.getElementById('installBanner');
-    if (banner) banner.classList.remove('hidden');
+    if (banner) banner.classList.remove('hidden'); // Show button only if browser is ready
 });
 
-// Use the ID from your HTML: "installBtn"
 const mainInstallBtn = document.getElementById('installBtn');
 if (mainInstallBtn) {
     mainInstallBtn.addEventListener('click', async () => {
-        if (!deferredPrompt) return;
+        if (!deferredPrompt) {
+            alert("To install, tap the 3 dots (top right) in Chrome and select 'Install App'.");
+            return;
+        }
         deferredPrompt.prompt();
         const { outcome } = await deferredPrompt.userChoice;
         if (outcome === 'accepted') {
-            const banner = document.getElementById('installBanner');
-            if (banner) banner.classList.add('hidden');
+            document.getElementById('installBanner').classList.add('hidden');
         }
         deferredPrompt = null;
     });
