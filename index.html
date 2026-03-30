@@ -1,11 +1,33 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="icon" href="logo.png">
+    <link rel="manifest" href="manifest.json">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+	<link rel="icon" href="logo.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmartsourcingKe ERP</title>
     <style>
+	@media (max-width: 600px) {
+    body { padding: 10px; }
+    .tab-menu { 
+        overflow-x: auto; /* Let tabs scroll horizontally if they don't fit */
+        white-space: nowrap;
+        display: block; 
+    }
+    .tab-btn { 
+        display: inline-block; 
+        padding: 12px 20px; 
+        margin-bottom: 5px;
+    }
+    input, select, button { 
+        font-size: 16px !important; /* Prevents iOS from zooming in on focus */
+        padding: 12px !important; 
+    }
+    table { font-size: 12px; } /* Shrink tables for small screens */
+}
         :root { --primary:#1f2d3d; --green:#27ae60; --blue:#3498db; --red:#e74c3c; --bg:#f4f6f9; }
         body { font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin:0; padding:20px; background:var(--bg); }
         .hidden { display:none !important; }
@@ -153,6 +175,10 @@
 </div>
 <div id="appBgWatermark"></div>
 <div id="loginPage" class="container login-container">
+<div id="installBanner" class="hidden" style="background: #1f2d3d; color: white; padding: 15px; text-align: center; border-radius: 8px; margin-bottom: 20px;">
+    <p style="margin: 0 0 10px 0;">Access SmartsourcingKe faster by installing the app!</p>
+    <button id="installBtn" class="btn btn-green">Install ERP App</button>
+</div>
     <img id="loginLogo" src="" class="brand-logo hidden" style="max-height: 80px; margin-bottom: 15px;">
     <h2 id="loginCompanyName">SmartsourcingKe ERP</h2>
     <p id="loginTagline" style="font-style: italic; color: #666; margin-bottom: 20px;"></p>
