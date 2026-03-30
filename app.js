@@ -214,3 +214,21 @@ if ('serviceWorker' in navigator) {
             .catch((err) => console.log('Service Worker Failed', err));
     });
 }
+
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+    // Prevent the browser from showing the mini-infobar
+    e.preventDefault();
+    // Save the event
+    deferredPrompt = e;
+    // Show the button
+    const banner = document.getElementById('installBanner');
+    if (banner) banner.classList.remove('hidden');
+});
+
+document.getElementById('installBtn')?.addEventListener('click', () => {
+    if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt = null;
+    }
+});
