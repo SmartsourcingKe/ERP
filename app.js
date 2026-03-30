@@ -216,19 +216,26 @@ if ('serviceWorker' in navigator) {
 }
 
 let deferredPrompt;
+
 window.addEventListener('beforeinstallprompt', (e) => {
-    // Prevent the browser from showing the mini-infobar
     e.preventDefault();
-    // Save the event
     deferredPrompt = e;
-    // Show the button
+    // This matches your new HTML ID exactly
     const banner = document.getElementById('installBanner');
     if (banner) banner.classList.remove('hidden');
 });
 
-document.getElementById('installBtn')?.addEventListener('click', () => {
-    if (deferredPrompt) {
+// Use the ID from your HTML: "installBtn"
+const mainInstallBtn = document.getElementById('installBtn');
+if (mainInstallBtn) {
+    mainInstallBtn.addEventListener('click', async () => {
+        if (!deferredPrompt) return;
         deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+            const banner = document.getElementById('installBanner');
+            if (banner) banner.classList.add('hidden');
+        }
         deferredPrompt = null;
-    }
-});
+    });
+}
