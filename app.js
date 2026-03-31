@@ -232,24 +232,24 @@ if (isIOS) {
 }
 
 // 2. Android/Chrome logic
-window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
+window.addEventListener('appinstalled', () => {
+    console.log('PWA was installed');
     const banner = document.getElementById('installBanner');
-    if (banner) banner.classList.remove('hidden'); // Show button only if browser is ready
+    if (banner) banner.classList.add('hidden');
+    deferredPrompt = null;
 });
 
-const mainInstallBtn = document.getElementById('installBtn');
 if (mainInstallBtn) {
     mainInstallBtn.addEventListener('click', async () => {
-        if (!deferredPrompt) {
-            alert("To install, tap the 3 dots (top right) in Chrome and select 'Install App'.");
-            return;
-        }
+        if (!deferredPrompt) return;
+        
         deferredPrompt.prompt();
         const { outcome } = await deferredPrompt.userChoice;
+        
         if (outcome === 'accepted') {
-            document.getElementById('installBanner').classList.add('hidden');
+            console.log('User accepted the install prompt');
+            const banner = document.getElementById('installBanner');
+            if (banner) banner.classList.add('hidden'); // Hide immediately
         }
         deferredPrompt = null;
     });

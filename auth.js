@@ -14,24 +14,27 @@ async function login() {
             throw error;
         }
 		
-        const { data: profile, error: profileError } = await supa
-            .from('users')
-            .select('role, full_name, pic')
-            .eq('id', data.user.id)
-            .single();
+       // Replace the profile fetch section in auth.js
+const { data: profile, error: profileError } = await supa
+    .from('users')
+    .select('role, full_name, pic')
+    .eq('id', data.user.id)
+    .single();
 
-        if (profileError) {
-            console.error("Profile sync error:", profileError);
-            // Fallback: If profile fetch fails, default to staff to prevent lockout
-            window.currentUser = { 
-                ...data.user, 
-                role: 'staff', 
-                full_name: data.user.email.split('@')[0] 
-            };
-        } else {
-            // Success: Merge auth data with database profile
-            window.currentUser = { ...data.user, ...profile };
-        }
+if (profileError) {
+    console.error("Database profile fetch failed, checking metadata...", profileError);
+    
+    // Check if the role exists in the Auth Metadata (Step 4 of the SQL above)
+    const metaRole = data.user.user_metadata?.role;
+    
+    window.currentUser = { 
+        ...data.user, 
+        role: metaRole || 'staff', // Use metadata role if DB fails
+        full_name: data.user.user_metadata?.full_name || data.user.email.split('@')[0]
+    };
+} else {
+    window.currentUser = { ...data.user, ...profile };
+}
 
         console.log("Logged in as:", window.currentUser.role);
 
