@@ -7,67 +7,57 @@ async function updateBranding() {
     return alert("Access Denied: Admin only");
   }
 
-  const name = document.getElementById("brandingName")?.value;
-  const tagline = document.getElementById("brandingTagline")?.value;
+  // FIXED: Changed IDs to match index.html
+  const name = document.getElementById("brandCompanyName")?.value;
+  const tagline = document.getElementById("brandTagline")?.value;
 
-  let logo_url = null;
-  let background_url = null;
+  let logo_url = window.db.branding?.logo_url || null;
+  let background_url = window.db.branding?.background_url || null;
 
-  const logoFile = document.getElementById("brandingLogo")?.files[0];
-  const bgFile = document.getElementById("brandingBackground")?.files[0];
+  // FIXED: Changed IDs to match index.html
+  const logoFile = document.getElementById("brandLogoFile")?.files[0];
+  const bgFile = document.getElementById("brandBgFile")?.files[0];
 
-  // ✅ Upload logo
   if (logoFile) {
-    const path = `branding/logo_${Date.now()}_${logoFile.name}`;
+    const path = `branding/logo_${Date.now()}`;
     await supa.storage.from("assets").upload(path, logoFile);
-
     const { data } = supa.storage.from("assets").getPublicUrl(path);
     logo_url = data.publicUrl;
   }
 
-  // ✅ Upload background
   if (bgFile) {
-    const path = `branding/bg_${Date.now()}_${bgFile.name}`;
+    const path = `branding/bg_${Date.now()}`;
     await supa.storage.from("assets").upload(path, bgFile);
-
     const { data } = supa.storage.from("assets").getPublicUrl(path);
     background_url = data.publicUrl;
   }
 
-  // ✅ SAVE (NO ID!)
+  // ✅ SAVE with ID 1 to ensure it always updates the same record
   const { error } = await supa.from("branding").upsert({
+    id: 1, 
     company_name: name,
     tagline,
     logo_url,
     background_url
   });
 
-  if (error) {
-    console.error(error);
-    return alert("Failed to update branding: " + error.message);
-  }
-
+  if (error) return alert("Error: " + error.message);
+  
   alert("Branding updated successfully");
-
-  await sync();         // ✅ reload data
-  applyBranding();      // ✅ reapply UI
+  location.reload(); // Simplest way to re-sync all UI elements
 }
 
 function renderBranding() {
-    // Handle both array and single object from Supabase
-    const brand = Array.isArray(window.db?.branding) ? window.db.branding[0] : window.db?.branding;
-    if (!brand || Object.keys(brand).length === 0) {
-        console.warn("No branding data available yet");
-        return;
-    }
+    const brand = window.db?.branding;
+    if (!brand) return;
 
-    // 1. Text Branding (Names & Taglines)
-    const nameElements = ["companyName", "loginCompanyName", "receiptCompanyName", "idHeaderName"];
+    // 1. Update all Text Elements (Added loginTitle)
+    const nameElements = ["companyName", "loginCompanyName", "receiptCompanyName", "idHeaderName", "loginTitle"];
     const taglineElements = ["companyTagline", "loginTagline", "receiptTagline"];
 
     nameElements.forEach(id => {
         const el = document.getElementById(id);
-        if (el) el.textContent = brand.company_name || "SmartsourcingKe ERP";
+        if (el) el.textContent = brand.company_name || "SmartsourcingKe";
     });
 
     taglineElements.forEach(id => {
@@ -75,33 +65,21 @@ function renderBranding() {
         if (el) el.textContent = brand.tagline || "";
     });
 
-    // 2. Logo Branding
-    const logoElements = ["companyLogo", "loginLogo", "receiptLogo", "idLogo"];
-    logoElements.forEach(id => {
+    // 2. Update Logos & Watermarks
+    const logos = ["companyLogo", "loginLogo", "receiptLogo", "idLogo", "watermarkImg", "idWatermark"];
+    logos.forEach(id => {
         const el = document.getElementById(id);
         if (el && brand.logo_url) {
             el.src = brand.logo_url;
             el.classList.remove("hidden");
-            el.style.display = "block"; // Ensure visible
         }
     });
 
-    // Apply to watermark images
-    const watermarkElements = ["watermarkImg", "idWatermark"];
-    watermarkElements.forEach(id => {
-        const el = document.getElementById(id);
-        if (el && brand.logo_url) el.src = brand.logo_url;
-    });
-
-    // 3. Background / Page Styling
+    // 3. Background styling
     if (brand.background_url) {
-        // Light overlay to keep text readable
         document.body.style.backgroundImage = `linear-gradient(rgba(244, 246, 249, 0.9), rgba(244, 246, 249, 0.9)), url('${brand.background_url}')`;
         document.body.style.backgroundSize = "cover";
         document.body.style.backgroundAttachment = "fixed";
-    } else {
-        // Reset if no background defined
-        document.body.style.backgroundImage = "";
     }
 }
 

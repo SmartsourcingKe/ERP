@@ -5,44 +5,33 @@ async function login() {
 
     try {
         const { data, error } = await supa.auth.signInWithPassword({ email, password });
-        
-        if (error) {
-            // Check if it's a network error specifically
-            if (error.message.includes("fetch")) {
-                throw new Error("Network connection lost. Please check your internet or switch to a different network.");
-            }
-            throw error;
-        }
-		
-       // Replace the profile fetch section in auth.js
-const { data: profile, error: profileError } = await supa
-    .from('users')
-    .select('role, full_name, pic')
-    .eq('id', data.user.id)
-    .single();
+        if (error) throw error;
 
-if (profileError) {
-    console.error("Database profile fetch failed, checking metadata...", profileError);
-    
-    // Check if the role exists in the Auth Metadata (Step 4 of the SQL above)
-    const metaRole = data.user.user_metadata?.role;
-    
-    window.currentUser = { 
-        ...data.user, 
-        role: metaRole || 'staff', // Use metadata role if DB fails
-        full_name: data.user.user_metadata?.full_name || data.user.email.split('@')[0]
-    };
-} else {
-    window.currentUser = { ...data.user, ...profile };
-}
+        // 1. Check Auth Metadata FIRST (This avoids the recursion crash)
+        const metaRole = data.user.user_metadata?.role;
+        const metaName = data.user.user_metadata?.full_name;
+
+        // 2. Try to fetch from DB, but handle failure gracefully
+        const { data: profile, error: profileError } = await supa
+            .from('users')
+            .select('role, full_name, pic')
+            .eq('id', data.user.id)
+            .single();
+
+        if (profileError) {
+            console.warn("Database error (recursion), using Auth Metadata instead.");
+            window.currentUser = { 
+                ...data.user, 
+                role: metaRole || 'staff', 
+                full_name: metaName || data.user.email.split('@')[0] 
+            };
+        } else {
+            window.currentUser = { ...data.user, ...profile };
+        }
 
         console.log("Logged in as:", window.currentUser.role);
-
-        // 3. Initialize the Dashboard
-        await sync();           // Pull all latest data (orders, products, etc.)
-        showDashboard();        // Toggle UI visibility
-        renderAll();            // Draw all tables and charts
-        renderPermissions();    // Hide/Show tabs based on the 'role'
+        await sync();
+        showScreen('dashboardPage');
 
     } catch (err) {
         console.error("Login Error:", err);

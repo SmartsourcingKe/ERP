@@ -219,38 +219,35 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-// At the very bottom of app.js
 let deferredPrompt;
 
-// 1. Detect iOS to show specific instructions
-const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-if (isIOS) {
-    const iosText = document.getElementById('iosInstructions');
-    const installBtn = document.getElementById('installBtn');
-    if (iosText) iosText.style.display = 'block';
-    if (installBtn) installBtn.style.display = 'none'; // iOS button doesn't work, instructions are needed
-}
-
-// 2. Android/Chrome logic
-window.addEventListener('appinstalled', () => {
-    console.log('PWA was installed');
+// 1. Setup the button reference inside a function or check for existence
+const setupInstallLogic = () => {
+    const mainInstallBtn = document.getElementById('installBtn');
     const banner = document.getElementById('installBanner');
-    if (banner) banner.classList.add('hidden');
-    deferredPrompt = null;
-});
 
-if (mainInstallBtn) {
-    mainInstallBtn.addEventListener('click', async () => {
-        if (!deferredPrompt) return;
-        
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        
-        if (outcome === 'accepted') {
-            console.log('User accepted the install prompt');
-            const banner = document.getElementById('installBanner');
-            if (banner) banner.classList.add('hidden'); // Hide immediately
-        }
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        if (banner) banner.classList.remove('hidden');
+    });
+
+    if (mainInstallBtn) {
+        mainInstallBtn.addEventListener('click', async () => {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') {
+                if (banner) banner.classList.add('hidden');
+            }
+            deferredPrompt = null;
+        });
+    }
+
+    window.addEventListener('appinstalled', () => {
+        if (banner) banner.classList.add('hidden');
         deferredPrompt = null;
     });
-}
+};
+
+setupInstallLogic();
