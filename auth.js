@@ -3,15 +3,17 @@ async function login() {
     const email = document.getElementById("loginEmail").value.trim();
     const password = document.getElementById("loginPassword").value;
 
-    if (!email || !password) return alert("Please enter email and password.");
-
     try {
-        // 1. Authenticate with Supabase Auth
         const { data, error } = await supa.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-
-        // 2. Fetch the Extended Profile (Role & Name)
-        // We query the 'users' table which is the source of truth
+        
+        if (error) {
+            // Check if it's a network error specifically
+            if (error.message.includes("fetch")) {
+                throw new Error("Network connection lost. Please check your internet or switch to a different network.");
+            }
+            throw error;
+        }
+		
         const { data: profile, error: profileError } = await supa
             .from('users')
             .select('role, full_name, pic')
@@ -41,7 +43,7 @@ async function login() {
 
     } catch (err) {
         console.error("Login Error:", err);
-        alert("Login failed: " + err.message);
+        alert(err.message);
     }
 }
 
