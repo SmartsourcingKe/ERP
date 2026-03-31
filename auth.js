@@ -1,22 +1,46 @@
-/* ---- Authentication Logic ---- */
 
 async function login() {
     const email = document.getElementById("loginEmail").value.trim();
     const password = document.getElementById("loginPassword").value;
 
+    if (!email || !password) return alert("Please enter email and password.");
+
     try {
+        // 1. Authenticate with Supabase Auth
         const { data, error } = await supa.auth.signInWithPassword({ email, password });
         if (error) throw error;
 
-        // FETCH ROLE: This ensures the system knows you are an admin
-        const { data: profile } = await supa.from('users').select('role, full_name').eq('id', data.user.id).single();
-        window.currentUser = { ...data.user, ...profile };
+        // 2. Fetch the Extended Profile (Role & Name)
+        // We query the 'users' table which is the source of truth
+        const { data: profile, error: profileError } = await supa
+            .from('users')
+            .select('role, full_name, pic')
+            .eq('id', data.user.id)
+            .single();
 
-        await sync();
-        showDashboard();
-        renderAll();
-        renderPermissions(); // Explicitly call this to show admin tabs
+        if (profileError) {
+            console.error("Profile sync error:", profileError);
+            // Fallback: If profile fetch fails, default to staff to prevent lockout
+            window.currentUser = { 
+                ...data.user, 
+                role: 'staff', 
+                full_name: data.user.email.split('@')[0] 
+            };
+        } else {
+            // Success: Merge auth data with database profile
+            window.currentUser = { ...data.user, ...profile };
+        }
+
+        console.log("Logged in as:", window.currentUser.role);
+
+        // 3. Initialize the Dashboard
+        await sync();           // Pull all latest data (orders, products, etc.)
+        showDashboard();        // Toggle UI visibility
+        renderAll();            // Draw all tables and charts
+        renderPermissions();    // Hide/Show tabs based on the 'role'
+
     } catch (err) {
+        console.error("Login Error:", err);
         alert("Login failed: " + err.message);
     }
 }
