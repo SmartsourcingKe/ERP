@@ -11,23 +11,23 @@ async function login() {
         const metaRole = data.user.user_metadata?.role; 
 
         // Try to get the profile, but don't let a 500 error break the role
-        const { data: profile, error: profileError } = await supa
-            .from('users')
-            .select('role, full_name')
-            .eq('id', data.user.id)
-            .single();
+const { data: profile, error: profileError } = await supa
+    .from('users')
+    .select('role, full_name')
+    .eq('id', data.user.id)
+    .single();
 
-        if (profileError) {
-            // If DB crashes, we trust the Metadata Role. 
-            // If MetaRole is 'admin', they stay admin. If it's empty, they are 'staff'.
-            window.currentUser = { 
-                ...data.user, 
-                role: metaRole || 'staff', 
-                full_name: data.user.user_metadata?.full_name || "User"
-            };
-        } else {
-            window.currentUser = { ...data.user, ...profile };
-        }
+if (profileError) {
+    // If the DB crashes, check the Metadata 'Stamp' we created in SQL
+    const metaRole = data.user.user_metadata?.role;
+    window.currentUser = { 
+        ...data.user, 
+        role: metaRole || 'staff', 
+        full_name: data.user.user_metadata?.full_name || "Admin"
+    };
+} else {
+    window.currentUser = { ...data.user, ...profile };
+}
 
         // Final Safety Check: If they are NOT admin, UI will hide tabs automatically in render()
         await sync();

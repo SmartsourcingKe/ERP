@@ -5,13 +5,13 @@
 async function sync() {
     try {
         // Example: load branding from Supabase
-        const { data: brandingData, error } = await supa.from("branding").select("*").single();
-        if (error) throw error;
-        window.branding = brandingData;  // Make it globally accessible
-    if (!window.supa) {
-        console.error("Sync aborted: Supabase client not initialized.");
-        return;
-    }
+        // Inside sync() function in sync.js
+const { data: brandingData, error: bError } = await supa.from("branding").select("*").single();
+
+if (!bError) {
+    window.db.branding = brandingData; // Store it in window.db to match render.js
+    window.branding = brandingData;    // Keep this for backward compatibility
+}
 
     if (!window.db) {
         window.db = {};
