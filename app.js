@@ -115,7 +115,7 @@ supa.auth.onAuthStateChange(async (event, session) => {
         try {
             // Fetch profile data
             const { data: profile, error } = await supa
-                .from('profiles')
+                .from('users')
                 .select('role, full_name')
                 .eq('id', user.id)
                 .single();

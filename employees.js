@@ -13,17 +13,18 @@ async function addEmployee() {
     if (!email || !password || !fullName) return alert("Please fill in all fields.");
 
     try {
-        // 1. Create the Auth Account
-        const { data: authData, error: authError } = await supa.auth.signUp({ 
-            email, 
-            password,
-            options: {
-                data: {
-                    full_name: fullName,
-                    role: role
-                }
-            }
-        });
+       
+const { data: authData, error: authError } = await supa.auth.signUp({ 
+    email, 
+    password,
+    options: {
+        
+        data: {
+            full_name: fullName,
+            role: role 
+        }
+    }
+});
 
         if (authError) throw authError;
         const newUserId = authData.user.id;
@@ -101,6 +102,9 @@ function renderEmployees() {
             <td>${user.phone || '-'}</td>
             <td>
                 <button class="btn btn-blue" onclick="editUser('${user.id}')">Edit</button>
+				<button class="btn" style="background: #f39c12; color: white;" onclick="resetEmployeePassword('${user.id}')">
+					Reset Password
+				</button>
                 ${user.role !== 'admin' ? `<button class="btn btn-red" onclick="deleteUser('${user.id}')">Remove</button>` : ''}
             </td>
         </tr>
@@ -161,26 +165,27 @@ function printIDCard(userId) {
     }
 }
 
+
 async function resetEmployeePassword(userId) {
-    const newPassword = prompt("Enter new password for this employee:");
-    if (!newPassword || newPassword.length < 6) {
-        return alert("Password must be at least 6 characters.");
-    }
+    const newPassword = prompt("Enter new password (min 6 characters):");
+    if (!newPassword || newPassword.length < 6) return alert("Invalid password.");
 
     try {
-        // We use the Supabase Admin API logic via a simple update
-        // Note: In some Supabase setups, you may need a specialized Edge Function 
-        // if your RLS doesn't allow direct auth updates from the client.
-        const { error } = await supa.auth.updateUser({
-            password: newPassword
-        });
+        // This uses the Supabase Admin API
+        // Note: This requires the 'Service Role' key or an Edge Function
+        // for full administrative control.
+        const { data, error } = await supa.auth.admin.updateUserById(
+            userId,
+            { password: newPassword }
+        );
 
         if (error) throw error;
-        alert("Password updated successfully! Please note: This updates the CURRENTLY LOGGED IN user's password if not using an admin service role. For a true 'Admin Reset,' ensure your Supabase Edge Functions are configured.");
-
+        alert("Password updated successfully! ✅");
     } catch (err) {
         console.error(err);
-        alert("Reset failed: " + err.message);
+        alert("Reset failed: " + err.message + "\n\nNote: Admin resets usually require Service Role keys. If this fails, the user can use the 'Forgot Password' flow.");
     }
 }
+
+window.resetEmployeePassword = resetEmployeePassword;
 window.renderEmployees = renderEmployees;
