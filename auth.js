@@ -7,35 +7,34 @@ async function login() {
         const { data, error } = await supa.auth.signInWithPassword({ email, password });
         if (error) throw error;
 
-        // 1. Check Auth Metadata FIRST (This avoids the recursion crash)
-        const metaRole = data.user.user_metadata?.role;
-        const metaName = data.user.user_metadata?.full_name;
+        // Check the 'Stamp' we just put in the SQL
+        const metaRole = data.user.user_metadata?.role; 
 
-        // 2. Try to fetch from DB, but handle failure gracefully
+        // Try to get the profile, but don't let a 500 error break the role
         const { data: profile, error: profileError } = await supa
             .from('users')
-            .select('role, full_name, pic')
+            .select('role, full_name')
             .eq('id', data.user.id)
             .single();
 
         if (profileError) {
-            console.warn("Database error (recursion), using Auth Metadata instead.");
+            // If DB crashes, we trust the Metadata Role. 
+            // If MetaRole is 'admin', they stay admin. If it's empty, they are 'staff'.
             window.currentUser = { 
                 ...data.user, 
                 role: metaRole || 'staff', 
-                full_name: metaName || data.user.email.split('@')[0] 
+                full_name: data.user.user_metadata?.full_name || "User"
             };
         } else {
             window.currentUser = { ...data.user, ...profile };
         }
 
-        console.log("Logged in as:", window.currentUser.role);
+        // Final Safety Check: If they are NOT admin, UI will hide tabs automatically in render()
         await sync();
         showScreen('dashboardPage');
 
     } catch (err) {
-        console.error("Login Error:", err);
-        alert(err.message);
+        alert("Login failed: " + err.message);
     }
 }
 
