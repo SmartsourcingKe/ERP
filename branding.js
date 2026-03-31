@@ -7,44 +7,51 @@ async function updateBranding() {
     return alert("Access Denied: Admin only");
   }
 
-  // FIXED: Changed IDs to match index.html
+  // Matches IDs in index.html line 435-436
   const name = document.getElementById("brandCompanyName")?.value;
   const tagline = document.getElementById("brandTagline")?.value;
 
-  let logo_url = window.db.branding?.logo_url || null;
-  let background_url = window.db.branding?.background_url || null;
+  let logo_url = window.db?.branding?.logo_url || null;
+  let background_url = window.db?.branding?.background_url || null;
 
-  // FIXED: Changed IDs to match index.html
+  // Matches IDs in index.html line 439 & 443
   const logoFile = document.getElementById("brandLogoFile")?.files[0];
   const bgFile = document.getElementById("brandBgFile")?.files[0];
 
   if (logoFile) {
     const path = `branding/logo_${Date.now()}`;
-    await supa.storage.from("assets").upload(path, logoFile);
-    const { data } = supa.storage.from("assets").getPublicUrl(path);
-    logo_url = data.publicUrl;
+    const { data: upData, error: upErr } = await supa.storage.from("assets").upload(path, logoFile);
+    if (!upErr) {
+        const { data } = supa.storage.from("assets").getPublicUrl(path);
+        logo_url = data.publicUrl;
+    }
   }
 
   if (bgFile) {
     const path = `branding/bg_${Date.now()}`;
-    await supa.storage.from("assets").upload(path, bgFile);
-    const { data } = supa.storage.from("assets").getPublicUrl(path);
-    background_url = data.publicUrl;
+    const { data: upData, error: upErr } = await supa.storage.from("assets").upload(path, bgFile);
+    if (!upErr) {
+        const { data } = supa.storage.from("assets").getPublicUrl(path);
+        background_url = data.publicUrl;
+    }
   }
 
-  // ✅ SAVE with ID 1 to ensure it always updates the same record
+  // ✅ Use id: 1 to ensure only one row exists
   const { error } = await supa.from("branding").upsert({
     id: 1, 
     company_name: name,
-    tagline,
-    logo_url,
-    background_url
+    tagline: tagline,
+    logo_url: logo_url,
+    background_url: background_url
   });
 
-  if (error) return alert("Error: " + error.message);
-  
-  alert("Branding updated successfully");
-  location.reload(); // Simplest way to re-sync all UI elements
+  if (error) {
+      console.error(error);
+      return alert("Save Failed: " + error.message);
+  }
+
+  alert("Branding updated successfully!");
+  location.reload(); // Refresh to apply all changes
 }
 
 function renderBranding() {
