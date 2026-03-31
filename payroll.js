@@ -1,18 +1,16 @@
 /**
  * GENERATE PAYROLL
- * Calculates basic salary + commission based on the 'company_fee' of items in disbursed orders.
  */
 async function generatePayroll() {
-    // 1. Safety Check: Ensure all necessary data is loaded
     if (!window.db?.users || !window.db?.orders || !window.supa) {
-        return alert("Data not fully loaded. Please wait for sync or refresh.");
+        return alert("Data not fully loaded. Please wait for sync.");
     }
 
-    const month = new Date().toISOString().slice(0, 7); // Format: YYYY-MM
-    if (!confirm(`Generate payroll for ${month}? This will overwrite existing drafts for this month.`)) return;
+    const month = new Date().toISOString().slice(0, 7); // YYYY-MM
+    if (!confirm(`Generate payroll for ${month}? This will overwrite existing drafts.`)) return;
 
     try {
-        // 2. Clear existing draft payroll for this specific month to avoid duplicates
+        // 1. Clear existing draft payroll for this month
         await supa.from("payroll").delete().eq("payroll_month", month).eq("status", "draft");
 
         const staffMembers = window.db.users.filter(u => u.role === "staff");
@@ -21,27 +19,20 @@ async function generatePayroll() {
         const allProducts = window.db.products || [];
 
         for (const staff of staffMembers) {
-            // Filter: Only orders created by this staff, disbursed this month
+            // Filter: Only disbursed orders by this staff this month
             const staffOrders = allOrders.filter(o => {
                 const orderMonth = new Date(o.created_at).toISOString().slice(0, 7);
-                return o.created_by === staff.id && 
-                       o.status === "disbursed" && 
-                       orderMonth === month;
+                return o.created_by === staff.id && o.status === "disbursed" && orderMonth === month;
             });
 
             let totalCommission = 0;
-
             staffOrders.forEach(order => {
-                // Find all items belonging to this specific order
                 const items = allItems.filter(i => i.order_id === order.id);
-                
                 items.forEach(item => {
-                    // Match the item to a product to find the specific company_fee
                     const product = allProducts.find(p => p.id === item.product_id);
                     if (product) {
                         const feePerUnit = Number(product.company_fee) || 0;
-                        const quantity = Number(item.quantity) || 0;
-                        totalCommission += (feePerUnit * quantity);
+                        totalCommission += (feePerUnit * Number(item.quantity));
                     }
                 });
             });
@@ -49,7 +40,7 @@ async function generatePayroll() {
             const basicSalary = Number(staff.salary) || 0;
             const netPay = basicSalary + totalCommission;
 
-            // 3. Insert into Supabase
+            // 2. Insert into Supabase
             const { error: insertErr } = await supa.from("payroll").insert([{
                 user_id: staff.id,
                 payroll_month: month,
@@ -58,95 +49,69 @@ async function generatePayroll() {
                 total_pay: netPay,
                 status: 'draft'
             }]);
-
             if (insertErr) throw insertErr;
         }
 
-        alert(`Payroll for ${staffMembers.length} staff members generated!`);
-        
-        // 4. Refresh data and UI
+        alert(`Payroll generated for ${staffMembers.length} staff!`);
         await sync(); 
-        if (typeof renderPayrollTable === "function") renderPayrollTable();
+        renderPayrollTable();
 
     } catch (err) {
-        console.error("Payroll Generation Error:", err);
-        alert("Critical failure during payroll generation: " + err.message);
+        console.error("Payroll Error:", err);
+        alert("Failure: " + err.message);
     }
 }
 
-async function downloadPayslip(staffId, month) {
-    const record = db.payroll.find(p => p.staff_id === staffId && p.payroll_month === month);
-    const staff = db.users.find(u => u.id === staffId);
-    if (!record || !staff) return alert("Record not found");
+/**
+ * RENDER PAYROLL TABLE
+ */
+function renderPayrollTable() {
+    const tbody = document.getElementById("payrollBody");
+    if (!tbody) return;
 
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
+    const payrollData = window.db.payroll || [];
+    const users = window.db.users || [];
 
-    // Design Header
-    doc.setFillColor(31, 45, 61);
-    doc.rect(0, 0, 210, 40, "F");
-    
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(22);
-    doc.text(db.branding?.company_name || "Company ERP", 20, 25);
-    
-    doc.setFontSize(10);
-    doc.text("OFFICIAL PAYSLIP - " + month, 150, 25);
+    if (payrollData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">No payroll records found.</td></tr>';
+        return;
+    }
 
-    // Body
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(12);
-    let y = 60;
-
-    doc.setFont(undefined, "bold");
-    doc.text("EMPLOYEE DETAILS", 20, y);
-    doc.setFont(undefined, "normal");
-    y += 10;
-    doc.text(`Name: ${staff.full_name}`, 20, y);
-    doc.text(`Staff ID: ${String(staff.id).slice(0,8)}`, 120, y);
-    y += 8;
-    doc.text(`Role: ${staff.role}`, 20, y);
-    y += 20;
-
-    // Financial Table
-    doc.line(20, y, 190, y);
-    y += 10;
-    doc.text("Description", 20, y);
-    doc.text("Amount (KES)", 150, y);
-    y += 5;
-    doc.line(20, y, 190, y);
-    
-    y += 10;
-    doc.text("Basic Salary", 20, y);
-    doc.text(Number(record.basic_salary).toLocaleString(), 150, y);
-    
-    y += 10;
-    doc.text("Commission Earned", 20, y);
-    doc.text(Number(record.commission).toLocaleString(), 150, y);
-    
-    y += 15;
-    doc.setFont(undefined, "bold");
-    doc.text("NET PAYABLE", 20, y);
-    doc.text(Number(record.total).toLocaleString(), 150, y);
-    
-    y += 40;
-    doc.setFontSize(8);
-    doc.setFont(undefined, "italic");
-    doc.text("This is a computer generated document and does not require a signature.", 105, y, {align:"center"});
-
-    doc.save(`Payslip_${staff.full_name}_${month}.pdf`);
+    tbody.innerHTML = payrollData.map(p => {
+        const staff = users.find(u => u.id === p.user_id) || { full_name: "Unknown" };
+        return `
+            <tr>
+                <td>${p.payroll_month}</td>
+                <td>${staff.full_name}</td>
+                <td>${p.basic_salary.toLocaleString()}</td>
+                <td>${p.commission.toLocaleString()}</td>
+                <td><strong>${p.total_pay.toLocaleString()}</strong></td>
+                <td><span class="badge ${p.status === 'paid' ? 'bg-green' : 'bg-orange'}">${p.status.toUpperCase()}</span></td>
+                <td>
+                    <button class="btn btn-blue" onclick="viewPayslip('${p.id}')">View Payslip</button>
+                </td>
+            </tr>
+        `;
+    }).join("");
 }
 
-async function viewPayslip(id) {
+/**
+ * VIEW PAYSLIP (Modal)
+ */
+function viewPayslip(id) {
     const p = window.db.payroll.find(x => x.id === id);
     const staff = window.db.users.find(u => u.id === p.user_id);
     const branding = window.db.branding || {};
 
-    // Populate the Modal (Reuse the receipt modal ID)
+    if (!p || !staff) return alert("Record not found");
+
+    // We reuse your Receipt Modal for the Payslip
     document.getElementById("receiptCompanyName").innerText = branding.company_name || "SmartsourcingKe";
     document.getElementById("receiptTagline").innerText = "OFFICIAL PAYSLIP";
-    document.getElementById("receiptLogo").src = branding.logo_url || "";
-    document.getElementById("watermarkImg").src = branding.logo_url || "";
+    
+    // Safety check for logo
+    const logoImg = document.getElementById("receiptLogo");
+    if (logoImg) logoImg.src = branding.logo_url || "";
 
     document.getElementById("receiptMeta").innerHTML = `
         <div style="display:flex; justify-content:space-between;">
@@ -156,10 +121,10 @@ async function viewPayslip(id) {
     `;
 
     document.getElementById("receiptItemsBody").innerHTML = `
-        <tr><td>Basic Salary</td><td>1</td><td style="text-align:right;">${p.basic_salary.toLocaleString()}</td></tr>
+        <tr><td>Basic Salary</td><td>-</td><td style="text-align:right;">${p.basic_salary.toLocaleString()}</td></tr>
         <tr><td>Commissions</td><td>-</td><td style="text-align:right;">${p.commission.toLocaleString()}</td></tr>
         <tr style="border-top:2px solid #000;">
-            <td><strong>NET PAY</strong></td>
+            <td><strong>TOTAL PAYABLE</strong></td>
             <td></td>
             <td style="text-align:right;"><strong>KES ${p.total_pay.toLocaleString()}</strong></td>
         </tr>
@@ -167,20 +132,8 @@ async function viewPayslip(id) {
 
     document.getElementById("receiptGrandTotal").innerText = ""; 
     document.getElementById("receiptModal").classList.remove("hidden");
+    document.getElementById("receiptModal").style.display = 'block';
 }
 
-window.viewPayrollReceipt = viewPayrollReceipt;
-
-function viewPayrollReceipt(id) {
-    const record = window.db.payroll.find(p => p.id === id);
-    if (!record) return alert("Payroll record not found");
-
-    alert(`Payroll for ${record.employee_name}\nAmount: ${record.amount}`);
-}
-
-function renderPayroll() {
-    renderPayrollTable();
-}
-
-// make it globally available
-window.renderPayroll = renderPayroll;
+// Map the master render function to this script
+window.renderPayroll = renderPayrollTable;

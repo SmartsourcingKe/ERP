@@ -1,31 +1,38 @@
-/**
- * ADD PRODUCT
- */
+
 async function addProduct() {
     const name = document.getElementById("newProductName").value;
-    const price = document.getElementById("newProductPrice").value;
-    const fee = document.getElementById("newProductFee").value;
+    const price = document.getElementById("newProductPrice").value; // This is the Base Price (Cost)
+    const fee = document.getElementById("newProductFee").value;     // This is your Profit Margin
     const stock = document.getElementById("newProductStock").value;
 
     if (!name) return alert("Product name required");
 
     try {
+        // Calculate the Selling Price automatically for the UI
+        // Selling Price = Base Price + Company Fee
         const { error } = await supa.from("products").insert([{
-            name,
+            name: name,
             base_price: parseFloat(price) || 0,
             company_fee: parseFloat(fee) || 0,
+            price: (parseFloat(price) || 0) + (parseFloat(fee) || 0), // Total price shown to customers
             stock: parseInt(stock) || 0
         }]);
 
         if (error) throw error;
 
-        alert("Product added ✅");
-
+        alert("Product added successfully with profit tracking ✅");
+        
+        // Reset form
+        document.getElementById("newProductName").value = "";
+        document.getElementById("newProductPrice").value = "";
+        document.getElementById("newProductFee").value = "";
+        
         await sync();
+        if (typeof renderAll === "function") renderAll();
 
     } catch (err) {
         console.error(err);
-        alert("Failed: " + err.message);
+        alert("Failed to add product: " + err.message);
     }
 }
 

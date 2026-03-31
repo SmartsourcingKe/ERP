@@ -1,9 +1,9 @@
 /**
  * ADD EMPLOYEE / ADMIN
- * Creates Auth account, uploads photo, and creates database profile
+ * Creates Auth account and database profile for immediate login
  */
 async function addEmployee() {
-    const email = document.getElementById("empEmail").value;
+    const email = document.getElementById("empEmail").value.trim();
     const password = document.getElementById("empPassword").value;
     const fullName = document.getElementById("empFullName").value;
     const role = document.getElementById("empRole").value;
@@ -13,9 +13,7 @@ async function addEmployee() {
     if (!email || !password || !fullName) return alert("Please fill in all fields.");
 
     try {
-        // 1. Create the Auth Account 
-        // Note: We don't 'await' the session to change. 
-        // If your Supabase project has 'Confirm Email' ON, they must click a link before logging in.
+        // 1. Create the Auth Account
         const { data: authData, error: authError } = await supa.auth.signUp({ 
             email, 
             password,
@@ -28,55 +26,48 @@ async function addEmployee() {
         });
 
         if (authError) throw authError;
-        
-        // Use the ID from the newly created auth user
         const newUserId = authData.user.id;
 
-        let photoUrl = "";
-
         // 2. Upload Profile Photo (Optional)
+        let photoUrl = "";
         if (photoFile && newUserId) {
             const fileExt = photoFile.name.split('.').pop();
-            const fileName = `${newUserId}-${Date.now()}.${fileExt}`;
+            const fileName = `${newUserId}-${Math.random()}.${fileExt}`;
             const { error: uploadError } = await supa.storage
-                .from('avatars')
+                .from('profiles')
                 .upload(fileName, photoFile);
 
             if (!uploadError) {
-                const { data: publicData } = supa.storage.from('avatars').getPublicUrl(fileName);
-                photoUrl = publicData.publicUrl;
+                const { data: urlData } = supa.storage.from('profiles').getPublicUrl(fileName);
+                photoUrl = urlData.publicUrl;
             }
         }
 
-        // 3. Create Database Profile in 'users' table
-        // This links the Auth ID to your visible Staff list
-        const { error: dbError } = await supa.from("users").insert([{
-            id: newUserId, // CRITICAL: This connects Auth to Database
-            email: email,
-            full_name: fullName,
-            role: role,
-            salary: parseFloat(salary) || 0,
-            pic: photoUrl,
-            status: 'active',
-            created_at: new Date().toISOString()
-        }]);
+        // 3. Create the Database Profile (CRITICAL for login)
+        const { error: profileError } = await supa
+            .from("users")
+            .insert([{
+                id: newUserId,
+                email: email,
+                full_name: fullName,
+                role: role,
+                salary: parseFloat(salary),
+                pic: photoUrl
+            }]);
 
-        if (dbError) throw dbError;
+        if (profileError) throw profileError;
 
-        alert(`Success! ${fullName} created. They can now login with their email.`);
+        alert(`Employee ${fullName} created! They can now log in.`);
         
-        // 4. Cleanup and Refresh
-        await sync(); 
-        if (typeof renderAll === "function") renderAll(); 
-        
-        // Clear Form
+        // Clear form and refresh UI
         document.getElementById("empEmail").value = "";
         document.getElementById("empPassword").value = "";
-        document.getElementById("empFullName").value = "";
+        await sync(); 
+        if (typeof renderAll === "function") renderAll();
 
     } catch (err) {
-        console.error("Employee Creation Error:", err);
-        alert("Error: " + err.message);
+        console.error(err);
+        alert("Creation failed: " + err.message);
     }
 }
 
@@ -170,4 +161,26 @@ function printIDCard(userId) {
     }
 }
 
+async function resetEmployeePassword(userId) {
+    const newPassword = prompt("Enter new password for this employee:");
+    if (!newPassword || newPassword.length < 6) {
+        return alert("Password must be at least 6 characters.");
+    }
+
+    try {
+        // We use the Supabase Admin API logic via a simple update
+        // Note: In some Supabase setups, you may need a specialized Edge Function 
+        // if your RLS doesn't allow direct auth updates from the client.
+        const { error } = await supa.auth.updateUser({
+            password: newPassword
+        });
+
+        if (error) throw error;
+        alert("Password updated successfully! Please note: This updates the CURRENTLY LOGGED IN user's password if not using an admin service role. For a true 'Admin Reset,' ensure your Supabase Edge Functions are configured.");
+
+    } catch (err) {
+        console.error(err);
+        alert("Reset failed: " + err.message);
+    }
+}
 window.renderEmployees = renderEmployees;

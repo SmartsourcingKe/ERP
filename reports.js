@@ -1,92 +1,122 @@
-// Global chart instance
 window.monthlyTrendChart = window.monthlyTrendChart || null;
-window.profitChart = window.profitChart || null;
+window.profitBreakdownChart = window.profitBreakdownChart || null;
 window.salesChart = window.salesChart || null;
-
 /**
- * RENDER MONTHLY FINANCE TABLE & CHART
- * Consolidates retail, corporate, and payroll data into a monthly view.
+ * MAIN RENDER FUNCTION
  */
-// Update in reports.js
 function renderMonthlyFinance() {
-	if (window.monthlyTrendChart instanceof Chart) window.monthlyTrendChart.destroy();
+    console.log("Calculating profits...");
     const monthlyData = {};
-    const track = (dateStr, manufacturer = 0, fee = 0, corporate = 0, payroll = 0) => {
+
+    const track = (dateStr, fee = 0, corporate = 0, payroll = 0) => {
         const date = new Date(dateStr);
         const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
         if (!monthlyData[key]) {
-            monthlyData[key] = { manufacturer: 0, fee: 0, corporate: 0, payroll: 0 };
+            monthlyData[key] = { fee: 0, corporate: 0, payroll: 0 };
         }
-        monthlyData[key].manufacturer += manufacturer;
         monthlyData[key].fee += fee;
         monthlyData[key].corporate += corporate;
         monthlyData[key].payroll += payroll;
     };
 
-    // 1. Process Retail (Fee = Your Profit)
-    (db.orders || []).filter(o => o.status === "disbursed").forEach(order => {
-        const items = (db.order_items || []).filter(i => i.order_id === order.id);
+    // 1. Calculate Retail Profit (Your Fee from Products)
+    (window.db.orders || []).filter(o => o.status === "disbursed").forEach(order => {
+        const items = (window.db.order_items || []).filter(i => i.order_id === order.id);
         items.forEach(item => {
-            const product = db.products.find(p => p.id === item.product_id);
-            const fee = (product?.company_fee || 0) * item.quantity;
-            const manCost = ((product?.price || 0) - (product?.company_fee || 0)) * item.quantity;
-            track(order.created_at, manCost, fee, 0, 0);
+            const product = window.db.products.find(p => p.id === item.product_id);
+            // We use 'company_fee' as the profit per item
+            const profitPerItem = (product?.company_fee || 0) * item.quantity;
+            track(order.created_at, profitPerItem, 0, 0);
         });
     });
 
-    // 2. Process Payroll (Subtracting from profit)
-    (db.payroll || []).forEach(p => {
-        track(p.payroll_month + "-01", 0, 0, 0, Number(p.total_pay));
+    // 2. Calculate Corporate Revenue
+    (window.db.corporate_orders || []).forEach(co => {
+        track(co.created_at, 0, Number(co.total || 0), 0);
     });
 
-    renderProfitTable(monthlyData);
-    updateProfitChart(monthlyData);
+    // 3. Subtract Payroll Expenses
+    (window.db.payroll || []).forEach(p => {
+        // Payroll records usually have a month string "YYYY-MM"
+        track(p.payroll_month + "-01", 0, 0, Number(p.total_pay || 0));
+    });
+
+    // Sort months for the UI
+    const sortedMonths = Object.keys(monthlyData).sort();
+
+    renderProfitTable(sortedMonths, monthlyData);
+    updateCharts(sortedMonths, monthlyData);
 }
 
 /**
- * UPDATE TREND CHART
+ * RENDER THE FINANCE TABLE
  */
-function updateTrendChart(labels, data) {
-    const canvas = document.getElementById("monthlyTrendChart");
-    if (!canvas) return;
+function renderProfitTable(months, data) {
+    const tbody = document.getElementById("profitTableBody");
+    if (!tbody) return;
 
-    if (!monthlyTrendChart) {
-        monthlyTrendChart = new Chart(canvas, {
-            type: "line",
+    tbody.innerHTML = months.reverse().map(m => {
+        const row = data[m];
+        const netProfit = (row.fee + row.corporate) - row.payroll;
+        return `
+            <tr style="border-bottom: 1px solid #eee;">
+                <td style="padding:12px; font-weight:bold;">${m}</td>
+                <td style="padding:12px;">KES ${row.fee.toLocaleString()}</td>
+                <td style="padding:12px;">KES ${row.corporate.toLocaleString()}</td>
+                <td style="padding:12px; color: #e74c3c;">- KES ${row.payroll.toLocaleString()}</td>
+                <td style="padding:12px; font-weight:bold; color: ${netProfit >= 0 ? '#27ae60' : '#e74c3c'};">
+                    KES ${netProfit.toLocaleString()}
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+/**
+ * UPDATE ALL CHARTS
+ */
+function updateCharts(months, data) {
+    const trendLabels = months;
+    const trendValues = months.map(m => (data[m].fee + data[m].corporate) - data[m].payroll);
+
+    // 1. Trend Line Chart
+    const ctxTrend = document.getElementById("monthlyTrendChart");
+    if (ctxTrend) {
+        if (window.monthlyTrendChart) window.monthlyTrendChart.destroy();
+        window.monthlyTrendChart = new Chart(ctxTrend, {
+            type: 'line',
             data: {
-                labels: labels,
+                labels: trendLabels,
                 datasets: [{
-                    label: "Monthly Net Profit (KES)",
-                    data: data,
-                    borderColor: "#27ae60",
-                    backgroundColor: "rgba(39, 174, 96, 0.1)",
-                    fill: true,
-                    tension: 0.3
+                    label: 'Net Profit (KES)',
+                    data: trendValues,
+                    borderColor: '#27ae60',
+                    fill: false,
+                    tension: 0.1
                 }]
             },
             options: { responsive: true, maintainAspectRatio: false }
         });
-    } else {
-        monthlyTrendChart.data.labels = labels;
-        monthlyTrendChart.data.datasets[0].data = data;
-        monthlyTrendChart.update();
     }
-	
-	const staffPerformance = db.users.filter(u => u.role === 'staff').map(user => {
-    const userOrders = (db.orders || []).filter(o => o.created_by === user.id && o.status === 'disbursed');
-    let totalProfitGenerated = 0;
-    
-    userOrders.forEach(order => {
-        const items = (db.order_items || []).filter(i => i.order_id === order.id);
-        items.forEach(item => {
-            const product = db.products.find(p => p.id === item.product_id);
-            totalProfitGenerated += (product?.company_fee || 0) * item.quantity;
+
+    // 2. Breakdown Bar Chart (Latest Month)
+    const latestMonth = months[months.length - 1];
+    const ctxBreakdown = document.getElementById("profitBreakdownChart");
+    if (ctxBreakdown && latestMonth) {
+        if (window.profitBreakdownChart) window.profitBreakdownChart.destroy();
+        window.profitBreakdownChart = new Chart(ctxBreakdown, {
+            type: 'bar',
+            data: {
+                labels: ['Retail Profit', 'Corporate Revenue', 'Payroll Costs'],
+                datasets: [{
+                    label: `Financials for ${latestMonth}`,
+                    data: [data[latestMonth].fee, data[latestMonth].corporate, data[latestMonth].payroll],
+                    backgroundColor: ['#3498db', '#9b59b6', '#e74c3c']
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
         });
-    });
-
-    return { name: user.full_name, profit: totalProfitGenerated };
-});
-
+    }
 }
 
 /**

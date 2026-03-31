@@ -181,16 +181,14 @@
         <p id="iosInstructions" style="font-size: 0.9em; color: #ccc; margin-bottom: 10px; display: none;">On iPhone: Tap <img src="https://img.icons8.com/ios/20/ffffff/share.png" style="vertical-align:middle;"> then "Add to Home Screen"</p>
         <button id="installBtn" class="btn btn-green" style="padding: 12px 24px;">Tap to Install App</button>
     </div>
-    
-    </div>
-    <img id="loginLogo" src="" class="brand-logo hidden" style="max-height: 80px; margin-bottom: 15px;">
+	<img id="loginLogo" src="" class="brand-logo hidden" style="max-height: 80px; margin-bottom: 15px;">
     <h2 style="text-align:center;">SmartsourcingKe</h2>
     <p id="loginTagline" style="font-style: italic; color: #666; margin-bottom: 20px;"></p>
     
     <input id="loginEmail" placeholder="Email">
     <input id="loginPassword" type="password" placeholder="Password">
     <button class="btn btn-blue" onclick="login()">Login</button>
-</div>
+    </div>
 
 <div id="dashboard" class="container hidden">
     <div class="brand-header">
@@ -474,9 +472,36 @@
 </div>
 
     <div id="profitTab" class="tab-content hidden">
-        <div class="card"><canvas id="monthlyTrendChart"></canvas></div>
-        <div class="card"><table><thead><tr><th>Month</th><th>Net Profit</th></tr></thead><tbody id="monthlyFinanceBody"></tbody></table></div>
+    <div class="grid grid-2" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+        <div class="card">
+            <h3>Monthly Net Profit Trend</h3>
+            <div style="height:300px;"><canvas id="monthlyTrendChart"></canvas></div>
+        </div>
+        <div class="card">
+            <h3>Income vs Expense Breakdown</h3>
+            <div style="height:300px;"><canvas id="profitBreakdownChart"></canvas></div>
+        </div>
     </div>
+
+    <div class="card">
+        <h3>Monthly Finance Summary</h3>
+        <div style="overflow-x: auto;">
+            <table style="width:100%; border-collapse: collapse; margin-top: 10px;">
+                <thead>
+                    <tr style="background:#f4f6f9; text-align: left;">
+                        <th style="padding:12px;">Month</th>
+                        <th style="padding:12px;">Retail Profit (Fees)</th>
+                        <th style="padding:12px;">Corporate Revenue</th>
+                        <th style="padding:12px;">Payroll (Expenses)</th>
+                        <th style="padding:12px; color: #27ae60;">Net Profit</th>
+                    </tr>
+                </thead>
+                <tbody id="profitTableBody">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 </div> 
 <div id="receiptModal" class="modal hidden">
     <div class="modal-content" style="position:relative; width:400px; padding:20px; background: white;">
