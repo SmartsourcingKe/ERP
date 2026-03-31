@@ -355,9 +355,30 @@
 </div>
 
     <div id="payrollTab" class="tab-content hidden">
-        <div class="card"><h3>Payroll</h3><button class="btn btn-green" onclick="generatePayroll()">Generate Payroll</button></div>
-        <div class="card"><table><thead><tr><th>Staff</th><th>Total Pay</th><th>Action</th></tr></thead><tbody id="payrollBody"></tbody></table></div>
+    <div class="card">
+        <h3>Payroll Management</h3>
+        <p>Generates basic salary + commissions (based on company fees from disbursed orders) for the current month.</p>
+        <button class="btn btn-green" onclick="generatePayroll()">Generate This Month's Payroll</button>
     </div>
+    
+    <div class="card">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Month</th>
+                    <th>Employee</th>
+                    <th>Basic (KES)</th>
+                    <th>Commission (KES)</th>
+                    <th>Total (KES)</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="payrollBody">
+                </tbody>
+        </table>
+    </div>
+</div>
 
     <div id="adminTab" class="tab-content hidden">
     <div class="card">
