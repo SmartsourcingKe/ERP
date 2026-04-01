@@ -195,6 +195,17 @@
         size: auto;
     }
 }
+
+@media print {
+    /* Hide the entire dashboard so only the receipt is visible to the printer */
+    body > *:not(#receiptModalContent) {
+        display: none !important;
+    }
+    #receiptModalContent {
+        display: block !important;
+        width: 80mm !important; /* Forces standard receipt width */
+    }
+}
     </style>
 </head>
 <body>

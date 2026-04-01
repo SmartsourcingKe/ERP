@@ -188,4 +188,57 @@ async function markAsPaid(orderId) {
     }
 }
 
+async function saveOrder(cart, customerDetails) {
+    // 1. Calculate totals before saving
+    let totalOrderAmount = 0;
+    const orderItemsPayload = cart.map(item => {
+        // Calculate row total: (Quantity * Price) + Fee
+        const price = Number(item.price_at_sale ?? 0);
+        const fee = Number(item.fee ?? 0);
+        const total = (item.quantity * price) + fee;
+        
+        totalOrderAmount += total;
+
+        return {
+            product_id: item.id,
+            product_name: item.name,
+            quantity: item.quantity,
+            price_at_sale: price,
+            fee: fee,
+            total_price: total
+        };
+    });
+
+    // 2. Save to Orders Table
+    const { data: order, error: orderError } = await supa
+        .from('orders')
+        .insert({ 
+            total_amount: totalOrderAmount,
+            customer_name: customerDetails.name,
+            created_at: new Date()
+        })
+        .select()
+        .single();
+
+    if (orderError) return alert("Order Failed: " + orderError.message);
+
+    // 3. Save to Order Items Table
+    const itemsWithOrderId = orderItemsPayload.map(item => ({ ...item, order_id: order.id }));
+    const { error: itemsError } = await supa.from('order_items').insert(itemsWithOrderId);
+
+    if (itemsError) return alert("Order Items Error: " + itemsError.message);
+
+    // 4. TRIGGER PRINT AUTOMATICALLY
+    alert("Order Saved Successfully!");
+    
+    // Create the receipt modal content and print
+    const receiptContainer = document.getElementById('receiptModalContent');
+    if (receiptContainer) {
+        receiptContainer.innerHTML = generateReceiptHTML(order.id);
+        window.print(); // Triggers the print dialog immediately
+    }
+
+    // Refresh memory and UI
+    await sync(); 
+}
 window.renderOrders = renderOrders;
