@@ -66,59 +66,6 @@ async function checkUserSession() {
     }
 }
 
-function viewReceipt(orderId) {
-    const order = window.db.orders.find(o => String(o.id) === String(orderId));
-    const items = (window.db.order_items || []).filter(oi => String(oi.order_id) === String(orderId));
-    const branding = window.db.branding || {};
-
-    if (!order) return alert("Order not found!");
-
-    // 1. Fill Branding
-    document.getElementById('receiptCompanyName').innerText = branding.company_name || "SmartsourcingKe";
-    document.getElementById('receiptTagline').innerText = branding.tagline || "";
-    document.getElementById('receiptLogo').src = branding.logo_url || "";
-    document.getElementById('watermarkImg').src = branding.logo_url || "";
-
-    // 2. Fill Meta (Order # and Date)
-    document.getElementById('receiptMeta').innerHTML = `
-        <p><strong>Order No:</strong> #${order.id.slice(0, 8)}</p>
-        <p><strong>Date:</strong> ${new Date(order.created_at).toLocaleDateString('en-GB')}</p>
-    `;
-
-    // 3. Fill Table Body (The 5 Columns)
-    // Update the tbody mapping inside your viewReceipt function
-   const tbody = document.getElementById('receiptItemsBody');
-tbody.innerHTML = items.map(item => {
-    const qty = Number(item.quantity || 0);
-    
-    // 1. Use price_at_sale since 'price' is 0 in your DB
-    const price = Number(item.price_at_sale || 0);
-    
-    // 2. Handle the null fee. 
-    // If it's null, we display 0 so the table isn't blank.
-    const fee = Number(item.unit_price_with_fee || 0); 
-    
-    // 3. Calculation
-    const total = (qty * price) + fee;
-
-    return `
-        <tr>
-            <td style="padding: 5px 0; border-bottom:1px solid #000;">${item.product_name || 'Item'}</td>
-            <td style="text-align:center; border-bottom:1px solid #000;">${qty}</td>
-            <td style="text-align:center; border-bottom:1px solid #000;">${price.toLocaleString()}</td>
-            <td style="text-align:center; border-bottom:1px solid #000;">${fee.toLocaleString()}</td>
-            <td style="text-align:right; font-weight:bold; border-bottom:1px solid #000;">${total.toLocaleString()}</td>
-        </tr>
-    `;
-}).join('');
-
-    // 4. Fill Grand Total
-    document.getElementById('receiptGrandTotal').innerText = `TOTAL: KES ${Number(order.total_amount ?? 0).toLocaleString()}`;
-
-    // 5. Show Modal
-    document.getElementById('receiptModal').classList.remove('hidden');
-}
-
 function closeReceiptModal() {
     const modal = document.getElementById("receiptModal");
     modal.classList.add("hidden");
