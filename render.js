@@ -573,14 +573,17 @@ function applyReceiptBranding() {
 }
 
 function generateReceiptHTML(orderId) {
-    // Force both to strings to ensure a match
+    // 1. Force both to strings to ensure a match
     const order = window.db.orders.find(o => String(o.id) === String(orderId));
     const items = (window.db.order_items || []).filter(oi => String(oi.order_id) === String(orderId));
 
-    if (!order) return "<p>Order data not found.</p>";
-        return "Order Not Found";
+    // 2. Single check for missing data
+    if (!order) {
+        console.error("Receipt Error: Order ID not found", orderId);
+        return "<p style='color:red;'>Order data not found.</p>";
     }
 
+    // 3. Return the template (No extra braces in between)
     return `
     <div id="receiptContainer">
         <div style="text-align:center; margin-bottom:10px;">
@@ -588,7 +591,7 @@ function generateReceiptHTML(orderId) {
             <div style="border-top:1px dashed #000; margin:5px 0;"></div>
         </div>
 
-        <table class="receipt-table">
+        <table class="receipt-table" style="width:100%; border-collapse:collapse; font-size:12px;">
             <thead>
                 <tr>
                     <th align="left">ITEM</th>
@@ -600,14 +603,14 @@ function generateReceiptHTML(orderId) {
             </thead>
             <tbody>
                 ${items.map(item => `
-    <tr>
-        <td>${item.product_name || 'Unknown Item'}</td>
-        <td align="center">${item.quantity || 0}</td>
-        <td align="right">${(item.price_at_sale || item.price || 0).toLocaleString()}</td>
-        <td align="right">${(item.fee || 0).toLocaleString()}</td>
-        <td align="right"><strong>${(item.total_price || 0).toLocaleString()}</strong></td>
-    </tr>
-`).join('')}
+                    <tr>
+                        <td>${item.product_name || 'Unknown Item'}</td>
+                        <td align="center">${item.quantity || 0}</td>
+                        <td align="right">${(item.price_at_sale || item.price || 0).toLocaleString()}</td>
+                        <td align="right">${(item.fee || 0).toLocaleString()}</td>
+                        <td align="right"><strong>${(item.total_price || 0).toLocaleString()}</strong></td>
+                    </tr>
+                `).join('')}
             </tbody>
         </table>
 
