@@ -208,3 +208,23 @@ function viewReceipt(orderId, type) {
     // Show the modal
     document.getElementById("receiptModal").classList.remove("hidden");
 }
+
+async function saveCorporateOrder(cart) {
+    // Calculate values before sending
+    const itemsToSave = cart.map(item => ({
+        product_id: item.id,
+        quantity: item.quantity,
+        price_at_sale: item.price_at_sale,
+        unit_price_with_fee: item.fee || 0, // Ensure this isn't null
+        total_price: (item.quantity * item.price_at_sale) + (item.fee || 0)
+    }));
+
+    const { data, error } = await supa
+        .from('corporate_order_items')
+        .insert(itemsToSave);
+
+    if (error) {
+        console.error("RLS or Database Error:", error.message);
+        alert("Order Failed: Check Supabase RLS Policies.");
+    }
+}
