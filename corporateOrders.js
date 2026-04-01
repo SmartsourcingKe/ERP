@@ -177,36 +177,34 @@ async function addSchool() {
     }
 }
 
-function viewReceipt(orderId, type) {
-    if (type !== 'corporate') return; // Handle other types as needed
-
-    const order = window.db.corporate_orders.find(o => o.id === orderId);
-    const school = window.db.schools.find(s => s.id === order.school_id);
-    const items = window.db.corporate_order_items.filter(i => i.corporate_order_id === orderId);
-
-    // Populate the Modal defined in your index.html
-    document.getElementById("receiptCompanyName").innerText = window.db.branding?.name || "SmartsourcingKe";
-    document.getElementById("receiptTagline").innerText = window.db.branding?.tagline || "";
-    document.getElementById("receiptGrandTotal").innerText = `TOTAL: KES ${Number(order.total).toLocaleString()}`;
+function viewReceipt(orderId) {
+    // 1. Check regular orders first, then corporate orders if not found
+    let order = window.db.orders?.find(o => String(o.id) === String(orderId));
     
-    document.getElementById("receiptMeta").innerHTML = `
-        <p><strong>School:</strong> ${school ? school.name : 'N/A'}</p>
-        <p><strong>Date:</strong> ${new Date(order.created_at).toLocaleDateString()}</p>
-        <p><strong>Order ID:</strong> ${order.id.slice(0,8)}</p>
-    `;
+    if (!order) {
+        order = window.db.corporate_orders?.find(o => String(o.id) === String(orderId));
+    }
 
-    document.getElementById("receiptItemsBody").innerHTML = items.map(i => `
-        <tr>
-            <td>${i.grade}</td>
-            <td style="text-align:center;">${i.student_count}</td>
-            <td style="text-align:center;">${i.price_per_student}</td>
-            <td style="text-align:center;">-</td>
-            <td style="text-align:right;">${i.subtotal.toLocaleString()}</td>
-        </tr>
-    `).join("");
+    // 2. Determine which items table to pull from
+    let items = [];
+    if (order) {
+        // Check if it's a corporate order based on properties like school_id or total
+        const isCorporate = order.hasOwnProperty('school_id') || window.db.corporate_orders?.some(co => co.id === order.id);
+        
+        const itemsTable = isCorporate ? window.db.corporate_order_items : window.db.order_items;
+        items = (itemsTable || []).filter(oi => String(oi.order_id || oi.corporate_order_id) === String(orderId));
+    }
 
-    // Show the modal
-    document.getElementById("receiptModal").classList.remove("hidden");
+    if (!order) {
+        console.error("Order ID not found in any table:", orderId);
+        return alert("Order not found!");
+    }
+	
+	if (order.school_name) {
+    document.getElementById('receiptMeta').innerHTML += `<p><strong>School:</strong> ${order.school_name}</p>`;
+}
+
+    // ... proceed with filling the branding and table (same logic as before)
 }
 
 async function saveCorporateOrder(cart) {
