@@ -3,19 +3,10 @@
  * Fetches all tables in parallel and updates the global window.db cache.
  */
 async function sync() {
-    try {
-        // Example: load branding from Supabase
-        // Inside sync() function in sync.js
-const { data: brandingData, error: bError } = await supa.from("branding").select("*").single();
-
-if (!bError) {
-    window.db.branding = brandingData; // Store it in window.db to match render.js
-    window.branding = brandingData;    // Keep this for backward compatibility
-}
-
-    if (!window.db) {
-        window.db = {};
-    }
+    console.log("Starting Data Sync...");
+    
+    // Ensure the database object exists
+    if (!window.db) window.db = {};
 
     const tables = {
         users: () => supa.from("users").select("*"),
@@ -29,54 +20,53 @@ if (!bError) {
         payroll: () => supa.from("payroll").select("*"),
         messages: () => supa.from("messages").select("*").order("created_at", { ascending: true }),
         employee_finance: () => supa.from("employee_finance").select("*"),
-        branding: () => supa.from("branding").select("*").limit(1),
+        branding: () => supa.from("branding").select("*").limit(1) // Avoids the 406 error
     };
 
     const keys = Object.keys(tables);
 
     try {
+        // Run all requests at once for speed
         const responses = await Promise.allSettled(keys.map(k => tables[k]()));
 
         responses.forEach((result, i) => {
             const key = keys[i];
 
-            if (result.status === "rejected") {
-                console.error(`SYNC REJECTED [${key}]:`, result.reason);
-                window.db[key] = key === "branding" ? {} : [];
+            // If a specific table fails (like the 406 error on branding)
+            if (result.status === "rejected" || result.value.error) {
+                console.warn(`SYNC WARNING [${key}]:`, result.reason || result.value.error.message);
+                
+                // Fallback: Don't let a single table crash the whole app
+                if (key === "branding") {
+                    window.db.branding = { company_name: "SmartsourcingKe" };
+                } else {
+                    window.db[key] = [];
+                }
                 return;
             }
 
-            const res = result.value;
-
-            if (res.error) {
-                console.error(`SYNC ERROR [${key}]:`, res.error.message);
-                window.db[key] = key === "branding" ? {} : [];
-                return;
-            }
-
-            const data = res.data || [];
-
+            // Success Path
+            const data = result.value.data;
             if (key === "branding") {
-    window.db.branding = res.data?.[0] || {};
-} else {
-    window.db[key] = res.data || [];
-}
+                window.db.branding = data?.[0] || { company_name: "SmartsourcingKe" };
+                window.branding = window.db.branding; // Compatibility
+            } else {
+                window.db[key] = data || [];
+            }
         });
 
+        console.log("Sync Complete. Data loaded into window.db");
+        window.dataLoaded = true;
+
+        // Trigger UI updates
         if (typeof triggerUIUpdates === "function") {
-            triggerUIUpdates();
+            await triggerUIUpdates();
         } else if (typeof renderAll === "function") {
             renderAll();
         }
 
-        window.dataLoaded = true;
-
     } catch (err) {
-        console.error("Global Sync Failure:", err);
-    }
-	await triggerUIUpdates();
-    } catch (err) {
-        console.error("SYNC FAILED:", err);
+        console.error("Critical Sync Failure:", err);
     }
 }
 
