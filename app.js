@@ -129,6 +129,50 @@ const setupInstallLogic = () => {
             deferredPrompt = null;
         });
     }
+	
+supa.auth.onAuthStateChange(async (event, session) => {
+    console.log("Auth Event Triggered:", event);
+
+    if (event === "SIGNED_IN") {
+        const user = session.user;
+
+        try {
+            const { data: profile, error } = await supa
+                .from('users')
+                .select('role, full_name')
+                .eq('id', user.id)
+                .single();
+
+            window.currentUser = {
+                id: user.id,
+                email: user.email,
+                full_name: profile?.full_name || user.email,
+                role: profile?.role || "staff"
+            };
+
+            console.log("Authenticated as:", window.currentUser.role);
+
+            if (typeof sync === "function") {
+                console.log("Starting background sync...");
+                await sync(); 
+            }
+
+            if (typeof renderAll === "function") {
+                renderAll();
+            }
+
+            showDashboard();
+
+        } catch (err) {
+            console.error("Auth Profile Error:", err);
+        }
+    }
+
+    if (event === "SIGNED_OUT") {
+        window.currentUser = null;
+        location.reload();
+    }
+});
 
     window.addEventListener('appinstalled', () => {
         if (banner) banner.classList.add('hidden');
