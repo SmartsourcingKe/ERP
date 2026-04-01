@@ -1,9 +1,5 @@
-/**
- * AUTH.JS - FULL REWRITE
- * Handles Authentication, Role Security, and ID Card Utilities.
- */
+ 
 
-// 1. LOGIN: The Gatekeeper
 async function login() {
     const email = document.getElementById("loginEmail")?.value.trim();
     const password = document.getElementById("loginPassword")?.value;
@@ -14,10 +10,10 @@ async function login() {
         const { data, error } = await supa.auth.signInWithPassword({ email, password });
         if (error) throw error;
 
-        // Get the 'Stamp' from Auth Metadata (Our safety net against 500 errors)
+        // 1. Get the 'Stamp' from Auth Metadata (Bypasses DB loops)
         const metaRole = data.user.user_metadata?.role || 'staff';
 
-        // Attempt to fetch profile
+        // 2. Attempt to fetch full profile
         const { data: profile, error: profileError } = await supa
             .from('users')
             .select('*')
@@ -25,7 +21,8 @@ async function login() {
             .single();
 
         if (profileError) {
-            console.warn("DB Recursion detected. Using Metadata Role fallback.");
+            console.warn("DB Recursion detected. Using Metadata Fallback.");
+            // If the DB crashes, we trust the 'admin' stamp from SQL Step #3
             window.currentUser = { 
                 ...data.user, 
                 role: metaRole, 
@@ -35,11 +32,9 @@ async function login() {
             window.currentUser = { ...data.user, ...profile };
         }
 
-        console.log("Logged in as:", window.currentUser.role);
+        console.log("Logged in successfully as:", window.currentUser.role);
         
         await sync();
-        
-        // Navigation (Ensure these match your index.html IDs)
         showScreen('dashboardPage'); 
 
     } catch (err) {
@@ -48,7 +43,6 @@ async function login() {
     }
 }
 
-// 2. LOGOUT: Clears everything
 async function logout() {
     await supa.auth.signOut();
     localStorage.clear();
@@ -56,71 +50,54 @@ async function logout() {
     location.reload(); 
 }
 
-// 3. UTILITY: Generate ID Card PDF
+// --- UTILITY FUNCTIONS (Kept from original) ---
+
 async function generateIDCard() {
     const user = window.currentUser;
-    if (!user) return alert("Please log in first");
+    if (!user) return alert("No session found");
 
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({
-        orientation: 'landscape',
-        unit: 'mm',
-        format: [86, 54] // Standard ID card size
-    });
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [86, 54] });
 
-    // Header Branding
-    doc.setFillColor(20, 20, 20);
+    // Branding Header
+    doc.setFillColor(30, 30, 30);
     doc.rect(0, 0, 86, 15, 'F');
     
-    if (window.db?.branding?.logo_url) {
-        try {
-            const logoImg = await fetchImageAsBase64(window.db.branding.logo_url);
-            doc.addImage(logoImg, 'PNG', 5, 2, 11, 11);
-        } catch (e) { console.warn("Logo skipped"); }
-    }
-
+    const brand = window.db?.branding || {};
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(10).setFont(undefined, 'bold');
-    doc.text(window.db?.branding?.company_name || "SmartsourcingKe", 43, 9, { align: "center" });
+    doc.setFontSize(10).text(brand.company_name || "SmartsourcingKe", 43, 9, { align: "center" });
 
-    // Profile Photo
+    // Photo
     if (user.pic) {
         try {
-            const photoImg = await fetchImageAsBase64(user.pic);
-            doc.addImage(photoImg, 'JPEG', 5, 20, 25, 25);
-        } catch (e) { console.warn("Photo skipped"); }
+            const photoBase64 = await fetchImageAsBase64(user.pic);
+            doc.addImage(photoBase64, 'JPEG', 5, 20, 25, 25);
+        } catch (e) { console.warn("Staff photo failed"); }
     }
 
-    // Details
+    // Staff Info
     doc.setTextColor(0, 0, 0);
-    doc.setFontSize(8).setFont(undefined, 'bold');
-    doc.text("STAFF NAME:", 35, 25);
-    doc.setFont(undefined, 'normal').text(user.full_name || "N/A", 35, 29);
-
+    doc.setFontSize(8).setFont(undefined, 'bold').text("NAME:", 35, 25);
+    doc.setFont(undefined, 'normal').text(user.full_name || "User", 35, 29);
+    
     doc.setFont(undefined, 'bold').text("ROLE:", 35, 36);
     doc.setFont(undefined, 'normal').text(user.role || "Staff", 35, 40);
 
-    doc.setFont(undefined, 'bold').text("STAFF ID:", 35, 47);
+    doc.setFont(undefined, 'bold').text("ID:", 35, 47);
     doc.setFont(undefined, 'normal').text(String(user.id).slice(0, 8), 35, 51);
 
-    doc.save(`ID_${user.full_name || 'Staff'}.pdf`);
+    doc.save(`ID_${user.full_name}.pdf`);
 }
 
-// 4. UTILITY: Image to Base64 Helper
 async function fetchImageAsBase64(url) {
-    try {
-        const response = await fetch(url);
-        const blob = await response.blob();
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-        });
-    } catch (err) {
-        console.error("Image Fetch Error:", err);
-        throw err;
-    }
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+    });
 }
 
 function handleSignedOut() {
