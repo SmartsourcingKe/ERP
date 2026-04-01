@@ -177,34 +177,75 @@ async function addSchool() {
     }
 }
 
-function viewReceipt(orderId) {
-    // 1. Check regular orders first, then corporate orders if not found
-    let order = window.db.orders?.find(o => String(o.id) === String(orderId));
-    
-    if (!order) {
-        order = window.db.corporate_orders?.find(o => String(o.id) === String(orderId));
-    }
+async function viewReceipt(orderId) {
+    // 1. Try to find in memory first
+    let order = window.db.orders?.find(o => String(o.id) === String(orderId)) || 
+                window.db.corporate_orders?.find(o => String(o.id) === String(orderId));
 
-    // 2. Determine which items table to pull from
-    let items = [];
-    if (order) {
-        // Check if it's a corporate order based on properties like school_id or total
-        const isCorporate = order.hasOwnProperty('school_id') || window.db.corporate_orders?.some(co => co.id === order.id);
+    // 2. FALLBACK: If not in memory, fetch directly from Supabase
+    if (!order) {
+        console.log("Order not in memory, fetching from Supabase...");
         
-        const itemsTable = isCorporate ? window.db.corporate_order_items : window.db.order_items;
-        items = (itemsTable || []).filter(oi => String(oi.order_id || oi.corporate_order_id) === String(orderId));
+        // Check standard orders
+        let { data: retailOrder } = await supa.from('orders').select('*').eq('id', orderId).single();
+        if (retailOrder) {
+            order = retailOrder;
+        } else {
+            // Check corporate orders
+            let { data: corpOrder } = await supa.from('corporate_orders').select('*').eq('id', orderId).single();
+            order = corpOrder;
+        }
     }
 
-    if (!order) {
-        console.error("Order ID not found in any table:", orderId);
-        return alert("Order not found!");
-    }
-	
-	if (order.school_name) {
-    document.getElementById('receiptMeta').innerHTML += `<p><strong>School:</strong> ${order.school_name}</p>`;
-}
+    if (!order) return alert("Order not found in Database!");
 
-    // ... proceed with filling the branding and table (same logic as before)
+    // 3. Determine Table Type & Fetch Items
+    const isCorporate = order.hasOwnProperty('school_id') || order.hasOwnProperty('corporate_order_id');
+    const itemsTable = isCorporate ? 'corporate_order_items' : 'order_items';
+    const idColumn = isCorporate ? 'corporate_order_id' : 'order_id';
+
+    // Fetch items directly to ensure we have the latest "Fee" values
+    const { data: items, error: itemsError } = await supa
+        .from(itemsTable)
+        .select('*')
+        .eq(idColumn, orderId);
+
+    if (itemsError || !items) return alert("Could not load order items.");
+
+    // 4. Update the Modal UI (Standard branding logic)
+    const branding = window.db.branding || { company_name: "SmartsourcingKe" };
+    document.getElementById('receiptCompanyName').innerText = branding.company_name.toUpperCase();
+    
+    document.getElementById('receiptMeta').innerHTML = `
+        <p><strong>Type:</strong> ${isCorporate ? 'CORPORATE' : 'RETAIL'}</p>
+        <p><strong>Order No:</strong> #${String(order.id).slice(0, 8)}</p>
+        <p><strong>Date:</strong> ${new Date(order.created_at).toLocaleDateString('en-GB')}</p>
+    `;
+
+    // 5. Populate Table (Fixing the blank Fee column)
+    const tbody = document.getElementById('receiptItemsBody');
+    tbody.innerHTML = items.map(item => {
+        const qty = Number(item.quantity || 0);
+        const price = Number(item.price_at_sale || 0);
+        // Look for any variation of the fee column name
+        const fee = Number(item.unit_price_with_fee || item.fee || 0);
+        const total = Number(item.total_price || (qty * price) + fee);
+
+        return `
+            <tr>
+                <td style="padding: 5px 0; border-bottom:1px solid #000;">${item.product_name || 'Product'}</td>
+                <td style="text-align:center; border-bottom:1px solid #000;">${qty}</td>
+                <td style="text-align:center; border-bottom:1px solid #000;">${price.toLocaleString()}</td>
+                <td style="text-align:center; border-bottom:1px solid #000;">${fee.toLocaleString()}</td>
+                <td style="text-align:right; font-weight:bold; border-bottom:1px solid #000;">${total.toLocaleString()}</td>
+            </tr>
+        `;
+    }).join('');
+
+    document.getElementById('receiptGrandTotal').innerText = `TOTAL: KES ${Number(order.total_amount || order.total || 0).toLocaleString()}`;
+
+    // 6. Final Step: Show and Print
+    document.getElementById('receiptModal').classList.remove('hidden');
 }
 
 async function saveCorporateOrder(cart) {
