@@ -9,47 +9,18 @@ window.corporateCart = [];
  */
 async function initApp() {
     console.log("Initializing SmartsourcingKe ERP...");
-    
-    // 1. Fetch current session from Supabase
-    const { data: { session }, error } = await supa.auth.getSession();
-    
-    if (error) {
-        console.error("Session fetch error:", error);
-        return showScreen("loginPage");
+
+    // ONLY restore session (auth.js will handle everything else)
+    if (typeof restoreSession === "function") {
+        await restoreSession();
     }
 
-    if (session) {
-        // Pass the whole session or just the user, but stay consistent
-        await handleAuthSuccess(session);
-    } else {
-        console.log("No session found, redirecting to login.");
-        showScreen("loginPage");
-    }
-
-    // 2. Setup Real-time Listeners (if defined in messages.js)
+    // Setup realtime messaging
     if (typeof subscribeToMessages === "function") {
         subscribeToMessages();
     }
 }
 
-async function handleSignedIn(user) {
-    const { data, error } = await supa
-        .from("users")
-        .select("*")
-        .eq("email", user.email)
-        .single();
-
-    if (error) {
-        console.error("User fetch error:", error);
-        return;
-    }
-
-    window.currentUser = data; // ✅ ONLY SET ONCE
-    console.log("FINAL USER:", window.currentUser);
-
-    await sync();
-    renderAll();
-}
 
 // Change the parameter name to 'session' and extract the user correctly
 async function handleAuthSuccess(session) {
@@ -73,9 +44,6 @@ async function handleAuthSuccess(session) {
         window.currentUser.role = profile.role;
         console.log("Logged in as:", profile.role);
     }
-
-if (window._authHandled) return;
-window._authHandled = true;
 
 }
 
@@ -101,63 +69,6 @@ function showScreen(sectionId) {
 }
 
 
-let authHandled = false;
-
-supa.auth.onAuthStateChange(async (event, session) => {
-    const loginPage = document.getElementById('loginPage');
-    const mainApp = document.getElementById('mainApp');
-
-    console.log("Auth Event Triggered:", event);
-
-    if (session) {
-        const user = session.user;
-
-        try {
-            // Fetch profile data
-            const { data: profile, error } = await supa
-                .from('users')
-                .select('role, full_name')
-                .eq('id', user.id)
-                .single();
-
-            // Set global user
-            window.currentUser = {
-                id: user.id,
-                email: user.email,
-                full_name: profile?.full_name || user.email,
-                role: profile?.role || "staff"
-            };
-
-            console.log("Authenticated as:", window.currentUser.role);
-
-            // UI Swap
-            if (loginPage) loginPage.style.display = 'none';
-            if (mainApp) mainApp.style.display = 'block';
-
-            // Start Sync
-            if (typeof sync === 'function') {
-                console.log("Starting background sync...");
-                await sync(); 
-            }
-
-        } catch (err) {
-            console.error("Auth Profile Error:", err);
-            window.currentUser = { id: user.id, email: user.email, role: 'staff' };
-        }
-    } else {
-        // Handle Logout
-        window.currentUser = null;
-        window.db = {}; 
-        if (loginPage) {
-            loginPage.style.display = 'block';
-            loginPage.classList.remove('hidden');
-        }
-        if (mainApp) {
-            mainApp.style.display = 'none';
-            mainApp.classList.add('hidden');
-        }
-    }
-});
 
 async function checkUserSession() {
     const { data: { user } } = await supa.auth.getUser();
