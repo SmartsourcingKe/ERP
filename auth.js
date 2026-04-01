@@ -1,52 +1,126 @@
+/**
+ * AUTH.JS - FULL REWRITE
+ * Handles Authentication, Role Security, and ID Card Utilities.
+ */
 
+// 1. LOGIN: The Gatekeeper
 async function login() {
-    const email = document.getElementById("loginEmail").value.trim();
-    const password = document.getElementById("loginPassword").value;
+    const email = document.getElementById("loginEmail")?.value.trim();
+    const password = document.getElementById("loginPassword")?.value;
+
+    if (!email || !password) return alert("Please enter email and password");
 
     try {
         const { data, error } = await supa.auth.signInWithPassword({ email, password });
         if (error) throw error;
 
-        // Check the 'Stamp' we just put in the SQL
-        const metaRole = data.user.user_metadata?.role; 
+        // Get the 'Stamp' from Auth Metadata (Our safety net against 500 errors)
+        const metaRole = data.user.user_metadata?.role || 'staff';
 
-        // Try to get the profile, but don't let a 500 error break the role
-const { data: profile, error: profileError } = await supa
-    .from('users')
-    .select('role, full_name')
-    .eq('id', data.user.id)
-    .single();
+        // Attempt to fetch profile
+        const { data: profile, error: profileError } = await supa
+            .from('users')
+            .select('*')
+            .eq('id', data.user.id)
+            .single();
 
-if (profileError) {
-    // If the DB crashes, check the Metadata 'Stamp' we created in SQL
-    const metaRole = data.user.user_metadata?.role;
-    window.currentUser = { 
-        ...data.user, 
-        role: metaRole || 'staff', 
-        full_name: data.user.user_metadata?.full_name || "Admin"
-    };
-} else {
-    window.currentUser = { ...data.user, ...profile };
-}
+        if (profileError) {
+            console.warn("DB Recursion detected. Using Metadata Role fallback.");
+            window.currentUser = { 
+                ...data.user, 
+                role: metaRole, 
+                full_name: data.user.user_metadata?.full_name || email.split('@')[0]
+            };
+        } else {
+            window.currentUser = { ...data.user, ...profile };
+        }
 
-        // Final Safety Check: If they are NOT admin, UI will hide tabs automatically in render()
+        console.log("Logged in as:", window.currentUser.role);
+        
         await sync();
-        showScreen('dashboardPage');
+        
+        // Navigation (Ensure these match your index.html IDs)
+        showScreen('dashboardPage'); 
 
     } catch (err) {
-        alert("Login failed: " + err.message);
+        console.error("Login Error:", err);
+        alert("Login Failed: " + err.message);
     }
 }
 
+// 2. LOGOUT: Clears everything
 async function logout() {
     await supa.auth.signOut();
-    // CRITICAL: Wipe the local database so the next user starts fresh
-    window.db = {}; 
-    window.cart = [];
-    window.corporateCart = [];
+    localStorage.clear();
+    sessionStorage.clear();
+    location.reload(); 
+}
+
+// 3. UTILITY: Generate ID Card PDF
+async function generateIDCard() {
+    const user = window.currentUser;
+    if (!user) return alert("Please log in first");
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: [86, 54] // Standard ID card size
+    });
+
+    // Header Branding
+    doc.setFillColor(20, 20, 20);
+    doc.rect(0, 0, 86, 15, 'F');
     
-    // Force a clean reload to clear memory
-    window.location.reload(); 
+    if (window.db?.branding?.logo_url) {
+        try {
+            const logoImg = await fetchImageAsBase64(window.db.branding.logo_url);
+            doc.addImage(logoImg, 'PNG', 5, 2, 11, 11);
+        } catch (e) { console.warn("Logo skipped"); }
+    }
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(10).setFont(undefined, 'bold');
+    doc.text(window.db?.branding?.company_name || "SmartsourcingKe", 43, 9, { align: "center" });
+
+    // Profile Photo
+    if (user.pic) {
+        try {
+            const photoImg = await fetchImageAsBase64(user.pic);
+            doc.addImage(photoImg, 'JPEG', 5, 20, 25, 25);
+        } catch (e) { console.warn("Photo skipped"); }
+    }
+
+    // Details
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(8).setFont(undefined, 'bold');
+    doc.text("STAFF NAME:", 35, 25);
+    doc.setFont(undefined, 'normal').text(user.full_name || "N/A", 35, 29);
+
+    doc.setFont(undefined, 'bold').text("ROLE:", 35, 36);
+    doc.setFont(undefined, 'normal').text(user.role || "Staff", 35, 40);
+
+    doc.setFont(undefined, 'bold').text("STAFF ID:", 35, 47);
+    doc.setFont(undefined, 'normal').text(String(user.id).slice(0, 8), 35, 51);
+
+    doc.save(`ID_${user.full_name || 'Staff'}.pdf`);
+}
+
+// 4. UTILITY: Image to Base64 Helper
+async function fetchImageAsBase64(url) {
+    try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    } catch (err) {
+        console.error("Image Fetch Error:", err);
+        throw err;
+    }
 }
 
 function handleSignedOut() {
@@ -97,64 +171,6 @@ function showScreen(screen) {
         welcome.innerText = `Welcome, ${window.currentUser.full_name || 'User'}`;
     }
 }
-
-/* ---- Staff ID Generation (Consolidated) ---- */
-
-async function generateUserID(userId) {
-    if (!window.db?.users) return;
-    const user = db.users.find(u => String(u.id) === String(userId));
-    if (!user) return alert("User not found");
-
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: [86, 54] });
-
-    // Background & Design
-    doc.setFillColor(230, 236, 245);
-    doc.rect(0, 0, 86, 54, "F");
-    doc.setDrawColor(100);
-    doc.rect(1, 1, 84, 52);
-
-    // Header Branding
-    if (db.branding?.logo_url) {
-        try {
-            const logoImg = await fetchImageAsBase64(db.branding.logo_url);
-            doc.addImage(logoImg, 'PNG', 5, 4, 18, 10);
-        } catch (e) { console.warn("Logo failed to load for ID"); }
-    }
-
-    doc.setFontSize(8).setFont(undefined, "bold");
-    doc.text(db.branding?.company_name || "Company", 43, 10, { align: "center" });
-
-    // User Photo & Details
-    if (user.pic) {
-        try {
-            const photoImg = await fetchImageAsBase64(user.pic);
-            doc.addImage(photoImg, 'JPEG', 5, 22, 20, 25);
-        } catch (e) { console.warn("Staff photo failed to load for ID"); }
-    }
-
-    doc.setFontSize(7).text("Name:", 35, 22);
-    doc.setFont(undefined, "normal").text(user.full_name || user.email || "User", 35, 26);
-    
-    doc.setFont(undefined, "bold").text("Role:", 35, 34);
-    doc.setFont(undefined, "normal").text(user.role || "Staff", 35, 38);
-    
-    doc.setFont(undefined, "bold").text("Staff ID:", 35, 44);
-    doc.setFont(undefined, "normal").text(String(user.id).slice(0, 8), 35, 48);
-
-    doc.save(`ID_${user.full_name}.pdf`);
-}
-
 // Global Exports
 window.login = login;
 window.logout = logout;
-
-async function checkUserRole() {
-    const { data: { user } } = await supa.auth.getUser();
-    if (user) {
-        const { data: profile } = await supa.from('users').select('role').eq('id', user.id).single();
-        // Update the global user object with the correct role
-        window.currentUser = { ...user, role: profile?.role || 'staff' };
-        console.log("Current User Role:", window.currentUser.role);
-    }
-}
