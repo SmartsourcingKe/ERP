@@ -67,18 +67,48 @@ async function checkUserSession() {
 }
 
 function viewReceipt(orderId) {
-    const modal = document.getElementById("receiptModal");
-    const content = document.getElementById("receiptModalContent");
-    
-    if (modal && content) {
-        // 1. Populate the content first
-        content.innerHTML = generateReceiptHTML(orderId);
-        
-        // 2. Show the modal
-        modal.classList.remove("hidden");
-        
-        console.log("Receipt populated for ID:", orderId);
-    }
+    const order = window.db.orders.find(o => String(o.id) === String(orderId));
+    const items = (window.db.order_items || []).filter(oi => String(oi.order_id) === String(orderId));
+    const branding = window.db.branding || {};
+
+    if (!order) return alert("Order not found!");
+
+    // 1. Fill Branding
+    document.getElementById('receiptCompanyName').innerText = branding.company_name || "SmartsourcingKe";
+    document.getElementById('receiptTagline').innerText = branding.tagline || "";
+    document.getElementById('receiptLogo').src = branding.logo_url || "";
+    document.getElementById('watermarkImg').src = branding.logo_url || "";
+
+    // 2. Fill Meta (Order # and Date)
+    document.getElementById('receiptMeta').innerHTML = `
+        <p><strong>Order No:</strong> #${order.id.slice(0, 8)}</p>
+        <p><strong>Date:</strong> ${new Date(order.created_at).toLocaleDateString('en-GB')}</p>
+    `;
+
+    // 3. Fill Table Body (The 5 Columns)
+    const tbody = document.getElementById('receiptItemsBody');
+    tbody.innerHTML = items.map(item => {
+        const qty = Number(item.quantity ?? 0);
+        const price = Number(item.price_at_sale ?? 0);
+        const fee = Number(item.fee ?? 0);
+        const total = Number(item.total_price ?? (qty * price) + fee);
+
+        return `
+            <tr>
+                <td style="padding: 5px 0;">${item.product_name || 'Item'}</td>
+                <td style="text-align:center;">${qty}</td>
+                <td style="text-align:center;">${price.toLocaleString()}</td>
+                <td style="text-align:center;">${fee.toLocaleString()}</td>
+                <td style="text-align:right; font-weight:bold;">${total.toLocaleString()}</td>
+            </tr>
+        `;
+    }).join('');
+
+    // 4. Fill Grand Total
+    document.getElementById('receiptGrandTotal').innerText = `TOTAL: KES ${Number(order.total_amount ?? 0).toLocaleString()}`;
+
+    // 5. Show Modal
+    document.getElementById('receiptModal').classList.remove('hidden');
 }
 
 function closeReceiptModal() {
@@ -169,5 +199,24 @@ supa.auth.onAuthStateChange(async (event, session) => {
         deferredPrompt = null;
     });
 };
+
+function triggerPrint(orderId) {
+    const content = document.getElementById("receiptModalContent");
+    
+    // 1. Generate the HTML using the function we fixed
+    const receiptHTML = generateReceiptHTML(orderId);
+    
+    // 2. Inject it into the modal
+    if (content) {
+        content.innerHTML = receiptHTML;
+        
+        // 3. Small delay to ensure the browser has rendered the text
+        setTimeout(() => {
+            window.print();
+        }, 250); 
+    } else {
+        console.error("Could not find receiptModalContent element");
+    }
+}
 
 setupInstallLogic();

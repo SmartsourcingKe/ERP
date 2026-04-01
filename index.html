@@ -206,6 +206,33 @@
         width: 80mm !important; /* Forces standard receipt width */
     }
 }
+
+@media print {
+    /* Ensure colors and watermarks appear */
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* Hide everything except the modal content */
+    body > *:not(#receiptModal) {
+        display: none !important;
+    }
+
+    #receiptModal, #receiptModal .modal-content {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 80mm !important; /* Proper Thermal Width */
+        box-shadow: none !important;
+        border: none !important;
+        visibility: visible !important;
+    }
+
+    .no-print {
+        display: none !important;
+    }
+}
     </style>
 </head>
 <body>
