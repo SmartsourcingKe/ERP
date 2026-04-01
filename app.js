@@ -68,7 +68,9 @@ function showScreen(sectionId) {
     }
 }
 
-
+if (typeof applyPermissions === "function") {
+    applyPermissions();
+}
 
 async function checkUserSession() {
     const { data: { user } } = await supa.auth.getUser();
