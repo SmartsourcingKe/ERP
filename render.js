@@ -573,17 +573,11 @@ function applyReceiptBranding() {
 }
 
 function generateReceiptHTML(orderId) {
-    // 1. Double check the data source
-    if (!window.db || !window.db.orders) {
-        console.error("Database not initialized");
-        return "Error: System not ready";
-    }
-
+    // Force both to strings to ensure a match
     const order = window.db.orders.find(o => String(o.id) === String(orderId));
     const items = (window.db.order_items || []).filter(oi => String(oi.order_id) === String(orderId));
 
-    if (!order) {
-        console.error("Order ID not found in window.db.orders:", orderId);
+    if (!order) return "<p>Order data not found.</p>";
         return "Order Not Found";
     }
 
@@ -606,14 +600,14 @@ function generateReceiptHTML(orderId) {
             </thead>
             <tbody>
                 ${items.map(item => `
-                    <tr>
-                        <td>${item.product_name || 'Item'}</td>
-                        <td align="center">${item.quantity || 0}</td>
-                        <td align="right">${(item.unit_price || item.price || 0).toLocaleString()}</td>
-                        <td align="right">${(item.fee || 0).toLocaleString()}</td>
-                        <td align="right"><strong>${(item.total_price || 0).toLocaleString()}</strong></td>
-                    </tr>
-                `).join('')}
+    <tr>
+        <td>${item.product_name || 'Unknown Item'}</td>
+        <td align="center">${item.quantity || 0}</td>
+        <td align="right">${(item.price_at_sale || item.price || 0).toLocaleString()}</td>
+        <td align="right">${(item.fee || 0).toLocaleString()}</td>
+        <td align="right"><strong>${(item.total_price || 0).toLocaleString()}</strong></td>
+    </tr>
+`).join('')}
             </tbody>
         </table>
 

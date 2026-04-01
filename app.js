@@ -66,28 +66,18 @@ async function checkUserSession() {
     }
 }
 
-function viewReceipt(id, type = 'retailer') {
+function viewReceipt(orderId) {
     const modal = document.getElementById("receiptModal");
-    if (!modal) return;
-
-    modal.classList.remove("hidden");
-    modal.style.display = 'block';
-
-    // ✅ ADD THIS LINE HERE:
-    if (typeof applyReceiptBranding === 'function') applyReceiptBranding();
-
-    modal.classList.remove("hidden");
-    modal.style.display = 'block';
-
-    if (type === 'corporate') {
-        // Logic from your corporateOrders.js
-        renderCorporateReceipt(id); 
-    } else if (type === 'payroll') {
-        // Logic from your payroll.js
-        viewPayrollReceipt(id);
-    } else {
-        // Standard Retail Receipt from retailerOrders.js
-        renderReceipt(id);
+    const content = document.getElementById("receiptModalContent");
+    
+    if (modal && content) {
+        // 1. Populate the content first
+        content.innerHTML = generateReceiptHTML(orderId);
+        
+        // 2. Show the modal
+        modal.classList.remove("hidden");
+        
+        console.log("Receipt populated for ID:", orderId);
     }
 }
 
