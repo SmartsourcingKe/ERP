@@ -349,56 +349,59 @@ function previewIDCard(userId) {
     document.getElementById("idCardModal").classList.remove("hidden");
 }
 
-async function renderReceipt(orderId) {
-    const b = window.db?.branding || {};
-	const header = `
-	  <div style="text-align:center;">
-		${b.logo_url ? `<img src="${b.logo_url}" height="60">` : ""}
-		<h2>${b.company_name || "My Company"}</h2>
-		<p>${b.tagline || ""}</p>
-	  </div>
-	`;
-	const order = window.db.orders?.find(o => o.id === orderId);
-    if (!order) return;
+function renderReceipt(orderId) {
+    const order = window.db.orders.find(o => o.id === orderId);
+    const items = window.db.order_items.filter(oi => oi.order_id === orderId);
+    const branding = window.db.branding || { company_name: "SmartsourcingKe" };
 
-    try {
-        // Fetch items specifically for this order
-        const { data: items, error } = await supa.from('order_items').select('*').eq('order_id', orderId);
-        if (error) throw error;
+    if (!order) return "Order not found";
 
-        const itemsBody = document.getElementById("receiptItemsBody");
-        if (!itemsBody) return;
-
-        itemsBody.innerHTML = items.map(item => {
-            const product = window.db.products?.find(p => p.id === item.product_id);
-            const price = Number(item.price_at_sale || 0);
-            const fee = product ? Number(product.company_fee || 0) : 0;
-            
-            return `
-                <tr>
-                    <td>${product ? product.name : 'Unknown Product'}</td>
-                    <td style="text-align:center;">${item.quantity}</td>
-                    <td style="text-align:center;">${(price - fee).toLocaleString()}</td>
-                    <td style="text-align:center;">${fee.toLocaleString()}</td>
-                    <td style="text-align:right;">${(item.quantity * price).toLocaleString()}</td>
-                </tr>`;
-        }).join("");
-
+    return `
+    <div id="printableReceipt" class="receipt-font">
+        <div class="receipt-header">
+            <h2 class="company-name">${branding.company_name.toUpperCase()}</h2>
+            <p class="tagline">${branding.tagline || 'Nunua Kibasi. Digify Your Hustle'}</p>
+            <hr class="receipt-divider">
+        </div>
         
-        document.getElementById("receiptMeta").innerHTML = `
+        <div class="receipt-info">
             <p><strong>Order No:</strong> #${order.id.slice(0, 8)}</p>
-            <p><strong>Date:</strong> ${new Date(order.created_at).toLocaleDateString()}</p>
-        `;
-    } catch (err) {
-        console.error("Receipt Error:", err);
-    }
+            <p><strong>Date:</strong> ${new Date(order.created_at).toLocaleDateString('en-GB')}</p>
+        </div>
 
+        <table class="receipt-table">
+            <thead>
+                <tr>
+                    <th class="text-left">ITEM</th>
+                    <th class="text-center">QTY</th>
+                    <th class="text-right">PRICE</th>
+                    <th class="text-right">FEE</th>
+                    <th class="text-right">TOTAL</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${items.map(item => `
+                    <tr>
+                        <td class="item-name">${item.product_name}</td>
+                        <td class="text-center">${item.quantity}</td>
+                        <td class="text-right">${item.unit_price.toLocaleString()}</td>
+                        <td class="text-right">${(item.fee || 0).toLocaleString()}</td>
+                        <td class="text-right font-bold">${item.total_price.toLocaleString()}</td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
 
-        // 4. Grand Total
-        document.getElementById("receiptGrandTotal").textContent = `TOTAL: KES ${Number(order.total).toLocaleString()}`;
-
-    }
-
+        <div class="receipt-footer">
+            <hr class="receipt-divider">
+            <div class="total-row">
+                <span>TOTAL:</span>
+                <span>KES ${order.total_amount.toLocaleString()}</span>
+            </div>
+            <p class="thank-you text-center">Asante for shopping with us!</p>
+        </div>
+    </div>`;
+}
 
 function renderOrders() {
     const tbody = document.getElementById("ordersBody");
@@ -572,3 +575,59 @@ function applyReceiptBranding() {
     }
 }
 
+function generateReceiptHTML(orderId) {
+    const order = window.db.orders.find(o => o.id === orderId);
+    const items = window.db.order_items.filter(oi => oi.order_id === orderId);
+    const brand = window.db.branding || { company_name: "SmartsourcingKe" };
+
+    if (!order) return "Order not found";
+
+    return `
+    <div id="receiptContainer">
+        <div style="text-align:center; margin-bottom:10px;">
+            <h2 style="margin:0; font-size:16px;">${brand.company_name.toUpperCase()}</h2>
+            <p style="margin:0; font-size:10px; font-style:italic;">${brand.tagline || ''}</p>
+            <div style="border-top:1px dashed #000; margin:5px 0;"></div>
+        </div>
+
+        <div style="font-size:11px; margin-bottom:10px;">
+            <p style="margin:2px 0;">Order: #${order.id.slice(0,8)}</p>
+            <p style="margin:2px 0;">Date: ${new Date(order.created_at).toLocaleDateString('en-GB')}</p>
+        </div>
+
+        <table class="receipt-table">
+            <thead>
+                <tr>
+                    <th align="left">ITEM</th>
+                    <th align="center">QTY</th>
+                    <th align="right">PRICE</th>
+                    <th align="right">FEE</th>
+                    <th align="right">TOTAL</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${items.map(item => `
+                    <tr>
+                        <td style="max-width:25mm; overflow:hidden;">${item.product_name}</td>
+                        <td align="center">${item.quantity}</td>
+                        <td align="right">${(item.unit_price || 0).toLocaleString()}</td>
+                        <td align="right">${(item.fee || 0).toLocaleString()}</td>
+                        <td align="right" style="font-weight:bold;">${item.total_price.toLocaleString()}</td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+
+        <div style="border-top:1px dashed #000; margin:10px 0;"></div>
+        
+        <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:13px;">
+            <span>TOTAL AMOUNT:</span>
+            <span>KES ${order.total_amount.toLocaleString()}</span>
+        </div>
+
+        <div style="text-align:center; margin-top:15px; font-size:10px;">
+            <p>Thank you for choosing ${brand.company_name}!</p>
+            <p>*** Customer Copy ***</p>
+        </div>
+    </div>`;
+}
