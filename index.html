@@ -233,6 +233,39 @@
         display: none !important;
     }
 }
+
+@media print {
+    /* 1. Hide the entire ERP Dashboard */
+    body * {
+        visibility: hidden !important;
+    }
+
+    /* 2. Show ONLY the receipt modal and its children */
+    #receiptModal, #receiptModal * {
+        visibility: visible !important;
+    }
+
+    /* 3. Position the receipt at the very top-left of the paper */
+    #receiptModal {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    /* 4. Hide the "Print Receipt" and "Close" buttons from the paper */
+    .no-print {
+        display: none !important;
+    }
+
+    /* 5. Ensure the watermark and logo print correctly */
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+}
     </style>
 </head>
 <body>
@@ -601,7 +634,7 @@
         </div>
 
         <div class="no-print" style="margin-top:20px; text-align:center;">
-            <button class="btn btn-blue" onclick="window.print()">Print Receipt</button>
+            <button class="btn btn-blue no-print" onclick="printReceiptNow()">Print Receipt</button>
             <button class="btn btn-red" onclick="document.getElementById('receiptModal').classList.add('hidden')">Close</button>
         </div>
     </div>

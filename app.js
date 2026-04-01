@@ -86,20 +86,22 @@ function viewReceipt(orderId) {
     `;
 
     // 3. Fill Table Body (The 5 Columns)
+    // Update the tbody mapping inside your viewReceipt function
     const tbody = document.getElementById('receiptItemsBody');
     tbody.innerHTML = items.map(item => {
         const qty = Number(item.quantity ?? 0);
         const price = Number(item.price_at_sale ?? 0);
         const fee = Number(item.fee ?? 0);
-        const total = Number(item.total_price ?? (qty * price) + fee);
+        // Total should be (Qty * Price) + Fee
+        const total = (qty * price) + fee;
 
         return `
             <tr>
-                <td style="padding: 5px 0;">${item.product_name || 'Item'}</td>
-                <td style="text-align:center;">${qty}</td>
-                <td style="text-align:center;">${price.toLocaleString()}</td>
-                <td style="text-align:center;">${fee.toLocaleString()}</td>
-                <td style="text-align:right; font-weight:bold;">${total.toLocaleString()}</td>
+                <td style="padding: 5px 0; border-bottom:1px solid #eee;">${item.product_name || 'Item'}</td>
+                <td style="text-align:center; border-bottom:1px solid #eee;">${qty}</td>
+                <td style="text-align:center; border-bottom:1px solid #eee;">${price.toLocaleString()}</td>
+                <td style="text-align:center; border-bottom:1px solid #eee;">${fee.toLocaleString()}</td>
+                <td style="text-align:right; font-weight:bold; border-bottom:1px solid #eee;">${total.toLocaleString()}</td>
             </tr>
         `;
     }).join('');
@@ -219,4 +221,15 @@ function triggerPrint(orderId) {
     }
 }
 
+function printReceiptNow() {
+    // Ensure the modal is not hidden before printing
+    const modal = document.getElementById('receiptModal');
+    if (modal.classList.contains('hidden')) {
+        console.error("Cannot print a hidden receipt.");
+        return;
+    }
+
+    // Trigger the print
+    window.print();
+}
 setupInstallLogic();

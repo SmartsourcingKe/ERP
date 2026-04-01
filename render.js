@@ -493,26 +493,6 @@ function renderMessages() {
 }
 
 
-function viewReceipt(id, type = 'retailer') {
-    const modal = document.getElementById("receiptModal");
-    if (!modal) return;
-
-    modal.classList.remove("hidden");
-    modal.style.display = 'block';
-
-    // Apply Branding (Logo, Name, Watermark) immediately
-    applyReceiptBranding();
-
-    // Now populate the specific data
-    if (type === 'corporate') {
-        renderCorporateReceipt(id);
-    } else if (type === 'payroll') {
-        if (typeof viewPayrollReceipt === 'function') viewPayrollReceipt(id);
-    } else {
-        renderReceipt(id);
-    }
-}
-
 function closeReceiptModal() {
     document.getElementById("receiptModal").classList.add("hidden");
     document.getElementById("receiptModal").style.display = "none";
