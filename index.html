@@ -150,122 +150,42 @@
 }
 
 @media print {
-    /* 1. Kill everything except the receipt container */
-    body * {
-        visibility: hidden !important;
-    }
-
-    #receiptModal, #receiptModal *, #receiptContainer, #receiptContainer * {
-        visibility: visible !important;
-    }
-
-    /* 2. Position receipt for thermal paper (80mm) */
-    #receiptModal, #receiptContainer {
-        position: absolute !important;
-        left: 0 !important;
-        top: 0 !important;
-        width: 80mm !important; 
-        background: white !important;
-        padding: 2mm !important;
-        margin: 0 !important;
-    }
-
-    /* 3. Five-Column Table Optimization */
-    .receipt-table {
-        width: 100% !important;
-        border-collapse: collapse !important;
-        font-family: 'Courier New', Courier, monospace !important;
-        font-size: 10px !important; /* Slightly smaller to fit 5 columns */
-        color: black !important;
-    }
-
-    .receipt-table th, .receipt-table td {
-        border-bottom: 0.5pt solid #000 !important;
-        padding: 4px 1px !important;
-    }
-
-    /* 4. Hide UI Elements */
-    .btn, .no-print, button, #appBgWatermark, .modal-footer {
-        display: none !important;
-    }
-
-    /* 5. Clean Page Settings */
-    @page {
-        margin: 0;
-        size: auto;
-    }
-}
-
-@media print {
-    /* Hide the entire dashboard so only the receipt is visible to the printer */
-    body > *:not(#receiptModalContent) {
-        display: none !important;
-    }
-    #receiptModalContent {
-        display: block !important;
-        width: 80mm !important; /* Forces standard receipt width */
-    }
-}
-
-@media print {
-    /* Ensure colors and watermarks appear */
-    * {
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-    }
-
-    /* Hide everything except the modal content */
+    /* 1. Hide everything on the screen except the receipt modal */
     body > *:not(#receiptModal) {
         display: none !important;
     }
 
-    #receiptModal, #receiptModal .modal-content {
-        position: absolute !important;
-        left: 0 !important;
-        top: 0 !important;
-        width: 80mm !important; /* Proper Thermal Width */
-        box-shadow: none !important;
-        border: none !important;
-        visibility: visible !important;
-    }
-
-    .no-print {
-        display: none !important;
-    }
-}
-
-@media print {
-    /* 1. Hide the entire ERP Dashboard */
-    body * {
-        visibility: hidden !important;
-    }
-
-    /* 2. Show ONLY the receipt modal and its children */
-    #receiptModal, #receiptModal * {
-        visibility: visible !important;
-    }
-
-    /* 3. Position the receipt at the very top-left of the paper */
+    /* 2. Reset the Modal for paper */
     #receiptModal {
         position: absolute !important;
         left: 0 !important;
         top: 0 !important;
         width: 100% !important;
-        margin: 0 !important;
-        padding: 0 !important;
+        display: block !important;
+        background: white !important;
     }
 
-    /* 4. Hide the "Print Receipt" and "Close" buttons from the paper */
-    .no-print {
+    #receiptModal .modal-content {
+        width: 80mm !important; /* Standard Thermal Width */
+        margin: 0 !important;
+        padding: 5mm !important;
+        box-shadow: none !important;
+        border: none !important;
+    }
+
+    /* 3. Hide the buttons so they don't print on the paper */
+    .no-print, .btn, button {
         display: none !important;
     }
 
-    /* 5. Ensure the watermark and logo print correctly */
-    * {
+    /* 4. Ensure the Logo and Watermark actually print */
+    #receiptLogo, #watermarkImg {
+        display: block !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
     }
 }
+
     </style>
 </head>
 <body>

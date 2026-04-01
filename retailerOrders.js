@@ -208,12 +208,14 @@ async function viewReceipt(orderId) {
             const product = (window.db.products || []).find(p => p.id === item.product_id);
             return `
                 <tr>
-                    <td>${product ? product.name : 'Unknown Product'}</td>
-                    <td style="text-align:center;">${item.quantity}</td>
-                    <td style="text-align:right;">${Number(item.price_at_time).toLocaleString()}</td>
-                    <td style="text-align:right;">${(item.quantity * item.price_at_time).toLocaleString()}</td>
-                </tr>`;
-        }).join("");
+            <td style="padding: 5px 0; border-bottom:1px solid #000;">${item.product_name || 'Item'}</td>
+            <td style="text-align:center; border-bottom:1px solid #000;">${qty}</td>
+            <td style="text-align:center; border-bottom:1px solid #000;">${price.toLocaleString()}</td>
+            <td style="text-align:center; border-bottom:1px solid #000;">${fee.toLocaleString()}</td>
+            <td style="text-align:right; font-weight:bold; border-bottom:1px solid #000;">${total.toLocaleString()}</td>
+        </tr>
+    `;
+}).join('');
 
         document.getElementById("receiptItemsBody").innerHTML = itemsHtml;
         document.getElementById("receiptGrandTotal").textContent = `TOTAL: KES ${Number(order.total).toLocaleString()}`;
