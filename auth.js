@@ -81,19 +81,6 @@ async function logout() {
     location.reload();
 }
 
-
-
-// 🔥 RESTORE SESSION (ONLY ON LOAD, NO DUPLICATION)
-async function restoreSession() {
-    const { data } = await supa.auth.getSession();
-
-    if (data?.session) {
-        await handleSignedIn(data.session);
-    }
-}
-
-
-// UI RESET
 function handleSignedOut() {
     document.getElementById("dashboard")?.classList.add("hidden");
     document.getElementById("loginPage")?.classList.remove("hidden");
