@@ -21,33 +21,6 @@ async function initApp() {
     }
 }
 
-
-// Change the parameter name to 'session' and extract the user correctly
-async function handleAuthSuccess(session) {
-    if (!session || !session.user) return;
-    
-    // Set global user
-    window.currentUser = session.user;
-
-    // Fetch the role from the 'users' table specifically
-    const { data: profile, error } = await supa
-        .from('users')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
-
-    if (error || !profile) {
-        console.error("Profile fetch error:", error);
-        // If profile doesn't exist, we can't be admin
-        window.currentUser.role = 'staff'; 
-    } else {
-        window.currentUser.role = profile.role;
-        console.log("Logged in as:", profile.role);
-    }
-
-}
-
-
 /**
  * UI NAVIGATION
  */

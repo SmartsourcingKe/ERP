@@ -59,7 +59,9 @@ async function handleSignedIn(session) {
 
         console.log("User ready:", window.currentUser);
 
-        applyPermissions();
+        if (typeof applyPermissions === "function") {
+    applyPermissions();
+}
         await sync();
 
         showScreen('dashboardPage');
