@@ -3,37 +3,44 @@
  * Creates Auth account and database profile for immediate login
  */
 async function addEmployee() {
-    const email = document.getElementById("empEmail").value.trim();
-    const password = document.getElementById("empPassword").value;
-    const fullName = document.getElementById("empFullName").value;
-    const role = document.getElementById("empRole").value;
-    const salary = document.getElementById("empSalary") ? document.getElementById("empSalary").value : 0;
-    const photoFile = document.getElementById("empPhoto").files[0];
+    // 1. Safely grab elements
+    const emailEl = document.getElementById("empEmail");
+    const passEl = document.getElementById("empPassword");
+    const nameEl = document.getElementById("empFullName");
+    const roleEl = document.getElementById("empRole");
+    const salaryEl = document.getElementById("empSalary");
+    const photoEl = document.getElementById("empPhoto");
 
-    if (!email || !password || !fullName) return alert("Please fill in all fields.");
+    // 2. Validate required text fields
+    if (!emailEl?.value || !passEl?.value || !nameEl?.value) {
+        return alert("Please fill in Email, Password, and Full Name.");
+    }
+
+    const email = emailEl.value.trim();
+    const password = passEl.value;
+    const fullName = nameEl.value;
+    const role = roleEl ? roleEl.value : "staff";
+    const salary = salaryEl ? parseFloat(salaryEl.value) : 0;
+
+    // 3. Safely handle the photo (This was causing your null error)
+    const photoFile = (photoEl && photoEl.files && photoEl.files.length > 0) ? photoEl.files[0] : null;
 
     try {
-       
-const { data: authData, error: authError } = await supa.auth.signUp({ 
-    email, 
-    password,
-    options: {
-        
-        data: {
-            full_name: fullName,
-            role: role 
-        }
-    }
-});
+        // Step A: Create Auth User
+        const { data: authData, error: authError } = await supa.auth.signUp({
+            email,
+            password,
+            options: { data: { full_name: fullName, role: role } }
+        });
 
         if (authError) throw authError;
         const newUserId = authData.user.id;
 
-        // 2. Upload Profile Photo (Optional)
+        // Step B: Upload Photo if it exists
         let photoUrl = "";
         if (photoFile && newUserId) {
             const fileExt = photoFile.name.split('.').pop();
-            const fileName = `${newUserId}-${Math.random()}.${fileExt}`;
+            const fileName = `${newUserId}-${Date.now()}.${fileExt}`;
             const { error: uploadError } = await supa.storage
                 .from('profiles')
                 .upload(fileName, photoFile);
@@ -44,7 +51,7 @@ const { data: authData, error: authError } = await supa.auth.signUp({
             }
         }
 
-        // 3. Create the Database Profile (CRITICAL for login)
+        // Step C: Insert into Public Users Table
         const { error: profileError } = await supa
             .from("users")
             .insert([{
@@ -52,23 +59,26 @@ const { data: authData, error: authError } = await supa.auth.signUp({
                 email: email,
                 full_name: fullName,
                 role: role,
-                salary: parseFloat(salary),
+                salary: salary,
                 pic: photoUrl
             }]);
 
         if (profileError) throw profileError;
 
-        alert(`Employee ${fullName} created! They can now log in.`);
+        alert(`Employee ${fullName} created successfully!`);
         
-        // Clear form and refresh UI
-        document.getElementById("empEmail").value = "";
-        document.getElementById("empPassword").value = "";
+        // Reset form
+        emailEl.value = "";
+        passEl.value = "";
+        nameEl.value = "";
+        if (photoEl) photoEl.value = "";
+
         await sync(); 
         if (typeof renderAll === "function") renderAll();
 
     } catch (err) {
-        console.error(err);
-        alert("Creation failed: " + err.message);
+        console.error("Employee Creation Error:", err);
+        alert("Failed: " + err.message);
     }
 }
 
