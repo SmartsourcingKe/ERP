@@ -185,22 +185,24 @@ async function viewReceipt(orderId) {
 
  
     if (!order) {
-        const tables = ['orders', 'corporate_orders'];
-        for (const table of tables) {
-            const { data } = await supa.from(table).select('*').eq('id', orderId).maybeSingle();
-            if (data) { order = data; break; }
+        console.log("Fetching order from Supabase...");
+        let { data: retail } = await supa.from('orders').select('*').eq('id', orderId).maybeSingle();
+        order = retail;
+        if (!order) {
+            let { data: corp } = await supa.from('corporate_orders').select('*').eq('id', orderId).maybeSingle();
+            order = corp;
         }
     }
 
-    if (!order) return alert("Order not found in memory or database!");
+    if (!order) return alert("Order not found!");
 
     
-    const isCorporate = order.hasOwnProperty('school_id') || order.hasOwnProperty('grade'); 
+    const isCorporate = order.hasOwnProperty('school_id'); 
     const itemsTable = isCorporate ? 'corporate_order_items' : 'order_items';
     const idColumn = isCorporate ? 'corporate_order_id' : 'order_id';
 
 
-    const { data: items } = await supa.from(itemsTable).select('*').eq(idCol, orderId);
+    const { data: items, error } = await supa.from(itemsTable).select('*').eq(idColumn, orderId);
     if (error || !items) return alert("Could not load items.");
 
     // 5. Update UI Branding
@@ -242,7 +244,8 @@ async function viewReceipt(orderId) {
     document.getElementById('receiptGrandTotal').innerText = `TOTAL: KES ${Number(grandTotal).toLocaleString()}`;
 
     // 9. Show Modal
-    const modal = document.getElementById('receiptModal').classList.remove('hidden');
+    const modal = document.getElementById('receiptModal');
+    modal.classList.remove('hidden');
     modal.style.display = 'flex';
 }
 
