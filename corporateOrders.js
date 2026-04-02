@@ -178,56 +178,53 @@ async function addSchool() {
 }
 
 async function viewReceipt(orderId) {
-    // 1. Try to find in memory (Check both Retail and Corporate)
+    // 1. Find Order in memory (checks both Retail and Corporate)
     let order = (window.db.orders || []).find(o => String(o.id) === String(orderId)) || 
                 (window.db.corporate_orders || []).find(o => String(o.id) === String(orderId));
 
-    // 2. FALLBACK: Fetch directly from Supabase if memory is behind
+    // 2. Fallback: Fetch directly from Supabase if not in memory
     if (!order) {
-        console.log("Order not in memory, fetching from Supabase...");
-        let { data: retail } = await supa.from('orders').select('*').eq('id', orderId).single();
+        console.log("Fetching order from Supabase...");
+        let { data: retail } = await supa.from('orders').select('*').eq('id', orderId).maybeSingle();
         order = retail;
-        
         if (!order) {
-            let { data: corp } = await supa.from('corporate_orders').select('*').eq('id', orderId).single();
+            let { data: corp } = await supa.from('corporate_orders').select('*').eq('id', orderId).maybeSingle();
             order = corp;
         }
     }
 
-    if (!order) return alert("Order not found in Database!");
+    if (!order) return alert("Order not found!");
 
-    // 3. Identify if it is Corporate (Corporate orders use 'school_id' or 'total' column)
-    // Note: your corporate table uses 'total' while retail uses 'total_amount'
-    const isCorporate = order.hasOwnProperty('school_id');
+    // 3. Determine if Corporate or Retail
+    const isCorporate = order.hasOwnProperty('school_id'); 
     const itemsTable = isCorporate ? 'corporate_order_items' : 'order_items';
     const idColumn = isCorporate ? 'corporate_order_id' : 'order_id';
 
-    // 4. Fetch the specific items
-    const { data: items, error: itemsError } = await supa
-        .from(itemsTable)
-        .select('*')
-        .eq(idColumn, orderId);
+    // 4. Fetch Items
+    const { data: items, error } = await supa.from(itemsTable).select('*').eq(idColumn, orderId);
+    if (error || !items) return alert("Could not load items.");
 
-    if (itemsError || !items) return alert("Could not load receipt items.");
-
-    // 5. Fill Branding & Meta
+    // 5. Update UI Branding
     const branding = window.db.branding || { company_name: "SmartsourcingKe" };
     document.getElementById('receiptCompanyName').innerText = branding.company_name.toUpperCase();
     document.getElementById('receiptLogo').src = branding.logo_url || "";
     document.getElementById('watermarkImg').src = branding.logo_url || "";
 
+    // 6. Update Meta Information
     document.getElementById('receiptMeta').innerHTML = `
         <p><strong>Type:</strong> ${isCorporate ? 'CORPORATE' : 'RETAIL'}</p>
         <p><strong>Order No:</strong> #${String(order.id).slice(0, 8)}</p>
         <p><strong>Date:</strong> ${new Date(order.created_at).toLocaleDateString('en-GB')}</p>
     `;
 
-    // 6. Fill Table Body (Fixes the blank Fee column)
+    // 7. Render Items Table (Handles different column names)
     const tbody = document.getElementById('receiptItemsBody');
     tbody.innerHTML = items.map(item => {
         const qty = Number(item.quantity || item.student_count || 0);
         const price = Number(item.price_at_sale || item.price_per_student || 0);
         const fee = Number(item.unit_price_with_fee || item.fee || 0);
+        
+        // Use database subtotal or calculate it manually
         const total = Number(item.total_price || item.subtotal || (qty * price) + fee);
 
         return `
@@ -237,17 +234,17 @@ async function viewReceipt(orderId) {
                 <td style="text-align:center; border-bottom:1px solid #000;">${price.toLocaleString()}</td>
                 <td style="text-align:center; border-bottom:1px solid #000;">${fee.toLocaleString()}</td>
                 <td style="text-align:right; font-weight:bold; border-bottom:1px solid #000;">${total.toLocaleString()}</td>
-            </tr>
-        `;
+            </tr>`;
     }).join('');
 
-    // 7. Grand Total (Corporate uses .total, Retail uses .total_amount)
+    // 8. Final Grand Total
     const grandTotal = order.total || order.total_amount || 0;
     document.getElementById('receiptGrandTotal').innerText = `TOTAL: KES ${Number(grandTotal).toLocaleString()}`;
 
-    // 8. Show Modal
-    document.getElementById('receiptModal').classList.remove('hidden');
-    document.getElementById('receiptModal').style.display = 'flex';
+    // 9. Show Modal
+    const modal = document.getElementById('receiptModal');
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
 }
 
 async function saveCorporateOrder(cart) {
