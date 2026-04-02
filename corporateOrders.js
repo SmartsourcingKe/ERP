@@ -178,30 +178,29 @@ async function addSchool() {
 }
 
 async function viewReceipt(orderId) {
-    // 1. Find Order in memory (checks both Retail and Corporate)
+    
     let order = (window.db.orders || []).find(o => String(o.id) === String(orderId)) || 
-                (window.db.corporate_orders || []).find(o => String(o.id) === String(orderId));
+                (window.db.corporate_orders || []).find(o => String(o.id) === String(orderId)) ||
+                (window.db.retailer_orders || []).find(o => String(o.id) === String(orderId));
 
-    // 2. Fallback: Fetch directly from Supabase if not in memory
+ 
     if (!order) {
-        console.log("Fetching order from Supabase...");
-        let { data: retail } = await supa.from('orders').select('*').eq('id', orderId).maybeSingle();
-        order = retail;
-        if (!order) {
-            let { data: corp } = await supa.from('corporate_orders').select('*').eq('id', orderId).maybeSingle();
-            order = corp;
+        const tables = ['orders', 'corporate_orders'];
+        for (const table of tables) {
+            const { data } = await supa.from(table).select('*').eq('id', orderId).maybeSingle();
+            if (data) { order = data; break; }
         }
     }
 
-    if (!order) return alert("Order not found!");
+    if (!order) return alert("Order not found in memory or database!");
 
-    // 3. Determine if Corporate or Retail
-    const isCorporate = order.hasOwnProperty('school_id'); 
+    
+    const isCorporate = order.hasOwnProperty('school_id') || order.hasOwnProperty('grade'); 
     const itemsTable = isCorporate ? 'corporate_order_items' : 'order_items';
     const idColumn = isCorporate ? 'corporate_order_id' : 'order_id';
 
-    // 4. Fetch Items
-    const { data: items, error } = await supa.from(itemsTable).select('*').eq(idColumn, orderId);
+
+    const { data: items } = await supa.from(itemsTable).select('*').eq(idCol, orderId);
     if (error || !items) return alert("Could not load items.");
 
     // 5. Update UI Branding
@@ -220,12 +219,13 @@ async function viewReceipt(orderId) {
     // 7. Render Items Table (Handles different column names)
     const tbody = document.getElementById('receiptItemsBody');
     tbody.innerHTML = items.map(item => {
-        const qty = Number(item.quantity || item.student_count || 0);
-        const price = Number(item.price_at_sale || item.price_per_student || 0);
-        const fee = Number(item.unit_price_with_fee || item.fee || 0);
+        const qty = Number(item.quantity || item.qty || 0);
+		let price = Number(item.price_at_sale || item.price || 0);
+		let fee = Number(item.unit_price_with_fee || item.fee || 0);
         
         // Use database subtotal or calculate it manually
-        const total = Number(item.total_price || item.subtotal || (qty * price) + fee);
+        const total = item.total_price || (qty * price) + fee;
+		const displayFee = fee > 0 ? fee : 0;
 
         return `
             <tr>
@@ -242,8 +242,7 @@ async function viewReceipt(orderId) {
     document.getElementById('receiptGrandTotal').innerText = `TOTAL: KES ${Number(grandTotal).toLocaleString()}`;
 
     // 9. Show Modal
-    const modal = document.getElementById('receiptModal');
-    modal.classList.remove('hidden');
+    const modal = document.getElementById('receiptModal').classList.remove('hidden');
     modal.style.display = 'flex';
 }
 
