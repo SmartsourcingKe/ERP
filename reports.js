@@ -157,16 +157,3 @@ if (sales > 100000) {
 
     doc.save("Staff_Performance.pdf");
 }
-
-function printReceipt() {
-    const receiptContent = document.getElementById('receiptContainer').innerHTML;
-    const originalContent = document.body.innerHTML;
-
-    // Temporarily replace body with only receipt content
-    document.body.innerHTML = receiptContent;
-    window.print();
-    
-    // Restore original app content
-    document.body.innerHTML = originalContent;
-    window.location.reload(); // Re-binds JS events
-}
