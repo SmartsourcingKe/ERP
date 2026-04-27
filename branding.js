@@ -152,25 +152,14 @@ function applyBranding(brand) {
 
 function applyReceiptBranding() {
     const branding = window.db?.branding || {};
+    // Ensure the receipt uses the same branding as the dashboard
+    const nameEl = document.getElementById("receiptCompanyName");
+    if (nameEl) nameEl.innerText = (branding.company_name || "SmartsourcingKe").toUpperCase();
 
-    // Safely update company name and tagline
-    const companyEl = document.getElementById("receiptCompanyName");
-    if (companyEl) companyEl.innerText = branding.company_name || "SmartsourcingKe";
-
-    const taglineEl = document.getElementById("receiptTagline");
-    if (taglineEl) taglineEl.innerText = branding.tagline || "";
-
-    // Safely update logo and watermark
-    const logo = document.getElementById("receiptLogo");
-    const watermark = document.getElementById("watermarkImg");
-
-    if (branding.logo_url) {
-        if (logo) logo.src = branding.logo_url;
-        if (watermark) watermark.src = branding.logo_url;
-    } else {
-        // Optional: clear images if logo_url not defined
-        if (logo) logo.src = "";
-        if (watermark) watermark.src = "";
+    const logoEl = document.getElementById("receiptLogo");
+    if (logoEl && branding.logo_url) {
+        logoEl.src = branding.logo_url;
+        logoEl.style.display = "block";
     }
 }
 

@@ -352,49 +352,114 @@ function previewIDCard(userId) {
 function renderReceipt(orderId) {
     const order = window.db.orders.find(o => String(o.id) === String(orderId));
     const items = (window.db.order_items || []).filter(oi => String(oi.order_id) === String(orderId));
-    const branding = window.db.branding || { company_name: "SmartsourcingKe" };
+    const branding = window.db.branding || {};
 
     if (!order) return "Order not found";
 
     return `
-    <div id="printableReceipt" class="receipt-font">
-        <div class="receipt-header" style="text-align:center;">
-            <h2 class="company-name">${(branding.company_name || "ERP").toUpperCase()}</h2>
-            <hr style="border-top: 1px dashed #000;">
-        </div>
-        
-        <table class="receipt-table" style="width:100%; font-size:10px;">
-            <thead>
-                <tr>
-                    <th align="left">ITEM</th>
-                    <th align="center">QTY</th>
-                    <th align="right">PRICE</th>
-                    <th align="right">TOTAL</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${items.map(item => {
-                    // Use your specific column: price_at_sale
-                    const qty = Number(item.quantity ?? 0);
-                    const price = Number(item.price_at_sale ?? 0);
-                    const rowTotal = qty * price;
+    <style>
+        .receipt-container {
+            position: relative;
+            padding: 20px;
+            background: #fff;
+            color: #000;
+            font-family: 'Courier New', Courier, monospace;
+            max-width: 400px;
+            margin: auto;
+            overflow: hidden;
+        }
+        .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            opacity: 0.05; 
+            width: 250px;
+            z-index: 0;
+            pointer-events: none;
+        }
+        .receipt-content {
+            position: relative;
+            z-index: 1;
+        }
+        .receipt-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+            margin: 15px 0;
+        }
+        .receipt-table th {
+            border-bottom: 2px solid #000;
+            padding: 5px 0;
+        }
+        .receipt-table td {
+            padding: 5px 0;
+        }
+        .text-center { text-align: center; }
+    </style>
 
-                    return `
+    <div class="receipt-container">
+        ${branding.logo_url ? `<img src="${branding.logo_url}" class="watermark">` : ''}
+
+        <div class="receipt-content">
+            <div class="text-center">
+                ${branding.logo_url ? `<img src="${branding.logo_url}" style="width: 80px; margin-bottom: 10px;">` : ''}
+                <h2 style="margin:0;">${(branding.company_name || "SmartsourcingKe").toUpperCase()}</h2>
+                <p style="font-size: 10px; margin: 5px 0;">${branding.tagline || 'Official Business Receipt'}</p>
+                <hr style="border-top: 1px dashed #000;">
+                <p style="font-size: 10px;">Order ID: ${order.id} | Date: ${new Date(order.created_at).toLocaleDateString()}</p>
+            </div>
+            
+            <table class="receipt-table">
+                <thead>
                     <tr>
-                        <td>${item.product_name || 'Product'}</td>
-                        <td align="center">${qty}</td>
-                        <td align="right">${price.toLocaleString()}</td>
-                        <td align="right"><strong>${rowTotal.toLocaleString()}</strong></td>
-                    </tr>`;
-                }).join('')}
-            </tbody>
-        </table>
+                        <th align="left">DESCRIPTION</th>
+                        <th align="center">QTY</th>
+                        <th align="right">UNIT</th>
+                        <th align="right">FEE</th>
+                        <th align="right">TOTAL</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${items.map(item => {
+                        const unitPrice = Number(item.price_at_sale || 0);
+                        const fee = Number(item.fee || 0);
+                        const qty = Number(item.quantity || 0);
+                        const subtotal = (qty * unitPrice) + fee;
+                        
+                        return `
+                            <tr>
+                                <td>${item.product_name || 'Item'}</td>
+                                <td align="center">${qty}</td>
+                                <td align="right">${unitPrice.toLocaleString()}</td>
+                                <td align="right">${fee.toLocaleString()}</td>
+                                <td align="right"><strong>${subtotal.toLocaleString()}</strong></td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
 
-        <div class="receipt-footer" style="margin-top:10px;">
-            <hr style="border-top: 1px dashed #000;">
-            <div style="display:flex; justify-content:space-between; font-weight:bold;">
-                <span>GRAND TOTAL:</span>
-                <span>KES ${(Number(order.total_amount ?? 0)).toLocaleString()}</span>
+            <div style="border-top: 1px dashed #000; padding-top: 10px;">
+                <div style="display:flex; justify-content:space-between; font-weight:bold; font-size: 14px;">
+                    <span>GRAND TOTAL:</span>
+                    <span>KES ${(Number(order.total_amount || 0)).toLocaleString()}</span>
+                </div>
+            </div>
+
+            <div style="margin-top: 40px; display: flex; justify-content: space-between; font-size: 10px;">
+                <div style="text-align: center;">
+                    <div style="border-top: 1px solid #000; width: 100px; margin-bottom: 5px;"></div>
+                    <span>AUTHORIZED SIGN</span>
+                </div>
+                <div style="text-align: center;">
+                    <div style="border-top: 1px solid #000; width: 100px; margin-bottom: 5px;"></div>
+                    <span>CUSTOMER SIGN</span>
+                </div>
+            </div>
+
+            <div class="text-center" style="margin-top:20px; font-size: 10px;">
+                <p>Thank you for choosing ${(branding.company_name || "us")}!</p>
             </div>
         </div>
     </div>`;
